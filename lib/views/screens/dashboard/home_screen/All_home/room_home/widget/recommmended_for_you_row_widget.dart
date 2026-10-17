@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:vlr/services/constants.dart';
 import 'package:vlr/services/theme.dart';
-import 'package:vlr/views/base/common_button.dart';
-import 'package:vlr/views/screens/room_section/search_room/search_room_screen.dart';
 
 class RecommendedForYouRow extends StatelessWidget {
   final bool isRoom;
@@ -41,21 +39,6 @@ class RecommendedForYouRow extends StatelessWidget {
               ),
           ],
         ),
-        CustomButton(
-          type: ButtonType.tertiary,
-          onTap: () => navigate(
-            context: context,
-            page: const SearchRoomScreen(),
-          ),
-          child: Text(
-            "View All",
-            style: Helper(context).textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: primaryText1,
-                ),
-          ),
-        )
       ],
     );
   }

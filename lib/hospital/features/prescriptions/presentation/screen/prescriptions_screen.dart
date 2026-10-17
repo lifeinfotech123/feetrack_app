@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'package:http/http.dart' as http;
 
-import '../../../../../services/constants.dart' as Fluttertoast;
+import '../../../../../services/constants.dart';
 import '../../../../core/constants/colors.dart';
 import '../../../../core/network/network_helper.dart';
 
@@ -45,7 +45,7 @@ class _PrescriptionsState extends State<Prescriptions> {
 
     final http.Response response = await Network().postData(
         {'user_id': widget.userId, 'list_type': 'prescriptions'},
-        '/getLists.php');
+        AppConstants.hospitalGetListsPhp);
 
     print('response ---- ${jsonDecode(response.body)}');
 
@@ -70,7 +70,7 @@ class _PrescriptionsState extends State<Prescriptions> {
 
     final http.Response response = await Network().postData({
       'prescription_id': prescriptionId.toString(),
-    }, '/markAsReceived.php');
+    }, AppConstants.hospitalMarkAsReceivedPhp);
 
     print('response ---- ${jsonDecode(response.body)}');
 

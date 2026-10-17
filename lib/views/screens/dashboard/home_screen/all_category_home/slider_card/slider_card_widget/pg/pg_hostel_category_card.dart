@@ -8,9 +8,10 @@ import 'package:vlr/controllers/permission_controller.dart';
 import 'package:vlr/data/models/category_model/category_model.dart';
 import 'package:vlr/services/constants.dart';
 
-import 'package:vlr/views/base/custom_image.dart';
-import 'package:vlr/views/screens/dashboard/home_screen/All_home/gym_home/gym_home_screen.dart';
+import 'package:vlr/views/screens/room_section/room_bottom_nav_bar/room_bottom_nav_bar_screen.dart';
 import 'package:vlr/views/screens/dashboard/home_screen/all_category_home/slider_card/slider_card_widget/pg/pg_feature_card.dart';
+
+import '../../../../../../../base/custom_image.dart';
 
 class PgHostelCategoryCard extends StatefulWidget {
   final bool isActive;
@@ -241,7 +242,7 @@ class _PgHostelCategoryCardState extends State<PgHostelCategoryCard>
     await fetchLocation(permissionController);
 
     if (!mounted) return;
-    navigate(context: context, page: const GymHomeScreen());
+    navigate(context: context, page: const RoomBottomNavBarScreen());
   }
 
   Future<void> fetchLocation(PermissionController permissionController) async {

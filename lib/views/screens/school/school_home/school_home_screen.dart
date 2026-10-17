@@ -5,7 +5,7 @@ import 'package:vlr/services/constants.dart';
 import 'package:vlr/views/screens/dashboard/home_screen/All_home/gym_home/widget/home_banner_section.dart';
 import 'package:vlr/views/screens/dashboard/home_screen/All_home/room_home/widget/room_home_search_section.dart';
 import 'package:vlr/views/screens/dashboard/home_screen/service_appbar/service_appbar.dart';
-import 'package:vlr/views/screens/room_section/search_room/search_room_screen.dart';
+import 'package:vlr/views/screens/search/search_all_screen.dart';
 import 'package:vlr/views/screens/school/school_home/widget/school_profile_widget.dart';
 import 'package:vlr/views/screens/school/school_home/widget/top_section_school.dart';
 import 'package:vlr/views/screens/school/school_profile/school_profile_screen.dart';
@@ -37,7 +37,7 @@ class SchoolHomeScreen extends StatelessWidget {
                   onTap: () {
                     commonController.updateSelectedServiceType(
                         value: SelectTypeService.school);
-                    navigate(context: context, page: const SearchRoomScreen());
+                    navigate(context: context, page: const SearchAllScreen());
                   });
             }),
             const SizedBox(height: 32),

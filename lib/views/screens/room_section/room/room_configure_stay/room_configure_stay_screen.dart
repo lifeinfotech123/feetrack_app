@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:vlr/services/constants.dart';
 import 'package:vlr/services/theme.dart';
-import 'package:vlr/views/screens/gym/gym_select_plan_screen.dart/widget/gym_select_batch_button_section.dart';
+import 'package:vlr/views/screens/room_section/room/room_booking/room_booking_screen.dart';
 import 'package:vlr/views/screens/room_section/room/room_configure_stay/widget/room_add_on_services_section.dart';
 import 'package:vlr/views/screens/room_section/room/room_configure_stay/widget/configure_stay_top_section.dart';
-import 'package:vlr/views/screens/room_section/term_and_condition/term_and_condition_screen.dart';
+import 'package:vlr/views/screens/room_section/widget/room_bottom_action_button.dart';
 
 class RoomConfigureStayScreen extends StatelessWidget {
   const RoomConfigureStayScreen({super.key});
@@ -22,10 +22,10 @@ class RoomConfigureStayScreen extends StatelessWidget {
               ),
         ),
       ),
-      bottomNavigationBar: GymSelectPackageButtonSection(
-        title: "CONTINUE TO TRAINER",
+      bottomNavigationBar: RoomBottomActionButton(
+        title: "Continue to Booking",
         onTap: () {
-          navigate(context: context, page: const TermAndConditionScreen());
+          navigate(context: context, page: const RoomBookingScreen());
         },
       ),
       body: SingleChildScrollView(

@@ -8,6 +8,8 @@ class ImageMode {
     final DateTime? createdAt;
     final DateTime? updatedAt;
 
+    String? get url => imagePath;
+
     ImageMode({
         this.id,
         this.listingId,
@@ -24,8 +26,8 @@ class ImageMode {
         imagePath: (json["url"] ?? json["image_path"] ?? json["image_url"] ?? json["image"])?.toString(),
         caption: json["caption"],
         sortOrder: json["sort_order"]?.toString(),
-        createdAt: json["created_at"] == null ? null : DateTime.parse(json["created_at"]),
-        updatedAt: json["updated_at"] == null ? null : DateTime.parse(json["updated_at"]),
+        createdAt: json["created_at"] == null ? null : DateTime.tryParse(json["created_at"].toString()),
+        updatedAt: json["updated_at"] == null ? null : DateTime.tryParse(json["updated_at"].toString()),
     );
 
     Map<String, dynamic> toJson() => {

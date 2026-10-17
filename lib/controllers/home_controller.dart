@@ -7,6 +7,7 @@ import 'package:vlr/data/models/category_model/category_model.dart';
 import 'package:vlr/data/models/category_model/facilities_model.dart';
 import 'package:vlr/data/models/category_model/listing_model.dart';
 import 'package:vlr/data/models/category_model/staff_model.dart';
+import 'package:vlr/data/models/gym_city_model.dart';
 import 'package:vlr/data/models/pagination/pagination_state.dart';
 import 'package:vlr/data/models/response/response_model.dart';
 import 'package:vlr/data/repositories/home_repo.dart';
@@ -97,7 +98,8 @@ class HomeController extends GetxController implements GetxService {
     try {
       Response response = await homeRepo.fetchCategories();
 
-      if (response.body['status'] == "success") {
+      final status = response.body['status'];
+      if (status == true || status == "success") {
         categoryModelList = (response.body['data'] as List)
             .map((e) => CategoryModel.fromJson(e))
             .toList();
@@ -125,6 +127,9 @@ class HomeController extends GetxController implements GetxService {
   // Categorized lists for home screen sections
   bool isGymLoading = false;
   List<ListingModel> gymList = [];
+  bool isGymCitiesLoading = false;
+  List<GymCityModel> gymCityList = [];
+  GymCityModel? selectedGymCity;
 
   bool isDanceLoading = false;
   List<ListingModel> danceList = [];
@@ -177,49 +182,237 @@ class HomeController extends GetxController implements GetxService {
     return responseModel;
   }
 
-  Future<ResponseModel> fetchGymListing({
-    required double? latitude,
-    required double? longitude,
+  Future<ResponseModel> fetchGyms({
+    double? latitude,
+    double? longitude,
+    String? search,
+    String? city,
   }) async {
-    log('----------- fetchGymListing ----------');
+    log('----------- fetchGyms (v1/gym/gyms) ----------');
     ResponseModel responseModel;
+    isLoading = true;
     isGymLoading = true;
     update();
+
     try {
       final Map<String, dynamic> queryParameters = {
         if (latitude != null) "latitude": latitude.toString(),
         if (longitude != null) "longitude": longitude.toString(),
-        "category_id": "1",
-        "page": "1",
-        "search": "",
+        if (search != null && search.isNotEmpty) "search": search,
+        if (city != null && city.isNotEmpty && city.toLowerCase() != 'all')
+          "city": city,
       };
 
-      String queryString = queryParameters.entries
-          .map((e) => '${e.key}=${Uri.encodeComponent(e.value.toString())}')
-          .join('&');
-      log("FULL URL HIT (Gym): ${AppConstants.baseUrl}${AppConstants.getListing}?$queryString");
+      final Response response = await homeRepo.fetchGyms(
+        query: queryParameters.isNotEmpty ? queryParameters : null,
+      );
 
-      final Response response = await homeRepo.fetchCategoriesListing(data: queryParameters);
-      if (response.body['status'] == "success") {
-        gymList = (response.body['data']['data'] as List)
-            .map((e) => ListingModel.fromJson(e))
-            .toList();
+      final body = response.body;
+      log("fetchGyms response: $body");
+
+      if (body != null && (body['status'] == true || body['status'] == "success")) {
+        List items = [];
+        if (body['data'] is List) {
+          items = body['data'] as List;
+        } else if (body['data'] is Map && body['data']['data'] is List) {
+          items = body['data']['data'] as List;
+        }
+
+        gymList = items.map((e) => ListingModel.fromJson(e)).toList();
         _calculateDistanceForListings(
           listings: gymList,
           userLat: latitude,
           userLng: longitude,
         );
-        listingModelList = gymList; // Fallback for other parts using listingModelList
-        responseModel = ResponseModel(true, response.body['message'] ?? "success");
+
+        if (selectedGymCity != null) {
+          filterGymsByCity(selectedGymCity);
+        } else {
+          listingModelList = gymList;
+        }
+        responseModel = ResponseModel(true, body['message'] ?? "success");
       } else {
-        responseModel = ResponseModel(false, response.body['message'] ?? "error");
+        responseModel = ResponseModel(false, body?['message'] ?? "Error fetching gyms");
       }
     } catch (e) {
-      responseModel = ResponseModel(false, "error $e");
+      log('ERROR AT fetchGyms(): $e');
+      responseModel = ResponseModel(false, "Error: $e");
     }
+
+    isLoading = false;
     isGymLoading = false;
     update();
     return responseModel;
+  }
+
+  Future<ResponseModel> fetchGymCities() async {
+    log('----------- fetchGymCities (v1/gym/cities) ----------');
+    ResponseModel responseModel;
+    isGymCitiesLoading = true;
+    update();
+
+    try {
+      final Response response = await homeRepo.fetchGymCities();
+      final body = response.body;
+      log("fetchGymCities response: $body");
+
+      if (body != null &&
+          (body['status'] == true || body['status'] == "success")) {
+        List items = [];
+        if (body['data'] is List) {
+          items = body['data'] as List;
+        }
+
+        // Deduplicate case-insensitively while accumulating gym counts
+        final Map<String, GymCityModel> cityMap = {};
+        for (var item in items) {
+          if (item is Map) {
+            final model = GymCityModel.fromJson(Map<String, dynamic>.from(item));
+            final rawCity = model.city.trim();
+            final key = rawCity.toLowerCase();
+            if (key.isNotEmpty) {
+              final formattedName =
+                  rawCity[0].toUpperCase() + rawCity.substring(1).toLowerCase();
+              if (cityMap.containsKey(key)) {
+                cityMap[key] = GymCityModel(
+                  city: cityMap[key]!.city,
+                  gymsCount: cityMap[key]!.gymsCount + model.gymsCount,
+                );
+              } else {
+                cityMap[key] = GymCityModel(
+                  city: formattedName,
+                  gymsCount: model.gymsCount,
+                );
+              }
+            }
+          }
+        }
+
+        gymCityList = cityMap.values.toList();
+        responseModel = ResponseModel(true, body['message'] ?? "success");
+      } else {
+        gymCityList = [];
+        responseModel =
+            ResponseModel(false, body?['message'] ?? "Error fetching gym cities");
+      }
+    } catch (e) {
+      log('ERROR AT fetchGymCities(): $e');
+      gymCityList = [];
+      responseModel = ResponseModel(false, "Error: $e");
+    }
+
+    isGymCitiesLoading = false;
+    update();
+    return responseModel;
+  }
+
+  void filterGymsByCity(GymCityModel? city) {
+    selectedGymCity = city;
+    if (city == null || city.city.trim().toLowerCase() == 'all') {
+      listingModelList = List.from(gymList);
+    } else {
+      final target = city.city.trim().toLowerCase();
+      listingModelList = gymList.where((gym) {
+        final gCity = gym.city?.trim().toLowerCase() ?? '';
+        final gAddress = gym.address?.trim().toLowerCase() ?? '';
+        final gFull = gym.fullAddress?.trim().toLowerCase() ?? '';
+        final gLandmark = gym.landmark?.trim().toLowerCase() ?? '';
+        return gCity.contains(target) ||
+            target.contains(gCity) ||
+            gAddress.contains(target) ||
+            gFull.contains(target) ||
+            gLandmark.contains(target);
+      }).toList();
+    }
+    update();
+  }
+
+  Future<ResponseModel> fetchGymDetails({required String id}) async {
+    log('----------- fetchGymDetails (v1/gym/gyms/$id) ----------');
+    ResponseModel responseModel;
+    isLoading = true;
+    isListingLoading = true;
+    update();
+
+    try {
+      final Response response = await homeRepo.fetchGymDetails(id: id);
+      final body = response.body;
+      log('fetchGymDetails response: $body');
+
+      if (body != null && (body['status'] == true || body['status'] == "success")) {
+        final Map<String, dynamic> gymData = body['data'] is Map<String, dynamic>
+            ? body['data'] as Map<String, dynamic>
+            : Map<String, dynamic>.from(body['data']);
+
+        selectListingModel = ListingModel.fromJson(gymData);
+
+        // Populate amenities into facilityList so GYMprofileAboutAndFacilitiesSection renders them
+        if (gymData['amenities'] is List) {
+          facilityList = (gymData['amenities'] as List)
+              .map((e) => FacilityModel(
+                    label: e.toString(),
+                    value: "1",
+                    fieldType: "checkbox",
+                  ))
+              .toList();
+        }
+
+        responseModel = ResponseModel(true, body['message'] ?? "success");
+      } else {
+        responseModel = ResponseModel(
+            false, body?['message'] ?? "Error while fetching gym details");
+      }
+    } catch (e) {
+      log('ERROR AT fetchGymDetails(): $e');
+      responseModel = ResponseModel(false, "Error: $e");
+    }
+
+    isLoading = false;
+    isListingLoading = false;
+    update();
+    return responseModel;
+  }
+
+  Future<ResponseModel> fetchPgDetails({required String id}) async {
+    log('----------- fetchPgDetails (v1/pg/listings/$id) ----------');
+    ResponseModel responseModel;
+    isLoading = true;
+    isListingLoading = true;
+    update();
+
+    try {
+      final Response response = await homeRepo.fetchPgDetails(id: id);
+      final body = response.body;
+      log('fetchPgDetails response: $body');
+
+      if (body != null && (body['status'] == true || body['status'] == "success")) {
+        final Map<String, dynamic> pgData = body['data'] is Map<String, dynamic>
+            ? body['data'] as Map<String, dynamic>
+            : Map<String, dynamic>.from(body['data']);
+
+        selectListingModel = ListingModel.fromJson(pgData);
+        responseModel = ResponseModel(true, body['message'] ?? "success");
+      } else {
+        responseModel = ResponseModel(
+            false, body?['message'] ?? "Error while fetching PG details");
+      }
+    } catch (e) {
+      log('ERROR AT fetchPgDetails(): $e');
+      responseModel = ResponseModel(false, "Error: $e");
+    }
+
+    isLoading = false;
+    isListingLoading = false;
+    update();
+    return responseModel;
+  }
+
+  Future<ResponseModel> fetchGymListing({
+    required double? latitude,
+    required double? longitude,
+    String? categoryId,
+  }) async {
+    return await fetchGyms(latitude: latitude, longitude: longitude);
   }
 
   Future<ResponseModel> fetchDanceListing({
@@ -269,6 +462,7 @@ class HomeController extends GetxController implements GetxService {
   Future<ResponseModel> fetchPgHostelListing({
     required double? latitude,
     required double? longitude,
+    String? categoryId,
   }) async {
     log('----------- fetchPgHostelListing ----------');
 
@@ -277,10 +471,18 @@ class HomeController extends GetxController implements GetxService {
     update();
 
     try {
+      final String targetCatId = categoryId ??
+          categoryModelList.firstWhereOrNull((c) =>
+              (c.name ?? '').toLowerCase().contains('room') ||
+              (c.name ?? '').toLowerCase().contains('pg') ||
+              (c.name ?? '').toLowerCase().contains('hostel') ||
+              (c.slug ?? '').toLowerCase().contains('room'))?.id?.toString() ??
+          "12";
+
       final Map<String, dynamic> queryParameters = {
         if (latitude != null) "latitude": latitude.toString(),
         if (longitude != null) "longitude": longitude.toString(),
-        "category_id": "3",
+        "category_id": targetCatId,
         "page": "1",
         "search": "",
       };
@@ -326,6 +528,19 @@ class HomeController extends GetxController implements GetxService {
     String? categoryId,
   }) async {
     log('----------- fetchCategoriesListing ----------');
+
+    final String activeCatId =
+        categoryId ?? selectCategoryModel?.id?.toString() ?? "";
+    final String catName = (selectCategoryModel?.name ?? '').toLowerCase();
+    final String catSlug = (selectCategoryModel?.slug ?? '').toLowerCase();
+
+    // If Gym category is selected, hit dedicated gym API (v1/gym/gyms)
+    if (activeCatId == "11" ||
+        activeCatId == "1" ||
+        catName.contains("gym") ||
+        catSlug.contains("gym")) {
+      return await fetchGyms(latitude: latitude, longitude: longitude);
+    }
 
     ResponseModel responseModel;
     isLoading = true;
@@ -662,13 +877,24 @@ class HomeController extends GetxController implements GetxService {
   Future<ResponseModel> fetchCategoriesListingById() async {
     log('-----------  fetchCategoriesListingById ----------');
 
+    final id = selectListingModel?.id ?? "";
+    final catSlug = selectListingModel?.category?.slug?.toLowerCase() ?? "";
+    final catName = selectListingModel?.category?.name?.toLowerCase() ?? "";
+    final isGym = catSlug.contains("gym") ||
+        catName.contains("gym") ||
+        selectCategoryModel?.slug?.toLowerCase() == "gym" ||
+        selectCategoryModel?.name?.toLowerCase() == "gym";
+
+    if (isGym && id.isNotEmpty) {
+      return await fetchGymDetails(id: id);
+    }
+
     ResponseModel responseModel;
     isLoading = true;
     isListingLoading = true;
     update();
 
     try {
-      final id = selectListingModel?.id ?? "";
       log('fetchCategoriesListingById: Fetching for ID: $id');
       Response response = await homeRepo.fetchCategoriesListingById(id: id);
 
@@ -735,6 +961,13 @@ class HomeController extends GetxController implements GetxService {
 
   Future<ResponseModel> fetchFacilitiesListingById() async {
     log('-----------  fetchFacilitiesListingById ----------');
+
+    // If facilities are already loaded from gym amenities, don't overwrite
+    if (facilityList.isNotEmpty &&
+        (selectListingModel?.amenities?.isNotEmpty == true ||
+            selectListingModel?.category?.slug?.toLowerCase() == "gym")) {
+      return ResponseModel(true, "Facilities already loaded from amenities");
+    }
 
     ResponseModel responseModel;
     isLoading = true;

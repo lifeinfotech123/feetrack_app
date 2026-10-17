@@ -14,6 +14,7 @@ class CategoryWidgetHome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String? imgUrl = categoryModel.imageUrl;
     return Column(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.start,
@@ -24,13 +25,12 @@ class CategoryWidgetHome extends StatelessWidget {
           height: 56,
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: categoryModel.colorValue.withOpacity(0.12),
+            color: categoryModel.colorValue.withValues(alpha: 0.12),
             shape: BoxShape.circle,
           ),
-          child: categoryModel.iconUrl != null &&
-                  categoryModel.iconUrl!.isNotEmpty
+          child: (imgUrl != null && imgUrl.isNotEmpty)
               ? CachedNetworkImage(
-                  imageUrl: categoryModel.iconUrl!,
+                  imageUrl: imgUrl,
                   width: 56,
                   height: 56,
                   fit: BoxFit.cover,

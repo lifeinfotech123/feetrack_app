@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 // import 'package:hospital_management_system/core/constants/colors.dart';
 import 'package:http/http.dart' as http;
 
+import '../../../../../services/constants.dart';
 import '../../../../core/constants/colors.dart';
 import '../../../../core/network/network_helper.dart';
 // import 'package:hospital_management_system/core/network/network_helper.dart';
@@ -41,7 +42,8 @@ class _HistoryState extends State<History> {
     });
 
     final http.Response response = await Network().postData(
-        {'user_id': widget.userId, 'list_type': 'history'}, '/getLists.php');
+        {'user_id': widget.userId, 'list_type': 'history'},
+        AppConstants.hospitalGetListsPhp);
 
     print('response ---- ${jsonDecode(response.body)}');
 

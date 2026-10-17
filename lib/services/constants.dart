@@ -10,14 +10,19 @@ import 'package:toastification/toastification.dart';
 
 class PriceConverter {
   static convert(price) {
-    String _cleanPrice = price.toString().replaceAll(',', '');
-
-    return '₹ ${double.parse(_cleanPrice).toStringAsFixed(2)}';
+    if (price == null) return '₹ 0.00';
+    String cleanPrice = price.toString().replaceAll(',', '');
+    final val = double.tryParse(cleanPrice);
+    if (val == null) return '₹ 0.00';
+    return '₹ ${val.toStringAsFixed(2)}';
   }
 
   static convertRound(price) {
-    String _cleanPrice = price.toString().replaceAll(',', '');
-    return '₹ ${double.parse(_cleanPrice).toInt()}';
+    if (price == null) return '₹ 0';
+    String cleanPrice = price.toString().replaceAll(',', '');
+    final val = double.tryParse(cleanPrice);
+    if (val == null) return '₹ 0';
+    return '₹ ${val.toInt()}';
   }
 
   static convertToNumberFormat(num price) {
@@ -152,13 +157,16 @@ class AppConstants {
   set setBaseUrl(String url) => baseUrl = url;
 
   //TODO: Change Base Url
-  static String baseUrl = 'https://app.feetrack.in/api/';
+  static String baseUrl = 'https://orderknow.com/api/';
+  //baseU
+
   // static String baseUrl = 'https://test.feetrack.in/api/';
   // static String baseUrl = 'https://feetrackhrms.bestitcompanylucknow.com/api/';
   // static String baseUrl = 'http://192.168.1.22:8000/api/';
   static String baseImageUrl = 'https://app.feetrack.in/';
   // static String baseUrl = 'http://192.168.1.5:9000/'; ///USE FOR LOCAL
   // static String baseImageUrl = 'http://192.168.1.5:9000/';
+  // static String baseUrl = "https://orderknow.com/api/"
 
   //TODO: Change Base Url
 
@@ -167,40 +175,97 @@ class AppConstants {
   static const String agoraAppId = 'c87b710048c049f59570bd1895b7e561';
 
   //* Auth
-  static const String registrationUri = 'register/request-otp';
+  static const String registrationUri = 'v1/auth/register';
   static const String verifyMobileAndEmailOtp = 'register/verify';
   static const String resendVerifyMobileAndEmailOtp = 'register/resend-otp';
   static const String loginUri = 'login/request-otp';
+  static const String emailPasswordLoginUri = 'v1/auth/login';
   static const String loginOtpVerify = 'login/verify';
   static const String loginResendOtpVerify = 'login/resend-otp';
   static const String logoutUri = '';
 
   //* profile
-  static const String getProfileUri = 'profile';
+  static const String getProfileUri = 'v1/auth/profile';
   static const String postLogout = 'logout';
-  static const String putUpdateProfile = 'profile';
+  static const String putUpdateProfile = 'v1/auth/profile';
   static const String putUpdateFcmToken = 'fcm-token';
   static const String deleteAccountUri = 'account/destroy';
 
   //* Home
-  static const String getCategories = 'categories';
+  static const String getCategories = 'v1/categories';
+  static const String getGyms = 'v1/gym/gyms';
+  static String gymDetails({required dynamic id}) => "v1/gym/gyms/$id";
+  static const String gymBookVisit = 'v1/gym/book-visit';
+  static const String gymBookMembership = 'v1/gym/book-membership';
+  static const String gymCities = 'v1/gym/cities';
+  static const String gymTrainers = 'v1/gym/trainers';
+  static String gymTrainerDetails({required dynamic id}) =>
+      "v1/gym/trainers/$id";
+  static const String myGymBookings = 'v1/gym/my-bookings';
+  static const String gymVerifyPayment = 'v1/gym/book-visit';
+  static const String gymShifts = 'v1/gym/shifts';
+  static String gymShiftDetails({required dynamic id}) => "v1/gym/shifts/$id";
+  static String gymSpecificShifts({required dynamic gymId}) =>
+      "v1/gym/gyms/$gymId/shifts";
   static const String getListing = 'listings';
   static const String getListingById = 'listings';
   static const String getBanner = 'app-banners';
   static String getProfileFacilities({required dynamic id}) =>
       "listings/$id/facilities";
   static String gymStaff({required dynamic id}) => "listings/$id/staff";
-  static String gymStaffProfile({required dynamic id, required dynamic staffId}) =>
+  static String gymStaffProfile(
+          {required dynamic id, required dynamic staffId}) =>
       "listings/$id/staff/$staffId";
   static String getProfileBranches({required int id}) =>
       "listings/$id/branches";
 
-  //* Floors & Rooms
+  //* PG / Accommodation
+  static const String pgCategories = 'v1/pg/categories';
+  static const String pgListings = 'v1/pg/listings';
+  static String pgListingDetails({required dynamic id}) => "v1/pg/listings/$id";
+  static String pgByType({required String slug}) => "v1/pg/by-type/$slug";
+  static String pgByTypeAlt({required String slug}) => "pg/v1/by-type/$slug";
+  static String pgPackageDetails({required dynamic id}) => "v1/pg/packages/$id";
+  static String pgListingPackages({required dynamic listingId}) =>
+      "v1/pg/listings/$listingId/packages";
+  static const String pgRooms = 'v1/pg/rooms';
+  static String pgRoomDetails({required dynamic id}) => "v1/pg/rooms/$id";
+  static String pgListingRooms({required dynamic listingId}) =>
+      "v1/pg/listings/$listingId/rooms";
+
+  //* Floors & Rooms (v1/pg/floors)
+  static const String pgFloors = 'v1/pg/floors';
+  static String pgFloorDetails({required dynamic floorId}) =>
+      "v1/pg/floors/$floorId";
+  static String pgFloorRooms({required dynamic floorId}) =>
+      "v1/pg/floors/$floorId/rooms";
   static String getFloors({required dynamic id}) => "listings/$id/floors";
   static String getRooms({required dynamic id, required dynamic floorId}) =>
       "listings/$id/rooms?floor_id=$floorId";
-  static String getRoomDetails({required dynamic id, required dynamic roomId}) =>
+  static String getRoomDetails(
+          {required dynamic id, required dynamic roomId}) =>
       "listings/$id/rooms/$roomId";
+
+  //* PG Customer APIs
+  static const String pgCustomerDashboard = 'v1/pg/customer/dashboard';
+  static const String pgCustomerBookings = 'v1/pg/customer/bookings';
+  static String pgCustomerBookingDetails({required dynamic id}) =>
+      'v1/pg/customer/bookings/$id';
+  static String pgCustomerBookingPay({required dynamic id}) =>
+      'v1/pg/customer/bookings/$id/pay';
+  static const String pgCustomerWallet = 'v1/pg/customer/wallet';
+  static const String pgCustomerProfile = 'v1/pg/customer/profile';
+  static const String pgCustomerInvoices = 'v1/pg/customer/invoices';
+  static String pgCustomerInvoiceDetail(dynamic id) =>
+      'v1/pg/customer/invoices/$id';
+  static const String pgCustomerSubscriptions = 'v1/pg/customer/subscriptions';
+  static String pgCustomerSubscriptionDetail(dynamic id) =>
+      'v1/pg/customer/subscriptions/$id';
+  static const String pgCustomerAttendance = 'v1/pg/customer/attendance';
+  static const String pgCustomerAttendancePunchIn =
+      'v1/pg/customer/attendance/punch-in';
+  static const String pgCustomerAttendancePunchOut =
+      'v1/pg/customer/attendance/punch-out';
 
   //* select plan
   static String getProfileDurations({required dynamic id}) =>
@@ -244,6 +309,11 @@ class AppConstants {
   //* Visits
   static const String visitsUrl = 'visits';
   static String getVisitDetailUrl(String id) => 'visits/$id';
+  static const String pgVisits = 'v1/pg/visits';
+  static const String pgScheduleVisit = 'v1/pg/schedule-visit';
+  static String pgVisitDetail(String id) => 'v1/pg/visits/$id';
+  static String pgCustomerVisitCancel({required dynamic id}) =>
+      'v1/pg/customer/visits/$id/cancel';
 
   static String downloadReceipt({required String type, required String id}) =>
       'invoice/$type/$id/download';
@@ -262,6 +332,63 @@ class AppConstants {
   static const String punchOutUri = 'attendance/punch-out';
   static const String todayAttendanceUri = 'attendance/today';
   static const String attendanceHistoryUri = 'attendance';
+
+  //* Hospital Module Endpoints
+  // Websites & Categories
+  static const String hospitalWebsitesUri = 'v1/categories/hospital/websites';
+  static const String allWebsitesUri = 'v1/categories/websites';
+
+  // Doctors & Services
+  static const String hospitalDoctorsUri = 'v1/hospital/doctors';
+  static const String hospitalServicesUri = 'v1/hospital/services';
+
+  // Appointments & Payment
+  static const String hospitalAppointmentsUri = 'v1/hospital/appointments';
+  static const String hospitalMyAppointmentsUri = 'v1/hospital/my-appointments';
+  static String hospitalMyAppointmentDetailUri(dynamic id) =>
+      'v1/hospital/my-appointments/$id';
+  static String hospitalAppointmentVerifyPaymentUri(dynamic appointmentId) =>
+      'v1/hospital/appointments/$appointmentId/verify-payment';
+  static const String hospitalPaymentGatewaysUri = 'v1/payment-gateways';
+
+  // Pharmacy
+  static const String hospitalPharmacyCatalogUri = 'v1/hospital/pharmacy';
+  static const String hospitalPharmacyMedicinesUri =
+      'v1/hospital/pharmacy/medicines';
+  static String hospitalPharmacyMedicineByIdUri(dynamic id) =>
+      'v1/hospital/pharmacy/medicines/$id';
+  static const String hospitalPharmacyCategoriesUri =
+      'v1/hospital/pharmacy/categories';
+  static const String hospitalPharmacyStoresUri = 'v1/hospital/pharmacy/stores';
+  static const String hospitalPharmacyPlaceOrderUri =
+      'v1/hospital/pharmacy/place-order';
+  static const String hospitalPharmacyVerifyPaymentUri =
+      'v1/hospital/pharmacy/verify-payment';
+  static String hospitalPharmacyInvoiceUri(dynamic billId) =>
+      'v1/hospital/pharmacy/invoice/$billId';
+  static const String hospitalPatientMedicineOrdersUri =
+      'v1/hospital/patient/medicine-orders';
+
+  // Lab Tests & Reports
+  static const String hospitalLabListingUri = 'v1/hospital/lab';
+  static const String hospitalLabTestsUri = 'v1/hospital/lab/tests';
+  static String hospitalLabTestByIdUri(dynamic id) =>
+      'v1/hospital/lab/tests/$id';
+  static const String hospitalLabCentersUri = 'v1/hospital/lab/centers';
+  static const String hospitalLabCategoriesUri = 'v1/hospital/lab/categories';
+  static const String hospitalLabBookUri = 'v1/hospital/lab/book';
+  static const String hospitalLabVerifyPaymentUri =
+      'v1/hospital/lab/verify-payment';
+  static const String hospitalPatientLabBookingsUri =
+      'v1/hospital/patient/lab-bookings';
+
+  // Legacy PHP Endpoints (Hospital Core Network)
+  static const String hospitalGetListsPhp = '/getLists.php';
+  static const String hospitalMarkAsReceivedPhp = '/markAsReceived.php';
+  static const String hospitalCancelAppointmentPhp = '/cancelAppointment.php';
+  static const String hospitalChargePhp = '/charge.php';
+  static const String hospitalUserLoginPhp = '/userLogin.php';
+  static const String hospitalRegisterUserPhp = '/registerUser.php';
 
   //
   static const double horizontalPadding = 16;

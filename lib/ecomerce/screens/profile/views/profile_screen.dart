@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 
 
+import 'package:get/get.dart';
+import 'package:vlr/controllers/auth_controller.dart';
+import 'package:vlr/services/app_router.dart';
+import 'package:vlr/services/constants.dart';
+import 'package:vlr/views/screens/auth_screens/login/login_screen.dart';
 import '../../../components/network_image_with_loader.dart';
 import '../../../constants.dart';
 import '../../../route/route_constants.dart';
@@ -273,8 +278,18 @@ class ProfileScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
+              if (Get.isRegistered<AuthController>()) {
+                await Get.find<AuthController>().logout();
+              }
+              if (context.mounted) {
+                navigate(
+                    context: context,
+                    isRemoveUntil: true,
+                    page: const LoginScreen());
+              }
+              AppRouter.goToLogin();
             },
             child: const Text(
               "Log Out",

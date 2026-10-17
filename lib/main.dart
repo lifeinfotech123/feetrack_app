@@ -1,4 +1,5 @@
 import 'dart:developer';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
@@ -15,12 +16,20 @@ import 'firebase_options_primary.dart' as primary_env;
 
 import 'package:firebase_core/firebase_core.dart';
 
+class MyHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..badCertificateCallback =
+          (X509Certificate cert, String host, int port) => true;
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  HttpOverrides.global = MyHttpOverrides();
   await Init().initialize();
   await Firebase.initializeApp(
-
-
     name:
         'primaryApp', // Optional: use a name if initializing multiple simultaneously
     options: primary_env.PrimaryFirebaseOptions.currentPlatform,
@@ -42,7 +51,6 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
-
   initPlatForm() async {
     OneSignal.Debug.setLogLevel(OSLogLevel.none);
 
@@ -54,11 +62,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
     OneSignal.Notifications.addForegroundWillDisplayListener(
         (OSNotificationWillDisplayEvent event) {
-      /// preventDefault to not display the notification
       event.preventDefault();
 
-      /// Do async work
-      /// notification.display() to display after preventing default
       event.notification.display();
     });
 
@@ -100,7 +105,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         // splitScreenMode: true,
         child: MaterialApp.router(
           title: AppConstants.appName,
-          themeMode: ThemeMode.light, 
+          themeMode: ThemeMode.light,
           theme: CustomTheme.light,
           debugShowCheckedModeBanner: false,
           routerConfig: AppRouter.router,

@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:vlr/hospital/features/lab_reports/presentation/screen/lab_reports_screen.dart';
+import 'package:vlr/hospital/features/lab_tests/presentation/screen/lab_tests_screen.dart';
 
 import '../../../../core/constants/colors.dart';
 import '../../../appointments/presentation/screen/appointments_screen.dart';
 import '../../../appointments/presentation/screen/billing_overview_screen.dart';
 import '../../../history/presentation/screen/history_screen.dart';
-import '../../../lab_reports/presentation/screen/lab_reports_screen.dart';
-import '../../../lab_tests/presentation/screen/lab_tests_screen.dart';
 import '../../../prescriptions/presentation/screen/prescriptions_screen.dart';
-
 
 class DashboardTiles extends StatefulWidget {
   final String username;
   final String userId;
-  const DashboardTiles({Key? key, required this.username, required this.userId}) : super(key: key);
+  const DashboardTiles({Key? key, required this.username, required this.userId})
+      : super(key: key);
 
   @override
   _DashboardTilesState createState() => _DashboardTilesState();
@@ -111,7 +111,8 @@ class _DashboardTilesState extends State<DashboardTiles> {
                     Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (_) => LabTests(userId: widget.userId)));
+                            builder: (_) =>
+                                LabReportsScreen(userId: widget.userId)));
                   },
                   child: Card(
                     margin: const EdgeInsets.all(10),
@@ -228,7 +229,8 @@ class _DashboardTilesState extends State<DashboardTiles> {
                     Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (_) => LabReports(userId: widget.userId)));
+                            builder: (_) =>
+                                LabReportsScreen(userId: widget.userId)));
                   },
                   child: Card(
                     margin: const EdgeInsets.all(10),

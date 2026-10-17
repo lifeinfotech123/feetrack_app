@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:vlr/controllers/auth_controller.dart';
 import 'package:vlr/controllers/subscription_controller.dart';
 import 'package:vlr/controllers/home_controller.dart';
 import 'package:vlr/services/constants.dart';
 import 'package:vlr/services/theme.dart';
+import 'package:vlr/views/base/dialogs/login_required_dialog.dart';
 import 'package:vlr/views/base/common_button.dart';
 import 'package:vlr/views/screens/gym/gym_billing_screen/gym_billing_screen.dart';
-import 'package:vlr/views/screens/gym/gym_select_trainer_screen/gym_select_trainer_screen.dart';
 import 'package:vlr/views/screens/gym/gym_select_plan_screen.dart/widget/select_duration_section.dart';
 import 'package:vlr/views/screens/gym/gym_select_plan_screen.dart/widget/select_membership_section.dart';
 import 'package:vlr/views/screens/gym/gym_select_plan_screen.dart/widget/gym_select_batch_section/gym_select_batch_section.dart';
-import 'package:vlr/views/screens/gym/gym_select_plan_screen.dart/widget/select_room_section.dart';
+import 'package:vlr/views/screens/gym/gym_book_membership/gym_book_membership_screen.dart';
 import '../../../../controllers/room_controller.dart';
+import 'package:vlr/controllers/gym_controller.dart';
 
 class GymSelectPlanScreen extends StatefulWidget {
   const GymSelectPlanScreen({super.key});
@@ -41,6 +43,7 @@ class _GymSelectPlanScreenState extends State<GymSelectPlanScreen> {
         roomId: roomId,
         floorId: floorId,
       );
+      Get.find<GymController>().fetchGymShifts(gymId: listingId);
     });
   }
 
@@ -75,13 +78,33 @@ class _GymSelectPlanScreenState extends State<GymSelectPlanScreen> {
                 borderColor: const Color(0xFF002060),
                 isLoading: subscriptionController.isLoading,
                 onTap: () {
+                  final bool isLoggedIn = Get.isRegistered<AuthController>() &&
+                      Get.find<AuthController>().isLoggedIn();
+                  if (!isLoggedIn) {
+                    showLoginRequiredDialog(
+                      context: context,
+                      title: "Login Required",
+                      message:
+                          "Please login to your account first before selecting a plan.",
+                    );
+                    return;
+                  }
+
                   if (subscriptionController.selectedPlan == null) {
                     showToast(message: "Please select a membership plan");
                     return;
                   }
 
+                  final gymController = Get.find<GymController>();
+                  if (gymController.gymShiftsList.isNotEmpty &&
+                      gymController.selectedGymShift == null) {
+                    showToast(message: "Please select a gym shift timing");
+                    return;
+                  }
+
                   if (subscriptionController.hasShifts &&
-                      subscriptionController.selectedBatch == null) {
+                      subscriptionController.selectedBatch == null &&
+                      gymController.selectedGymShift == null) {
                     showToast(message: "Please select a batch timing");
                     return;
                   }
@@ -94,36 +117,34 @@ class _GymSelectPlanScreenState extends State<GymSelectPlanScreen> {
                     );
                   } else {
                     final homeController = Get.find<HomeController>();
-                    final hasTrainers = homeController
-                            .selectListingModel?.category?.hasTrainers ??
-                        false;
-
-                    if (hasTrainers) {
-                      navigate(
-                          context: context,
-                          page: const GymSelectTrainerScreen());
-                    } else {
-                      navigate(
-                          context: context, page: const GymBillingScreen());
-                    }
+                    navigate(
+                      context: context,
+                      page: GymBookMembershipScreen(
+                        planModel: subscriptionController.selectedPlan,
+                        listingModel: homeController.selectListingModel,
+                        listingId: homeController.selectListingModel?.id,
+                        packageId: subscriptionController.selectedPlan?.id,
+                      ),
+                    );
                   }
                 },
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      "CONTINUE",
+                      "PROCEED TO BOOK MEMBERSHIP",
                       style: Helper(context).textTheme.bodyMedium?.copyWith(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
                             color: white,
+                            letterSpacing: 0.5,
                           ),
                     ),
                     sizedBoxWidth(width: 8),
                     Icon(
                       Icons.arrow_forward_ios,
                       color: white,
-                      size: 16,
+                      size: 15,
                     ),
                   ],
                 ),

@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:http/http.dart' as http;
 import 'package:vlr/hospital/features/auth/presentation/screen/signup_screen.dart';
+import 'package:vlr/services/constants.dart';
 
 import '../../../../../ecomerce/constants.dart';
 import '../../../../../views/screens/dashboard/dashboard_screen.dart';
@@ -45,7 +46,7 @@ class _LoginPageState extends State<LoginPage> {
     final http.Response response = await Network().postData({
       'username': _usernameController.text,
       'password': _passwordController.text
-    }, '/userLogin.php');
+    }, AppConstants.hospitalUserLoginPhp);
 
     print(jsonDecode(response.body));
 

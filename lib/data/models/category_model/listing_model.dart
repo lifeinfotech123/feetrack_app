@@ -1,5 +1,6 @@
 import 'package:vlr/data/models/category_model/image_model.dart';
 import 'package:vlr/data/models/category_model/package_model.dart';
+import 'package:vlr/data/models/rooom/pg_floor_model.dart';
 import 'package:vlr/services/constants.dart';
 
 import 'category_model.dart';
@@ -38,6 +39,24 @@ class ListingModel {
   final String? reviewsCount;
   final String? genderType;
   final String? securityDeposit;
+  final List<String>? amenities;
+  final bool? isVerified;
+  final List<String>? bookingPerks;
+  final Map<String, dynamic>? links;
+  final Map<String, dynamic>? website;
+  final List<dynamic>? shifts;
+  final List<dynamic>? trainers;
+  final String? listingNumber;
+  final String? city;
+  final String? state;
+  final String? pincode;
+  final String? fullAddress;
+  final List<PgFloorModel>? floors;
+  final String? compositeId;
+  final String? searchKeywords;
+  final int? totalRooms;
+  final int? availableBeds;
+  final int? totalFloors;
 
   /// Client-side calculated distance (set via Haversine formula)
   double? calculatedDistanceKm;
@@ -79,6 +98,24 @@ class ListingModel {
     this.reviewsCount,
     this.genderType,
     this.securityDeposit,
+    this.amenities,
+    this.isVerified,
+    this.bookingPerks,
+    this.links,
+    this.website,
+    this.shifts,
+    this.trainers,
+    this.listingNumber,
+    this.city,
+    this.state,
+    this.pincode,
+    this.fullAddress,
+    this.floors,
+    this.compositeId,
+    this.searchKeywords,
+    this.totalRooms,
+    this.availableBeds,
+    this.totalFloors,
   });
 
   factory ListingModel.fromJson(Map<String, dynamic> json) {
@@ -86,51 +123,99 @@ class ListingModel {
     return ListingModel(
         id: json["id"]?.toString(),
         partnerId: json["partner_id"]?.toString(),
-        categoryId: json["category_id"]?.toString(),
+        compositeId: json["composite_id"]?.toString(),
+        searchKeywords: json["search_keywords"]?.toString(),
+        categoryId: (json["category_id"] ?? json["category"]?["id"])?.toString(),
         title: json["title"]?.toString(),
         description: json["description"]?.toString(),
-        address: json["address"]?.toString(),
+        address: (json["full_address"] ?? json["address"])?.toString(),
         phone: json["phone"],
-        lat: json["lat"]?.toString(),
-        lng: json["lng"]?.toString(),
+        lat: (json["location"]?["lat"] ?? json["lat"] ?? json["latitude"])?.toString(),
+        lng: (json["location"]?["lng"] ?? json["lng"] ?? json["longitude"])?.toString(),
         status: json["status"]?.toString(),
         createdAt: json["created_at"] == null
             ? null
-            : DateTime.parse(json["created_at"]),
+            : DateTime.tryParse(json["created_at"].toString()),
         updatedAt: json["updated_at"] == null
             ? null
-            : DateTime.parse(json["updated_at"]),
+            : DateTime.tryParse(json["updated_at"].toString()),
         deletedAt: json["deleted_at"],
-        packagesMinPrice: json["packages_min_price"]?.toString(),
-        distanceKm: json["distance_km"] == null ? null : double.tryParse(json["distance_km"].toString()),
-        availableRoomsCount: json["available_rooms_count"] == null ? null : double.tryParse(json["available_rooms_count"].toString())?.toInt(),
-        availableBedsCount: json["available_beds_count"] == null ? null : double.tryParse(json["available_beds_count"].toString())?.toInt(),
+        city: json["city"]?.toString(),
+        state: json["state"]?.toString(),
+        pincode: json["pincode"]?.toString(),
+        fullAddress: (json["full_address"] ?? json["address"])?.toString(),
+        packagesMinPrice: (json["packages_min_price"] ??
+                json["pricing"]?["formatted_min"] ??
+                json["pricing"]?["min_price"])
+            ?.toString(),
+        distanceKm: json["distance_km"] == null
+            ? (json["location"]?["distance_km"] == null
+                ? null
+                : double.tryParse(json["location"]["distance_km"].toString()))
+            : double.tryParse(json["distance_km"].toString()),
+        availableRoomsCount: json["available_rooms_count"] == null
+            ? (json["total_rooms"] == null ? null : int.tryParse(json["total_rooms"].toString()))
+            : double.tryParse(json["available_rooms_count"].toString())?.toInt(),
+        availableBedsCount: json["available_beds_count"] == null
+            ? (json["available_beds"] == null ? null : int.tryParse(json["available_beds"].toString()))
+            : double.tryParse(json["available_beds_count"].toString())?.toInt(),
+        totalRooms: json["total_rooms"] != null ? int.tryParse(json["total_rooms"].toString()) : null,
+        availableBeds: json["available_beds"] != null ? int.tryParse(json["available_beds"].toString()) : null,
+        totalFloors: json["total_floors"] != null ? int.tryParse(json["total_floors"].toString()) : null,
+        floors: json["floors"] == null
+            ? null
+            : List<PgFloorModel>.from(
+                (json["floors"] as List).map((x) => PgFloorModel.fromJson(Map<String, dynamic>.from(x)))),
         fullyBooked: json["fully_booked"] is bool ? json["fully_booked"] : (json["fully_booked"] == 1 || json["fully_booked"] == "1"),
-        startingPrice: json["starting_price"] == null ? null : double.tryParse(json["starting_price"].toString())?.toInt(),
+        startingPrice: json["starting_price"] != null
+            ? double.tryParse(json["starting_price"].toString())?.toInt()
+            : (json["pricing"]?["min_price"] != null
+                ? double.tryParse(json["pricing"]["min_price"].toString())?.toInt()
+                : null),
         packages: json["packages"] == null
             ? []
             : List<PackageModel>.from(
-                json["packages"]!.map((x) => PackageModel.fromJson(x))),
+                (json["packages"] as List).map((x) => PackageModel.fromJson(Map<String, dynamic>.from(x)))),
         category: json["category"] == null
             ? null
             : CategoryModel.fromJson(json["category"]),
-        about: json["about"]?.toString(),
-        image: (json["image"] ?? json["image_url"] ?? json["image_path"])?.toString(),
+        about: (json["about"] ?? json["description"])?.toString(),
+        image: (json["cover_image"] ??
+                json["image"] ??
+                json["image_url"] ??
+                json["image_path"])
+            ?.toString(),
         images: json["images"] == null
             ? []
             : List<ImageMode>.from(
-                json["images"]!.map((x) => ImageMode.fromJson(x))),
+                (json["images"] as List).map((x) => ImageMode.fromJson(Map<String, dynamic>.from(x)))),
         landmark: json["landmark"]?.toString(),
-        openingTime: json["opening_time"]?.toString(),
-        closingTime: json["closing_time"]?.toString(),
+        openingTime: (json["timings"]?["opening_time"] ?? json["opening_time"])?.toString(),
+        closingTime: (json["timings"]?["closing_time"] ?? json["closing_time"])?.toString(),
         partner: json["partner"],
         rating: json["rating"] == null
-            ? null
-            : ListingRating.fromJson(json["rating"]),
-        reviewsAvgRating: json["reviews_avg_rating"]?.toString(),
-        reviewsCount: json["reviews_count"]?.toString(),
-        genderType: json["gender_type"]?.toString(),
+            ? (json["reviews"] == null
+                ? null
+                : ListingRating.fromJson(json["reviews"] is Map ? Map<String, dynamic>.from(json["reviews"]) : {}))
+            : ListingRating.fromJson(json["rating"] is Map ? Map<String, dynamic>.from(json["rating"]) : {}),
+        reviewsAvgRating: (json["reviews_avg_rating"] ?? json["reviews"]?["average_rating"])?.toString(),
+        reviewsCount: (json["reviews_count"] ?? json["reviews"]?["total_reviews"])?.toString(),
+        genderType: (json["gender_label"] ?? json["gender_type"])?.toString(),
         securityDeposit: json["security_deposit"]?.toString(),
+        amenities: json["amenities"] == null
+            ? []
+            : List<String>.from(json["amenities"].map((x) => x.toString())),
+        isVerified: json["is_verified"] is bool
+            ? json["is_verified"]
+            : (json["is_verified"] == 1 || json["is_verified"] == "1"),
+        bookingPerks: json["booking_perks"] == null
+            ? []
+            : List<String>.from(json["booking_perks"].map((x) => x.toString())),
+        links: json["links"] is Map ? Map<String, dynamic>.from(json["links"]) : null,
+        website: json["website"] is Map ? Map<String, dynamic>.from(json["website"]) : null,
+        shifts: json["shifts"] is List ? json["shifts"] : [],
+        trainers: json["trainers"] is List ? json["trainers"] : [],
+        listingNumber: json["listing_number"]?.toString(),
       );
   }
 
@@ -172,6 +257,14 @@ class ListingModel {
         "reviews_count": reviewsCount,
         "gender_type": genderType,
         "security_deposit": securityDeposit,
+        "amenities": amenities,
+        "is_verified": isVerified,
+        "booking_perks": bookingPerks,
+        "links": links,
+        "website": website,
+        "shifts": shifts,
+        "trainers": trainers,
+        "listing_number": listingNumber,
       };
 
   String get priceFormat =>
@@ -185,8 +278,16 @@ class ListingRating {
   ListingRating({this.average, this.count});
 
   factory ListingRating.fromJson(Map<String, dynamic> json) => ListingRating(
-        average: json["average"] == null ? null : double.tryParse(json["average"].toString()),
-        count: json["count"] is int ? json["count"] : int.tryParse(json["count"]?.toString() ?? ""),
+        average: json["average"] == null
+            ? (json["average_rating"] == null
+                ? null
+                : double.tryParse(json["average_rating"].toString()))
+            : double.tryParse(json["average"].toString()),
+        count: json["count"] is int
+            ? json["count"]
+            : (json["total_reviews"] is int
+                ? json["total_reviews"]
+                : int.tryParse(json["count"]?.toString() ?? json["total_reviews"]?.toString() ?? "")),
       );
 
   Map<String, dynamic> toJson() => {

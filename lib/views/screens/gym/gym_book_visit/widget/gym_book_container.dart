@@ -19,39 +19,41 @@ class TimeSlotContainer extends StatelessWidget {
       duration: const Duration(milliseconds: 250),
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         color: isSelected
-            ? textBlue
+            ? primaryColor
             : isEnabled
                 ? white
-                : greyLight4.withValues(alpha: 0.20),
+                : greyLight4.withValues(alpha: 0.15),
         border: Border.all(
           color: isSelected
-              ? textBlue
+              ? primaryColor
               : isEnabled
-                  ? greyLight2.withValues(alpha: 0.5)
-                  : greyLight4.withValues(alpha: 0.30),
+                  ? greyLight2.withValues(alpha: 0.6)
+                  : greyLight4.withValues(alpha: 0.25),
           width: 1.2,
         ),
-        boxShadow: isSelected ? [
-          BoxShadow(
-            color: textBlue.withValues(alpha: 0.2),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          )
-        ] : [],
+        boxShadow: isSelected
+            ? [
+                BoxShadow(
+                  color: primaryColor.withValues(alpha: 0.25),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                )
+              ]
+            : [],
       ),
       child: Text(
         time,
         style: TextStyle(
-          fontSize: 13,
+          fontSize: 12.5,
           letterSpacing: -0.2,
-          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
+          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
           color: isSelected
               ? white
               : isEnabled
                   ? blackText1
-                  : greyDart.withValues(alpha: 0.5),
+                  : greyDart.withValues(alpha: 0.4),
         ),
       ),
     );

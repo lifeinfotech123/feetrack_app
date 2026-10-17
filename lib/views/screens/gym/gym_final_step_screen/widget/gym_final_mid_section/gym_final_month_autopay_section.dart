@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:vlr/controllers/auth_controller.dart';
 import 'package:vlr/controllers/subscription_controller.dart';
 import 'package:vlr/services/constants.dart';
 import 'package:vlr/services/theme.dart';
+import 'package:vlr/views/base/dialogs/login_required_dialog.dart';
 import 'package:vlr/views/base/common_button.dart';
 import 'package:vlr/views/base/custom_image.dart';
 import 'package:vlr/views/screens/gym/gym_auto_pay_setup_screen/gym_auto_pay_setup_screen.dart';
@@ -29,6 +31,17 @@ class GYMFinalMonthlyAutoPaySection extends StatelessWidget {
         initiallyExpanded: true,
         actionButton: CustomButton(
           onTap: () {
+            final bool isLoggedIn = Get.isRegistered<AuthController>() &&
+                Get.find<AuthController>().isLoggedIn();
+            if (!isLoggedIn) {
+              showLoginRequiredDialog(
+                context: context,
+                title: "Login Required",
+                message:
+                    "Please login to your account first before setting up auto-pay.",
+              );
+              return;
+            }
             navigate(context: context, page: const GymAutoPaySetupScreen());
           },
           height: 54,

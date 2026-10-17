@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get_state_manager/get_state_manager.dart';
 import 'package:vlr/data/repositories/book_appoint_repo.dart';
 
@@ -30,11 +31,27 @@ class BookAppointController extends GetxController implements GetxService {
     update(["time_slot"]);
   }
 
+  void selectPreferredSlot(String slot) {
+    selectedTime = slot;
+    update(["time_slot"]);
+  }
+
   void selectDate(DateTime date) {
     selectedDate = date;
     selectedTime = "";
     generateTimeSlots();
     update(["selected_date", "time_slot"]);
+  }
+
+  void reset() {
+    selectedDate = DateTime.now();
+    selectedTime = "";
+    openTime = "08:00";
+    closeTime = "20:00";
+    timeSlotList.clear();
+    generateTimeSlots();
+    update(["selected_date", "time_slot"]);
+    update();
   }
 
   String openTime = "08:00";
@@ -49,35 +66,79 @@ class BookAppointController extends GetxController implements GetxService {
   }
 
   DateTime _parseSlotTime(String time) {
-    final rawParts = time.split(' ');
-    final hmParts = rawParts[0].split(':');
-    var hour = int.parse(hmParts[0]);
-    final minute = int.parse(hmParts[1]);
-    final period = rawParts[1];
+    try {
+      final match = RegExp(r'(\d{1,2}):(\d{2})\s*(AM|PM)?', caseSensitive: false).firstMatch(time);
+      if (match != null) {
+        var hour = int.parse(match.group(1)!);
+        final minute = int.parse(match.group(2)!);
+        final period = match.group(3)?.toUpperCase();
 
-    if (period == 'PM' && hour != 12) hour += 12;
-    if (period == 'AM' && hour == 12) hour = 0;
+        if (period == 'PM' && hour != 12) hour += 12;
+        if (period == 'AM' && hour == 12) hour = 0;
 
+        return DateTime(
+          selectedDate.year,
+          selectedDate.month,
+          selectedDate.day,
+          hour,
+          minute,
+        );
+      }
+    } catch (_) {}
     return DateTime(
       selectedDate.year,
       selectedDate.month,
       selectedDate.day,
-      hour,
-      minute,
+      9,
+      0,
     );
+  }
+
+  TimeOfDay _parseTimeString(String? rawTime, TimeOfDay fallback) {
+    if (rawTime == null || rawTime.trim().isEmpty) return fallback;
+    try {
+      final clean = rawTime.trim();
+      final isPm = clean.toUpperCase().contains('PM');
+      final isAm = clean.toUpperCase().contains('AM');
+      final digitsOnly = clean.replaceAll(RegExp(r'[^\d:]'), '');
+      final parts = digitsOnly.split(':');
+      if (parts.isNotEmpty) {
+        int hour = int.parse(parts[0]);
+        int minute = parts.length > 1 ? int.parse(parts[1]) : 0;
+        if (isPm && hour != 12) hour += 12;
+        if (isAm && hour == 12) hour = 0;
+        return TimeOfDay(hour: hour.clamp(0, 23), minute: minute.clamp(0, 59));
+      }
+    } catch (_) {}
+    return fallback;
+  }
+
+  void setBusinessHours({String? open, String? close}) {
+    if (open != null && open.trim().isNotEmpty) {
+      final tod = _parseTimeString(open, const TimeOfDay(hour: 6, minute: 0));
+      openTime =
+          "${tod.hour.toString().padLeft(2, '0')}:${tod.minute.toString().padLeft(2, '0')}";
+    }
+    if (close != null && close.trim().isNotEmpty) {
+      final tod = _parseTimeString(close, const TimeOfDay(hour: 22, minute: 0));
+      closeTime =
+          "${tod.hour.toString().padLeft(2, '0')}:${tod.minute.toString().padLeft(2, '0')}";
+    }
+    generateTimeSlots();
   }
 
   bool canSelectTime(String time) {
     final slotStart = _parseSlotTime(time);
     final slotEnd = slotStart.add(appointmentDuration);
 
-    final closeParts = closeTime.split(':');
+    final closeTod =
+        _parseTimeString(closeTime, const TimeOfDay(hour: 22, minute: 0));
     final closingDateTime = DateTime(
       selectedDate.year,
       selectedDate.month,
       selectedDate.day,
-      int.parse(closeParts[0]),
-      int.parse(closeParts[1]),
+      closeTod.hour,
+      closeTod.minute,
     );
 
     if (slotEnd.isAfter(closingDateTime)) {
@@ -106,23 +167,25 @@ class BookAppointController extends GetxController implements GetxService {
   void generateTimeSlots() {
     timeSlotList.clear();
 
-    final openParts = openTime.split(':');
-    final closeParts = closeTime.split(':');
+    final openTod =
+        _parseTimeString(openTime, const TimeOfDay(hour: 6, minute: 0));
+    final closeTod =
+        _parseTimeString(closeTime, const TimeOfDay(hour: 22, minute: 0));
 
     DateTime start = DateTime(
       2025,
       1,
       1,
-      int.parse(openParts[0]),
-      int.parse(openParts[1]),
+      openTod.hour,
+      openTod.minute,
     );
 
     DateTime end = DateTime(
       2025,
       1,
       1,
-      int.parse(closeParts[0]),
-      int.parse(closeParts[1]),
+      closeTod.hour,
+      closeTod.minute,
     );
 
     final now = _today;

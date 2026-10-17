@@ -1,100 +1,74 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:vlr/views/screens/notification/notification_screen.dart';
 
-import '../../../../../ecomerce/screens/notification/view/notificatios_screen.dart';
 import '../../../../core/constants/colors.dart';
-import '../../../offers_coupons/presentation/screen/offers_coupons_screen.dart';
+import '../../../profile/logics/hospital_profile_controller.dart';
 import '../../../profile_health_id/presentation/screen/profile_health_id_screen.dart';
 
 class HomeAppbarWidget extends StatelessWidget implements PreferredSizeWidget {
-  const HomeAppbarWidget({Key? key}) : super(key: key);
+  const HomeAppbarWidget({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final bool canPop = Navigator.canPop(context);
+    final profileCtrl = Get.isRegistered<HospitalProfileController>()
+        ? Get.find<HospitalProfileController>()
+        : Get.put(HospitalProfileController());
+
     return AppBar(
       backgroundColor: colorWhite,
       elevation: 0,
       automaticallyImplyLeading: false,
+      leading: canPop
+          ? IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                  color: textDark, size: 19),
+              onPressed: () => Navigator.pop(context),
+            )
+          : null,
+      titleSpacing: canPop ? 0 : 16,
       title: GestureDetector(
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const ProfileHealthIdScreen()),
+            MaterialPageRoute(
+              builder: (_) => ProfileHealthIdScreen(
+                patientName: profileCtrl.displayName,
+                healthId: profileCtrl.patientId,
+              ),
+            ),
           );
         },
-        child: Row(
-          children: [
-            Stack(
-              children: [
-                const CircleAvatar(
-                  radius: 20,
-                  backgroundColor: fillColor,
-                  child: Icon(Icons.person, color: primaryColor, size: 24),
-                ),
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: wellnessGreen,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: colorWhite, width: 1.5),
-                    ),
+        child: Obx(() {
+          // Explicitly touch reactive variables so Obx always has an active listener
+          profileCtrl.patient.value;
+          profileCtrl.isLoading.value;
+          final displayName = profileCtrl.displayName;
+
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  '👋 Hi, $displayName',
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
-            ),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: const [
-                    Text(
-                      '👋 Hi, Ahmed',
-                      style: TextStyle(color: textMuted, fontSize: 12),
-                    ),
-                  ],
-                ),
-                Row(
-                  children: const [
-                    Text(
-                      'Health ID #9840',
-                      style: TextStyle(
-                        color: textDark,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Icon(Icons.chevron_right, size: 16, color: primaryColor),
-                  ],
-                ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          );
+        }),
       ),
       actions: [
         Container(
-          margin: const EdgeInsets.only(right: 8),
-          decoration: BoxDecoration(
-            color: offerOrangeBg,
-            shape: BoxShape.circle,
-          ),
-          child: IconButton(
-            icon: const Icon(Icons.local_offer_outlined, color: offerOrange, size: 20),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const OffersCouponsScreen()),
-              );
-            },
-          ),
-        ),
-        Container(
           margin: const EdgeInsets.only(right: 16),
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: backgroundColor,
             shape: BoxShape.circle,
           ),
@@ -102,11 +76,13 @@ class HomeAppbarWidget extends StatelessWidget implements PreferredSizeWidget {
             alignment: Alignment.center,
             children: [
               IconButton(
-                icon: const Icon(Icons.notifications_outlined, color: textDark, size: 20),
+                icon: const Icon(Icons.notifications_outlined,
+                    color: textDark, size: 20),
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                    MaterialPageRoute(
+                        builder: (_) => const NotificationScreen()),
                   );
                 },
               ),

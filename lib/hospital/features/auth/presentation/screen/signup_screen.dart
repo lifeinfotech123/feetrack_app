@@ -6,7 +6,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:http/http.dart' as http;
 
-import '../../../../../services/constants.dart' as Fluttertoast;
+import '../../../../../services/constants.dart';
 import '../../../../core/constants/colors.dart';
 import '../../../../core/constants/images.dart';
 import '../../../../core/network/network_helper.dart';
@@ -57,7 +57,7 @@ class _SignUpState extends State<SignUp> {
       'contact': _contactController.text,
       'address': _addressController.text,
       'password': _passwordController.text
-    }, '/registerUser.php');
+    }, AppConstants.hospitalRegisterUserPhp);
 
     print(jsonDecode(response.body));
 

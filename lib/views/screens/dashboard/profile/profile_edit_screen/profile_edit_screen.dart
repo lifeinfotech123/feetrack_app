@@ -7,6 +7,7 @@ import 'package:vlr/views/base/common_button.dart';
 import 'package:vlr/views/base/custom_image.dart';
 import 'package:vlr/views/base/image_picker_sheet.dart';
 import 'package:vlr/views/screens/dashboard/profile/profile_edit_screen/widget/personal_infor_section.dart';
+import 'package:vlr/views/screens/dashboard/profile/profile_edit_screen/widget/profile_billing_address_section.dart';
 
 class ProfileEditScreen extends StatefulWidget {
   const ProfileEditScreen({super.key});
@@ -21,9 +22,10 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       AuthController auth = Get.find<AuthController>();
-      auth.fullNameController.text = auth.userModel?.name ?? "";
-      auth.emailController.text = auth.userModel?.email ?? "";
-      auth.mobileNoController.text = auth.userModel?.mobile ?? "";
+      auth.populateProfileControllers();
+      auth.fetchProfile().then((_) {
+        auth.populateProfileControllers();
+      });
     });
   }
 
@@ -52,23 +54,21 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               ]),
               child: GetBuilder<AuthController>(builder: (authController) {
                 return CustomButton(
-                  isLoading: authController.isLoading,
+                  isLoading: authController.updateProfileLoading ||
+                      authController.isLoading,
                   onTap: () {
                     authController.updateProfile().then((value) {
+                      showToast(
+                          message: value.message, typeCheck: value.isSuccess);
                       if (value.isSuccess) {
-                        showToast(
-                            message: value.message, typeCheck: value.isSuccess);
-                        pop(context);
-                      } else {
-                        showToast(
-                            message: value.message, typeCheck: value.isSuccess);
+                        Get.back();
                       }
                     });
                   },
-                  height: 68,
-                  radius: 999,
-                  color: primaryText1,
-                  borderColor: primaryText1,
+                  height: 50,
+                  radius: 20,
+                  color: primaryColor,
+                  borderColor: primaryColor,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -97,7 +97,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         shadowColor: black.withValues(alpha: 0.05),
         centerTitle: true,
         title: Text(
-          "Profile",
+          "Edit Profile",
           style: Helper(context).textTheme.bodyMedium?.copyWith(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
@@ -106,23 +106,62 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               ),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: AppConstants.screenPadding,
-        child: GetBuilder<AuthController>(builder: (authController) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: _buildProfileImage(authController, context),
-              ),
-              const PersonalInforSection(),
-              // ProfileBillingAddressSection(),
-
-              sizedBoxHeight(height: 32),
-            ],
+      body: GetBuilder<AuthController>(builder: (authController) {
+        if (authController.isProfileLoading &&
+            authController.userModel == null) {
+          return const Center(
+            child: CircularProgressIndicator(),
           );
-        }),
-      ),
+        }
+
+        return RefreshIndicator(
+          onRefresh: () async {
+            await authController.fetchProfile();
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: AppConstants.screenPadding,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: _buildProfileImage(authController, context),
+                ),
+                sizedBoxHeight(height: 12),
+                Center(
+                  child: Column(
+                    children: [
+                      Text(
+                        authController.userModel?.name ?? "",
+                        style: Helper(context).textTheme.bodyMedium?.copyWith(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: primaryText1,
+                            ),
+                      ),
+                      if (authController.userModel?.email != null &&
+                          authController.userModel!.email!.isNotEmpty)
+                        Text(
+                          authController.userModel!.email!,
+                          style: Helper(context).textTheme.bodyMedium?.copyWith(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: greyText3,
+                              ),
+                        ),
+                    ],
+                  ),
+                ),
+                sizedBoxHeight(height: 24),
+                const PersonalInforSection(),
+                sizedBoxHeight(height: 16),
+                const ProfileBillingAddressSection(),
+                sizedBoxHeight(height: 32),
+              ],
+            ),
+          ),
+        );
+      }),
     );
   }
 
@@ -145,7 +184,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               border: Border.all(color: white, width: 4),
               boxShadow: [
                 BoxShadow(
-                    color: black.withOpacity(0.1),
+                    color: black.withValues(alpha: 0.1),
                     blurRadius: 10,
                     spreadRadius: 2)
               ],
@@ -178,7 +217,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               decoration:
                   BoxDecoration(color: primaryText1, shape: BoxShape.circle),
               child: Icon(
-                Icons.camera,
+                Icons.camera_alt,
                 color: white,
                 size: 18,
               ),

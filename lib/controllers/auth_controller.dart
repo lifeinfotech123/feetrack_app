@@ -31,31 +31,155 @@ class AuthController extends GetxController implements GetxService {
     update();
   }
 
+  bool isProfileLoading = false;
   bool updateProfileLoading = false;
 
-  TextEditingController fullNameController =
-      TextEditingController(text: "Ajit");
+  TextEditingController firstNameController = TextEditingController();
+  TextEditingController lastNameController = TextEditingController();
+  TextEditingController fullNameController = TextEditingController();
   TextEditingController dobController = TextEditingController();
-  TextEditingController emailController =
-      TextEditingController(text: "a@gmail.com");
-  TextEditingController mobileNoController =
-      TextEditingController(text: "8926600736");
+  TextEditingController emailController = TextEditingController();
+  TextEditingController mobileNoController = TextEditingController();
+  TextEditingController bloodGroupController = TextEditingController();
   String? gender;
   List<String> genderList = ["Male", "Female", "Other"];
+  String? bloodGroup;
+  List<String> bloodGroupList = [
+    "A+",
+    "A-",
+    "B+",
+    "B-",
+    "O+",
+    "O-",
+    "AB+",
+    "AB-"
+  ];
 
   //* Address TextEditingControllers
 
   TextEditingController address1Controller = TextEditingController();
   TextEditingController address2Controller = TextEditingController();
   TextEditingController pinCodeController = TextEditingController();
+  TextEditingController cityController = TextEditingController();
+  TextEditingController stateController = TextEditingController();
+  TextEditingController countryController = TextEditingController();
   String? state;
   String? city;
 
-  //* Register TextEditingControllers
+  void setGender(String? val) {
+    gender = val;
+    update();
+  }
+
+  void setBloodGroup(String? val) {
+    bloodGroup = val;
+    bloodGroupController.text = val ?? "";
+    update();
+  }
+
+  void updateFirstAndLastName(String first, String last) {
+    fullNameController.text = "$first $last".trim();
+    update();
+  }
+
+  void updateFullName(String full) {
+    List<String> parts = full.trim().split(RegExp(r'\s+'));
+    firstNameController.text = parts.isNotEmpty ? parts.first : "";
+    lastNameController.text =
+        parts.length > 1 ? parts.sublist(1).join(" ") : "";
+    update();
+  }
+
+  void populateProfileControllers() {
+    if (userModel == null) return;
+
+    fullNameController.text = userModel?.name ?? "";
+    firstNameController.text = userModel?.firstName ?? "";
+    lastNameController.text = userModel?.lastName ?? "";
+
+    if ((firstNameController.text.isEmpty && lastNameController.text.isEmpty) &&
+        fullNameController.text.isNotEmpty) {
+      List<String> parts =
+          fullNameController.text.trim().split(RegExp(r'\s+'));
+      firstNameController.text = parts.isNotEmpty ? parts.first : "";
+      lastNameController.text =
+          parts.length > 1 ? parts.sublist(1).join(" ") : "";
+    } else if (fullNameController.text.isEmpty &&
+        (firstNameController.text.isNotEmpty ||
+            lastNameController.text.isNotEmpty)) {
+      fullNameController.text =
+          "${firstNameController.text} ${lastNameController.text}".trim();
+    }
+
+    emailController.text = userModel?.email ?? "";
+    mobileNoController.text = userModel?.mobile ?? "";
+    if (userModel?.dateOfBirth != null && userModel!.dateOfBirth!.isNotEmpty) {
+      String rawDob = userModel!.dateOfBirth!.trim();
+      if (rawDob.contains("T")) {
+        rawDob = rawDob.split("T").first;
+      }
+      DateTime? parsed = DateTime.tryParse(rawDob);
+      if (parsed != null) {
+        dobController.text =
+            "${parsed.day.toString().padLeft(2, '0')}-${parsed.month.toString().padLeft(2, '0')}-${parsed.year.toString().padLeft(4, '0')}";
+      } else {
+        dobController.text = rawDob;
+      }
+    } else {
+      dobController.text = "";
+    }
+
+    if (userModel?.gender != null && userModel!.gender!.isNotEmpty) {
+      String g = userModel!.gender!.trim();
+      int index = genderList
+          .indexWhere((element) => element.toLowerCase() == g.toLowerCase());
+      if (index != -1) {
+        gender = genderList[index];
+      } else {
+        gender = g;
+      }
+    } else {
+      gender = null;
+    }
+
+    if (userModel?.bloodGroup != null && userModel!.bloodGroup!.isNotEmpty) {
+      String bg = userModel!.bloodGroup!.trim().toUpperCase();
+      int index = bloodGroupList
+          .indexWhere((element) => element.toUpperCase() == bg);
+      if (index != -1) {
+        bloodGroup = bloodGroupList[index];
+      } else {
+        bloodGroup = bg;
+      }
+      bloodGroupController.text = bloodGroup ?? "";
+    } else {
+      bloodGroup = null;
+      bloodGroupController.text = "";
+    }
+
+    address1Controller.text = userModel?.address ?? "";
+    cityController.text = userModel?.city ?? "";
+    city = userModel?.city;
+    stateController.text = userModel?.state ?? "";
+    state = userModel?.state;
+    pinCodeController.text = userModel?.pincode ?? "";
+    countryController.text =
+        (userModel?.country != null && userModel!.country!.isNotEmpty)
+            ? userModel!.country!
+            : "India";
+
+    update();
+  }
+
+  //* Register & Login TextEditingControllers
 
   TextEditingController mobileOtpCodeController = TextEditingController();
   TextEditingController emailOtpCodeController = TextEditingController();
   TextEditingController referralCodeController = TextEditingController();
+  TextEditingController passwordController = TextEditingController();
+  TextEditingController confirmPasswordController = TextEditingController();
+  TextEditingController loginEmailController = TextEditingController();
+  TextEditingController loginPasswordController = TextEditingController();
   String? lastUsedReferralCode;
 
   Future<ResponseModel> registerUser() async {
@@ -66,25 +190,23 @@ class AuthController extends GetxController implements GetxService {
     update();
 
     try {
-      String referral = referralCodeController.text.trim();
-      if (referral.isEmpty) {
-        referral = (await AppsFlyerService.getSavedReferralCode()) ?? '';
-      }
-      if (referral.isNotEmpty) {
-        lastUsedReferralCode = referral;
-        AppsFlyerService.saveReferralToPrefs(referral);
-      }
+      String firstName = firstNameController.text.trim();
+      String lastName = lastNameController.text.trim();
 
-      String deviceId = await authRepo.getDeviceId();
-      log("Phone Device ID (registerUser): $deviceId");
+      if (firstName.isEmpty && fullNameController.text.trim().isNotEmpty) {
+        String fullName = fullNameController.text.trim();
+        List<String> nameParts = fullName.split(RegExp(r'\s+'));
+        firstName = nameParts.isNotEmpty ? nameParts.first : '';
+        lastName = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+      }
 
       Map<String, dynamic> data = {
-        "name": fullNameController.text.trim(),
+        "first_name": firstName,
+        "last_name": lastName,
         "email": emailController.text.trim(),
-        "mobile": mobileNoController.text.trim(),
-        "otp": "123456",
-        "device_id": deviceId,
-        if (referral.isNotEmpty) "referral_code": referral,
+        "phone": mobileNoController.text.trim(),
+        "password": passwordController.text.trim(),
+        "password_confirmation": confirmPasswordController.text.trim(),
       };
 
       Response response = await authRepo.postUserRegister(
@@ -93,23 +215,50 @@ class AuthController extends GetxController implements GetxService {
 
       log("Raw Response: ${response.body}");
 
-      if (response.body['status'] == "success") {
+      final body = response.body;
+      if (response.isOk &&
+          body != null &&
+          (body['status'] == true ||
+              body['status'] == "success" ||
+              body['status'] == 1 ||
+              body['status'] == "true" ||
+              (body['errors'] == null &&
+                  (response.statusCode == 200 ||
+                      response.statusCode == 201)))) {
+        firstNameController.clear();
+        lastNameController.clear();
+        fullNameController.clear();
+        emailController.clear();
+        passwordController.clear();
+        confirmPasswordController.clear();
+
         responseModel = ResponseModel(
-            true, response.body['message'] ?? "success registerUser ");
+            true, body['message'] ?? "User registered successfully.");
       } else {
         String errorMessage =
-            response.body['message'] ?? "Error while registering user";
+            body?['message'] ?? "Error while registering user";
 
-        if (response.body['errors'] != null &&
-            response.body['errors']['mobile'] != null) {
-          errorMessage = response.body['errors']['mobile'][0];
+        if (body?['errors'] != null) {
+          final errors = body['errors'];
+          if (errors is Map) {
+            for (var key in errors.keys) {
+              if (errors[key] != null && errors[key].isNotEmpty) {
+                if (errors[key] is List) {
+                  errorMessage = errors[key][0];
+                } else {
+                  errorMessage = errors[key].toString();
+                }
+                break;
+              }
+            }
+          }
         }
 
         responseModel = ResponseModel(false, errorMessage);
       }
     } catch (e) {
       log('ERROR AT registerUser(): $e');
-      responseModel = ResponseModel(false, "Error while registering user $e");
+      responseModel = ResponseModel(false, "Error while registering user: $e");
     }
 
     isLoading = false;
@@ -313,6 +462,100 @@ class AuthController extends GetxController implements GetxService {
     return responseModel;
   }
 
+  Future<ResponseModel> loginWithEmailPassword() async {
+    log('----------- loginWithEmailPassword Called ----------');
+
+    ResponseModel responseModel;
+    isLoading = true;
+    update();
+
+    try {
+      String email = loginEmailController.text.trim();
+      if (email.isEmpty) {
+        email = emailController.text.trim();
+      }
+      String password = loginPasswordController.text.trim();
+      if (password.isEmpty) {
+        password = passwordController.text.trim();
+      }
+
+      Response response = await authRepo.postEmailPasswordLogin(
+        email: email,
+        password: password,
+      );
+
+      log("Status Code: ${response.statusCode}");
+      log("Raw Response (loginWithEmailPassword): ${response.body}");
+
+      final body = response.body;
+      if (response.isOk &&
+          body != null &&
+          (body['status'] == true ||
+              body['status'] == "success" ||
+              body['status'] == 1 ||
+              body['status'] == "true" ||
+              (body['errors'] == null &&
+                  (response.statusCode == 200 ||
+                      response.statusCode == 201)))) {
+        final responseData = body['data'];
+
+        String? token;
+        if (responseData != null && responseData is Map) {
+          token = responseData['token']?.toString() ??
+              responseData['access_token']?.toString();
+        } else if (responseData != null &&
+            responseData is String &&
+            responseData.isNotEmpty) {
+          token = responseData;
+        }
+        token ??= body['token']?.toString() ??
+            body['access_token']?.toString();
+
+        if (token != null && token.isNotEmpty) {
+          await authRepo.setUserToken(token);
+          log("Saved token: $token");
+          AppsFlyerService.markAppReady(isLoggedIn: true);
+          await fetchProfile();
+        }
+
+        loginEmailController.clear();
+        loginPasswordController.clear();
+
+        responseModel = ResponseModel(
+          true,
+          body['message'] ?? "Login successful.",
+        );
+      } else {
+        String errorMessage = body?['message'] ?? "Invalid email or password";
+
+        if (body?['errors'] != null) {
+          final errors = body['errors'];
+          if (errors is Map) {
+            for (var key in errors.keys) {
+              if (errors[key] != null && errors[key].isNotEmpty) {
+                if (errors[key] is List) {
+                  errorMessage = errors[key][0];
+                } else {
+                  errorMessage = errors[key].toString();
+                }
+                break;
+              }
+            }
+          }
+        }
+
+        responseModel = ResponseModel(false, errorMessage);
+      }
+    } catch (e) {
+      log('ERROR AT loginWithEmailPassword(): $e');
+      responseModel = ResponseModel(false, "Error during login: $e");
+    }
+
+    isLoading = false;
+    update();
+    return responseModel;
+  }
+
   Future<ResponseModel> loginOtpVerify() async {
     log('----------- loginOtpVerify Called ----------');
 
@@ -420,40 +663,94 @@ class AuthController extends GetxController implements GetxService {
 
   UserModel? userModel;
 
+  void clearProfileControllers() {
+    fullNameController.clear();
+    firstNameController.clear();
+    lastNameController.clear();
+    emailController.clear();
+    mobileNoController.clear();
+    gender = null;
+    dobController.clear();
+    address1Controller.clear();
+    cityController.clear();
+    stateController.clear();
+    pinCodeController.clear();
+    countryController.clear();
+  }
+
+  void continueAsGuest() {
+    authRepo.clearSharedData();
+    userModel = null;
+    clearProfileControllers();
+    isProfileLoading = false;
+    isLoading = false;
+    AppsFlyerService.markAppReady(isLoggedIn: false);
+    update();
+  }
+
   Future<ResponseModel> fetchProfile() async {
     log('----------- fetchProfile Called ----------');
 
+    if (!isLoggedIn()) {
+      userModel = null;
+      isProfileLoading = false;
+      update();
+      return ResponseModel(false, "User not logged in");
+    }
+
     ResponseModel responseModel;
-    isLoading = true;
+    isProfileLoading = true;
     update();
 
     try {
       Response response = await authRepo.fetchProfile();
+      log("Fetch Profile Response: ${response.body}");
 
-      if (response.body['status'] == "success") {
-        userModel = UserModel.fromJson(response.body['data']);
-        log("Profile fetched: ${userModel?.image}");
+      final body = response.body;
+      if (body != null &&
+          (body['status'] == true || body['status'] == "success")) {
+        final data = body['data'];
+        final userData =
+            (data != null && data is Map && data.containsKey('user'))
+                ? data['user']
+                : data;
+
+        if (userData != null) {
+          userModel = UserModel.fromJson(userData);
+          populateProfileControllers();
+          log("Profile fetched successfully: ${userModel?.name}");
+        }
 
         responseModel = ResponseModel(
-            true, response.body['message'] ?? "success fetch fetchProfile ");
+            true, body['message'] ?? "User profile retrieved successfully.");
       } else {
         String errorMessage =
-            response.body['message'] ?? "Error while registering user";
+            body?['message'] ?? "Error while fetching profile";
 
-        if (response.body['errors'] != null &&
-            response.body['errors']['mobile'] != null) {
-          errorMessage = response.body['errors']['mobile'][0];
+        if (body?['errors'] != null) {
+          final errors = body['errors'];
+          if (errors is Map) {
+            for (var key in errors.keys) {
+              if (errors[key] != null && errors[key].isNotEmpty) {
+                if (errors[key] is List) {
+                  errorMessage = errors[key][0];
+                } else {
+                  errorMessage = errors[key].toString();
+                }
+                break;
+              }
+            }
+          }
         }
 
         responseModel = ResponseModel(false, errorMessage);
       }
     } catch (e) {
-      log('ERROR AT registerUser(): $e');
-      responseModel =
-          ResponseModel(false, "Error while fetch fetchProfile  $e");
+      log('ERROR AT fetchProfile(): $e');
+      responseModel = ResponseModel(false, "Error while fetching profile: $e");
     }
 
-    isLoading = false;
+    isProfileLoading = false;
     update();
     return responseModel;
   }
@@ -468,28 +765,21 @@ class AuthController extends GetxController implements GetxService {
     try {
       Response response = await authRepo.logout(data: FormData({}));
 
-      if (response.body['status'] == "success") {
-        authRepo.clearSharedData();
+      if (response.body != null && (response.body['status'] == "success" || response.body['status'] == true)) {
         responseModel = ResponseModel(
             true, response.body['message'] ?? "success logout user ");
       } else {
-        String errorMessage =
-            response.body['message'] ?? "Error while registering user";
-
-        if (response.body['errors'] != null &&
-            response.body['errors']['mobile'] != null) {
-          errorMessage = response.body['errors']['mobile'][0];
-        }
-
-        responseModel = ResponseModel(false, errorMessage);
+        responseModel = ResponseModel(true, "Logged out successfully");
       }
     } catch (e) {
       log('ERROR AT logout(): $e');
-      responseModel = ResponseModel(false, "Error while logout user  $e");
+      responseModel = ResponseModel(true, "Logged out");
+    } finally {
+      continueAsGuest();
+      isLoading = false;
+      update();
     }
 
-    isLoading = false;
-    update();
     return responseModel;
   }
 
@@ -508,8 +798,8 @@ class AuthController extends GetxController implements GetxService {
         responseModel = ResponseModel(
             true, response.body['message'] ?? "Account deleted successfully");
       } else {
-        responseModel = ResponseModel(false,
-            response.body['message'] ?? "Error while deleting account");
+        responseModel = ResponseModel(
+            false, response.body['message'] ?? "Error while deleting account");
       }
     } catch (e) {
       log('ERROR AT deleteAccount(): $e');
@@ -525,45 +815,115 @@ class AuthController extends GetxController implements GetxService {
     log('----------- updateProfile Called ----------');
 
     ResponseModel responseModel;
+    updateProfileLoading = true;
     isLoading = true;
     update();
 
     try {
+      String fullName = fullNameController.text.trim();
+      String firstName = firstNameController.text.trim();
+      String lastName = lastNameController.text.trim();
+
+      if (firstName.isEmpty && fullName.isNotEmpty) {
+        List<String> nameParts = fullName.split(RegExp(r'\s+'));
+        firstName = nameParts.isNotEmpty ? nameParts.first : '';
+        lastName = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+      } else if (fullName.isEmpty &&
+          (firstName.isNotEmpty || lastName.isNotEmpty)) {
+        fullName = "$firstName $lastName".trim();
+      }
+
       final Map<String, dynamic> data = {
-        "name": fullNameController.text.trim(),
-        "email": emailController.text.trim(),
-        "mobile": mobileNoController.text.trim(),
-        if (dobController.text.isNotEmpty) "dob": dobController.text.trim(),
-        "_method": "PUT", // Method spoofing for multipart PUT
+        if (fullName.isNotEmpty) "name": fullName,
+        if (firstName.isNotEmpty) "first_name": firstName,
+        if (lastName.isNotEmpty) "last_name": lastName,
+        if (emailController.text.trim().isNotEmpty)
+          "email": emailController.text.trim(),
+        if (mobileNoController.text.trim().isNotEmpty)
+          "phone": mobileNoController.text.trim(),
+        if (gender != null && gender!.isNotEmpty) "gender": gender,
+        if (dobController.text.trim().isNotEmpty)
+          "date_of_birth": dobController.text.trim(),
+        if (bloodGroup != null && bloodGroup!.isNotEmpty)
+          "blood_group": bloodGroup
+        else if (bloodGroupController.text.trim().isNotEmpty)
+          "blood_group": bloodGroupController.text.trim(),
+        if (address1Controller.text.trim().isNotEmpty)
+          "address": address1Controller.text.trim(),
+        if (cityController.text.trim().isNotEmpty)
+          "city": cityController.text.trim()
+        else if (city != null && city!.isNotEmpty)
+          "city": city,
+        if (stateController.text.trim().isNotEmpty)
+          "state": stateController.text.trim()
+        else if (state != null && state!.isNotEmpty)
+          "state": state,
+        if (pinCodeController.text.trim().isNotEmpty)
+          "pincode": pinCodeController.text.trim(),
+        if (countryController.text.trim().isNotEmpty)
+          "country": countryController.text.trim(),
       };
 
       if (profileImage != null) {
-        data['profile_image'] = MultipartFile(profileImage!,
-            filename:
-                'profile_${DateTime.now().millisecondsSinceEpoch}.jpg');
+        data['avatar'] = MultipartFile(profileImage!,
+            filename: 'profile_${DateTime.now().millisecondsSinceEpoch}.jpg');
       }
 
-      // Use POST instead of PUT because many servers (like Laravel) don't support
-      // multipart/form-data in real PUT requests. We use _method=PUT above.
-      Response response = await authRepo.postProfileUpdate(data: FormData(data));
+      log("Update Profile Request Data: $data");
+
+      Response response =
+          await authRepo.postProfileUpdate(data: FormData(data));
 
       log("Update Profile Response: ${response.body}");
 
-      if (response.body != null && response.body['status'] == "success") {
+      final body = response.body;
+      if (body != null &&
+          (body['status'] == true || body['status'] == "success")) {
         profileImage = null; // Clear local image after success
-        await fetchProfile();
+        final responseData = body['data'];
+        final userData = (responseData != null &&
+                responseData is Map &&
+                responseData.containsKey('user'))
+            ? responseData['user']
+            : responseData;
+
+        if (userData != null) {
+          userModel = UserModel.fromJson(userData);
+          populateProfileControllers();
+        } else {
+          await fetchProfile();
+        }
+
         responseModel = ResponseModel(
-            true, response.body['message'] ?? "Profile updated successfully");
+            true, body['message'] ?? "Profile updated successfully.");
       } else {
-        responseModel = ResponseModel(false,
-            response.body?['message'] ?? "Error while updating profile");
+        String errorMessage =
+            body?['message'] ?? "Error while updating profile";
+
+        if (body?['errors'] != null) {
+          final errors = body['errors'];
+          if (errors is Map) {
+            for (var key in errors.keys) {
+              if (errors[key] != null && errors[key].isNotEmpty) {
+                if (errors[key] is List) {
+                  errorMessage = errors[key][0];
+                } else {
+                  errorMessage = errors[key].toString();
+                }
+                break;
+              }
+            }
+          }
+        }
+
+        responseModel = ResponseModel(false, errorMessage);
       }
     } catch (e) {
       log('ERROR AT updateProfile(): $e');
-      responseModel =
-          ResponseModel(false, "Error while updating profile: $e");
+      responseModel = ResponseModel(false, "Error while updating profile: $e");
     }
 
+    updateProfileLoading = false;
     isLoading = false;
     update();
     return responseModel;

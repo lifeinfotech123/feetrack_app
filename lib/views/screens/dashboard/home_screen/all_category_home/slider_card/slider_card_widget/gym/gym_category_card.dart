@@ -10,6 +10,7 @@ import 'package:vlr/services/constants.dart';
 
 import 'package:vlr/views/base/custom_image.dart';
 import 'package:vlr/views/screens/dashboard/home_screen/All_home/gym_home/gym_home_screen.dart';
+import 'package:vlr/views/screens/gym/gym_bottom_nav_bar/gym_bottom_nav_bar_screen.dart';
 import 'package:vlr/views/screens/dashboard/home_screen/all_category_home/slider_card/slider_card_widget/gym/gym_feature_card.dart';
 
 class GymCategoryCard extends StatefulWidget {
@@ -225,7 +226,7 @@ class _GymCategoryCardState extends State<GymCategoryCard>
     await fetchLocation(permissionController);
 
     if (!mounted) return;
-    navigate(context: context, page: const GymHomeScreen());
+    navigate(context: context, page: const GymBottomNavBarScreen());
   }
 
   Future<void> fetchLocation(PermissionController permissionController) async {

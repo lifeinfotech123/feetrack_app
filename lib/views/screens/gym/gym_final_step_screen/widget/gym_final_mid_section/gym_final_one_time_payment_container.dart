@@ -1,18 +1,18 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:vlr/controllers/auth_controller.dart';
 import 'package:vlr/controllers/coupons_controller.dart';
 import 'package:vlr/controllers/gym_controller.dart';
 import 'package:vlr/controllers/home_controller.dart';
 import 'package:vlr/controllers/subscription_controller.dart';
 import 'package:vlr/services/constants.dart';
 import 'package:vlr/services/theme.dart';
+import 'package:vlr/views/base/dialogs/login_required_dialog.dart';
 import 'package:vlr/views/base/common_button.dart';
 import 'package:vlr/views/base/custom_image.dart';
 import 'package:vlr/views/screens/gym/gym_book_visit_success/gym_book_visit_success_screen.dart';
 import 'package:vlr/views/screens/gym/gym_final_step_screen/widget/gym_final_mid_section/month_auth_pay_benefty_row.dart';
-
-import '../../gym_final_step_screen.dart';
 import 'package:vlr/views/base/web_view.dart';
 import '../../../../../../generated/assets.dart';
 
@@ -34,6 +34,18 @@ class GYMFinalOneTimePaymentSection extends StatelessWidget {
         actionButton: CustomButton(
           isLoading: subscriptionController.isLoading,
           onTap: () {
+            final bool isLoggedIn = Get.isRegistered<AuthController>() &&
+                Get.find<AuthController>().isLoggedIn();
+            if (!isLoggedIn) {
+              showLoginRequiredDialog(
+                context: context,
+                title: "Login Required",
+                message:
+                    "Please login to your account first before confirming the booking.",
+              );
+              return;
+            }
+
             final homeController = Get.find<HomeController>();
             final gymController = Get.find<GymController>();
             final couponsController = Get.find<CouponsController>();

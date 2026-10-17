@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:vlr/services/constants.dart';
 import 'package:vlr/services/theme.dart';
-import 'package:vlr/views/screens/gym/gym_select_plan_screen.dart/widget/gym_select_batch_button_section.dart';
 import 'package:vlr/views/screens/room_section/Pg/select_building/widget/select_build_pg_widget.dart';
 import 'package:vlr/views/screens/room_section/Pg/select_building/widget/select_share_type_widge.dart';
 import 'package:vlr/views/screens/room_section/Pg/select_room_bed/select_room_bed_screen.dart';
+import 'package:vlr/views/screens/room_section/widget/room_bottom_action_button.dart';
 
 class SelectBuildingScreen extends StatelessWidget {
   const SelectBuildingScreen({super.key});
@@ -22,7 +22,7 @@ class SelectBuildingScreen extends StatelessWidget {
               ),
         ),
       ),
-      bottomNavigationBar: GymSelectPackageButtonSection(
+      bottomNavigationBar: RoomBottomActionButton(
         title: "Continue to Room Selection",
         onTap: () {
           navigate(context: context, page: const SelectRoomAndBedScreen());

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
+import 'package:vlr/controllers/auth_controller.dart';
 import 'package:vlr/services/constants.dart';
-
 import 'package:vlr/views/base/custom_image.dart';
+import 'package:vlr/views/screens/auth_screens/login/login_screen.dart';
 
 import '../user_job_profile/screens/user_job_profile_screen.dart';
 
@@ -16,6 +18,15 @@ class AiHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (Navigator.canPop(context)) ...[
+          IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          SizedBox(width: 8.w),
+        ],
         // --------------------------------------------------
         // GREETING
         // --------------------------------------------------
@@ -23,13 +34,21 @@ class AiHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                "Hello, Sharat 👋",
-                style: TextStyle(
-                  fontSize: 27.sp,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
+              GetBuilder<AuthController>(
+                builder: (authController) {
+                  final bool isLoggedIn = authController.isLoggedIn();
+                  final String name = isLoggedIn
+                      ? (authController.userModel?.name ?? 'Guest')
+                      : 'Guest';
+                  return Text(
+                    "Hello, $name 👋",
+                    style: TextStyle(
+                      fontSize: 27.sp,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  );
+                },
               ),
               SizedBox(height: 5.h),
               Text(
@@ -84,7 +103,14 @@ class AiHeader extends StatelessWidget {
         // PROFILE
         // --------------------------------------------------
         InkWell(
-          onTap: (){
+          onTap: () {
+            final authCtrl = Get.isRegistered<AuthController>()
+                ? Get.find<AuthController>()
+                : null;
+            if (authCtrl == null || !authCtrl.isLoggedIn()) {
+              Get.to(() => const LoginScreen());
+              return;
+            }
             navigate(
               context: context,
               page: const UserJobProfileScreen(),
@@ -108,13 +134,20 @@ class AiHeader extends StatelessWidget {
                 ),
               ],
             ),
-            child: const ClipOval(
-              child: CustomImage(
-                path: Assets.imagesTrainer1,
-                width: double.infinity,
-                height: double.infinity,
-                fit: BoxFit.cover,
-                isProfile: true,
+            child: ClipOval(
+              child: GetBuilder<AuthController>(
+                builder: (authController) {
+                  final String imagePath = authController.isLoggedIn()
+                      ? (authController.userModel?.image ?? "")
+                      : "";
+                  return CustomImage(
+                    path: imagePath,
+                    width: double.infinity,
+                    height: double.infinity,
+                    fit: BoxFit.cover,
+                    isProfile: true,
+                  );
+                },
               ),
             ),
           ),

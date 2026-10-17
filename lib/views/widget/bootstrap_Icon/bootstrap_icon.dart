@@ -1,7 +1,7 @@
 import 'package:bootstrap_icons/bootstrap_icons.dart';
 import 'package:flutter/material.dart';
-import 'package:vlr/views/screens/dashboard/home_screen/All_home/gym_home/gym_home_screen.dart';
-import 'package:vlr/views/screens/dashboard/home_screen/All_home/room_home/room_home_screen.dart';
+import 'package:vlr/views/screens/gym/gym_bottom_nav_bar/gym_bottom_nav_bar_screen.dart';
+import 'package:vlr/views/screens/room_section/room_bottom_nav_bar/room_bottom_nav_bar_screen.dart';
 
 IconData getBootstrapIcon(String? iconName) {
   switch (iconName) {
@@ -26,8 +26,23 @@ IconData getBootstrapIcon(String? iconName) {
     case 'bi-trophy':
       return BootstrapIcons.trophy;
 
-    case 'bi-laptop':
-      return BootstrapIcons.laptop;
+    case 'bi-gender-male':
+      return BootstrapIcons.gender_male;
+
+    case 'bi-gender-female':
+      return BootstrapIcons.gender_female;
+
+    case 'bi-people':
+      return BootstrapIcons.people;
+
+    case 'bi-buildings':
+      return BootstrapIcons.buildings;
+
+    case 'bi-gem':
+      return BootstrapIcons.gem;
+
+    case 'bi-heart-half':
+      return BootstrapIcons.heart_half;
 
     default:
       return BootstrapIcons.grid;
@@ -37,30 +52,30 @@ IconData getBootstrapIcon(String? iconName) {
 Widget getNavigation(String? iconName) {
   switch (iconName) {
     case 'bi-heart-pulse':
-      return GymHomeScreen();
+      return const GymBottomNavBarScreen();
 
     case 'bi-house-door':
-      return GymHomeScreen();
+      return const GymBottomNavBarScreen();
 
     case 'bi-door-open':
-      return RoomHomeScreen();
+      return const RoomBottomNavBarScreen();
 
     case 'bi-wifi':
-      return RoomHomeScreen();
+      return const RoomBottomNavBarScreen();
 
     case 'bi-book':
-      return RoomHomeScreen();
+      return const RoomBottomNavBarScreen();
 
     case 'bi-mortarboard':
-      return RoomHomeScreen();
+      return const RoomBottomNavBarScreen();
 
     case 'bi-trophy':
-      return RoomHomeScreen();
+      return const RoomBottomNavBarScreen();
 
     case 'bi-laptop':
-      return RoomHomeScreen();
+      return const RoomBottomNavBarScreen();
 
     default:
-      return RoomHomeScreen();
+      return const RoomBottomNavBarScreen();
   }
 }

@@ -43,7 +43,7 @@ class ApiClient extends GetConnect implements GetxService {
     };
   }
 
- Future<Response> getData(
+  Future<Response> getData(
     String uri,
     String name, {
     Map<String, dynamic>? query,
@@ -52,6 +52,14 @@ class ApiClient extends GetConnect implements GetxService {
     Function(dynamic)? decoder,
   }) async {
     try {
+      final savedToken = sharedPreferences.getString(AppConstants.token);
+      if (savedToken != null && savedToken.isNotEmpty && (token == null || token!.isEmpty || token != savedToken)) {
+        token = savedToken;
+        _mainHeaders = {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        };
+      }
       if (kDebugMode) {
         log('====> GetX Call: $uri\nToken: $token');
       }
@@ -92,6 +100,16 @@ class ApiClient extends GetConnect implements GetxService {
     Function(double)? uploadProgress,
   }) async {
     try {
+      final savedToken = sharedPreferences.getString(AppConstants.token);
+      if (savedToken != null &&
+          savedToken.isNotEmpty &&
+          (token == null || token!.isEmpty || token != savedToken)) {
+        token = savedToken;
+        _mainHeaders = {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        };
+      }
       if (kDebugMode) {
         log('====> GetX Call: $uri\nToken: $token');
         log('====> GetX Body: ${body is FormData ? body.fields : body}',

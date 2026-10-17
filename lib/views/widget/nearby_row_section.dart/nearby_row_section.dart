@@ -4,7 +4,7 @@ import 'package:vlr/controllers/common_controller.dart';
 import 'package:vlr/services/constants.dart';
 import 'package:vlr/services/theme.dart';
 import 'package:vlr/views/base/common_button.dart';
-import 'package:vlr/views/screens/room_section/search_room/search_room_screen.dart';
+import 'package:vlr/views/screens/search/search_all_screen.dart';
 
 class NearByRowSection extends StatelessWidget {
   const NearByRowSection({
@@ -29,7 +29,7 @@ class NearByRowSection extends StatelessWidget {
             onTap: () {
               navigate(
                 context: context,
-                page: const SearchRoomScreen(),
+                page: const SearchAllScreen(),
               );
             },
             child: Text(

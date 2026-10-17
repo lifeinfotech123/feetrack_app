@@ -4,7 +4,6 @@ import 'package:vlr/data/models/attendance_model.dart';
 import 'package:vlr/data/models/booking_model.dart';
 import 'package:vlr/data/models/response/response_model.dart';
 import 'package:vlr/data/repositories/attendance_repo.dart';
-import 'package:vlr/services/constants.dart';
 
 class AttendanceController extends GetxController implements GetxService {
   final AttendanceRepo attendanceRepo;
@@ -110,14 +109,18 @@ class AttendanceController extends GetxController implements GetxService {
     update();
   }
 
-  Future<void> getAttendanceHistory({String? listingId,}) async {
+  Future<void> getAttendanceHistory({
+    String? listingId,
+    String? from,
+    String? to,
+  }) async {
     isLoading = true;
     update();
     try {
       Map<String, dynamic> data = {
         "listing_id": listingId ?? "",
-        // "from": from ?? "",
-        // "to": to ?? "",
+        if (from != null && from.isNotEmpty) "from": from,
+        if (to != null && to.isNotEmpty) "to": to,
       };
       Response response = await attendanceRepo.getAttendanceHistory(data);
       if (response.body != null && response.body['status'] == "success") {

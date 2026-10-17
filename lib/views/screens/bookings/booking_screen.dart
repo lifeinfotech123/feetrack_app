@@ -10,6 +10,9 @@ import 'package:vlr/views/base/custom_image.dart';
 import 'package:vlr/views/base/web_view.dart';
 import 'package:vlr/views/screens/bookings/booking_detail_screen.dart';
 
+import 'package:vlr/controllers/auth_controller.dart';
+import 'package:vlr/services/app_router.dart';
+
 class BookingScreen extends StatefulWidget {
   const BookingScreen({super.key});
 
@@ -22,7 +25,9 @@ class _BookingScreenState extends State<BookingScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Get.find<SubscriptionController>().fetchBookings();
+      if (Get.find<AuthController>().isLoggedIn()) {
+        Get.find<SubscriptionController>().fetchBookings();
+      }
     });
   }
 
@@ -42,6 +47,40 @@ class _BookingScreenState extends State<BookingScreen> {
         ),
       ),
       body: GetBuilder<SubscriptionController>(builder: (subscriptionController) {
+        if (!Get.find<AuthController>().isLoggedIn()) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.lock_outline_rounded, size: 64, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "You are browsing as Guest",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    "Please log in to view and manage your bookings.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () => AppRouter.goToLogin(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryColor,
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text("Log In", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
         return Column(
           children: [
             _buildFilterRow(subscriptionController),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'package:http/http.dart' as http;
 
+import '../../../../../services/constants.dart';
 import '../../../../core/constants/colors.dart';
 import '../../../../core/network/network_helper.dart';
 
@@ -44,7 +45,8 @@ class _PayableState extends State<Payable> {
     });
 
     final http.Response response = await Network().postData(
-        {'user_id': widget.userId, 'list_type': 'payable'}, '/getLists.php');
+        {'user_id': widget.userId, 'list_type': 'payable'},
+        AppConstants.hospitalGetListsPhp);
 
     print('response ---- ${jsonDecode(response.body)}');
 
@@ -69,7 +71,7 @@ class _PayableState extends State<Payable> {
 
     final http.Response response = await Network().postData({
       'appointment_id': appointmentId.toString(),
-    }, '/cancelAppointment.php');
+    }, AppConstants.hospitalCancelAppointmentPhp);
 
     print('response ---- ${jsonDecode(response.body)}');
 
@@ -109,7 +111,7 @@ class _PayableState extends State<Payable> {
       'payment_for': 'APPOINTMENT',
       'amount': '500000',
       'stripe_customer_id': stripeCustomerId
-    }, '/charge.php');
+    }, AppConstants.hospitalChargePhp);
 
     print('response ---- ${jsonDecode(response.body)}');
 

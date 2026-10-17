@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
+import 'package:vlr/controllers/auth_controller.dart';
 import 'package:vlr/controllers/subscription_controller.dart';
 import 'package:vlr/services/constants.dart';
 import 'package:vlr/services/theme.dart';
 import 'package:vlr/views/base/common_button.dart';
+import 'package:vlr/views/base/dialogs/login_required_dialog.dart';
 import 'package:vlr/views/screens/gym/gym_final_step_screen/gym_final_step_screen.dart';
-
-import '../../../../../../generated/assets.dart';
 import '../../../../common_screen/coupon_code/coupon_code_screen.dart';
 // import 'package:vlr/views/screens/coupon_code/coupon_code_screen.dart';
 
@@ -130,6 +129,17 @@ class GYmCheckOutMidSection extends StatelessWidget {
                 sizedBoxHeight(height: 20),
                 CustomButton(
                   onTap: () {
+                    final bool isLoggedIn = Get.isRegistered<AuthController>() &&
+                        Get.find<AuthController>().isLoggedIn();
+                    if (!isLoggedIn) {
+                      showLoginRequiredDialog(
+                        context: context,
+                        title: "Login Required",
+                        message:
+                            "Please login to your account first before proceeding to pay.",
+                      );
+                      return;
+                    }
                     navigate(context: context, page: const GymFinalStepScreen());
                   },
                   height: 50,

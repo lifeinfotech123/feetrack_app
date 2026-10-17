@@ -9,7 +9,6 @@ import 'package:vlr/services/appsflyer_service.dart';
 import 'package:vlr/views/base/common_button.dart';
 import 'package:vlr/views/base/custom_image.dart';
 import 'package:vlr/views/screens/auth_screens/login/login_screen.dart';
-import 'package:vlr/views/screens/auth_screens/opt_verification_screen.dart';
 
 class RegisterMedSection extends StatefulWidget {
   final String? referralCode;
@@ -24,6 +23,8 @@ class RegisterMedSection extends StatefulWidget {
 
 class _RegisterMedSectionState extends State<RegisterMedSection> {
   final _formKey = GlobalKey<FormState>();
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   void initState() {
@@ -92,9 +93,10 @@ class _RegisterMedSectionState extends State<RegisterMedSection> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ===== First Name Field =====
                   RichText(
                     text: TextSpan(
-                      text: "Full Name ",
+                      text: "First Name ",
                       style: Helper(context).textTheme.titleSmall?.copyWith(
                             fontSize: 14.sp,
                             color: greyDart2,
@@ -111,7 +113,7 @@ class _RegisterMedSectionState extends State<RegisterMedSection> {
                   ),
                   SizedBox(height: 12.h),
                   Container(
-                    height: 60.h,
+                    constraints: BoxConstraints(minHeight: 60.h),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(14.r),
@@ -120,11 +122,11 @@ class _RegisterMedSectionState extends State<RegisterMedSection> {
                       ),
                     ),
                     child: TextFormField(
-                      controller: authController.fullNameController,
+                      controller: authController.firstNameController,
                       keyboardType: TextInputType.name,
                       textCapitalization: TextCapitalization.words,
                       decoration: InputDecoration(
-                        hintText: "Enter your full name",
+                        hintText: "Enter first name",
                         hintStyle: TextStyle(
                           color: const Color(0xFF98A2B3),
                           fontSize: 16.sp,
@@ -140,15 +142,74 @@ class _RegisterMedSectionState extends State<RegisterMedSection> {
                         ),
                       ),
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter Full Name';
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter first name';
                         }
-
                         return null;
                       },
                     ),
                   ),
-                  sizedBoxHeight(height: 24.h),
+                  sizedBoxHeight(height: 20.h),
+
+                  // ===== Last Name Field =====
+                  RichText(
+                    text: TextSpan(
+                      text: "Last Name ",
+                      style: Helper(context).textTheme.titleSmall?.copyWith(
+                            fontSize: 14.sp,
+                            color: greyDart2,
+                          ),
+                      children: const [
+                        TextSpan(
+                          text: "*",
+                          style: TextStyle(
+                            color: Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 12.h),
+                  Container(
+                    constraints: BoxConstraints(minHeight: 60.h),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14.r),
+                      border: Border.all(
+                        color: const Color(0xFFE4E7EC),
+                      ),
+                    ),
+                    child: TextFormField(
+                      controller: authController.lastNameController,
+                      keyboardType: TextInputType.name,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: InputDecoration(
+                        hintText: "Enter last name",
+                        hintStyle: TextStyle(
+                          color: const Color(0xFF98A2B3),
+                          fontSize: 16.sp,
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.person_outline,
+                          color: Color(0xFF2563EB),
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16.w,
+                          vertical: 18.h,
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter last name';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  sizedBoxHeight(height: 20.h),
+
+                  // ===== Mobile Number Field =====
                   RichText(
                     text: TextSpan(
                       text: "Mobile Number ",
@@ -168,7 +229,7 @@ class _RegisterMedSectionState extends State<RegisterMedSection> {
                   ),
                   SizedBox(height: 12.h),
                   Container(
-                    height: 60.h,
+                    constraints: BoxConstraints(minHeight: 60.h),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16.r),
@@ -271,6 +332,8 @@ class _RegisterMedSectionState extends State<RegisterMedSection> {
                     ),
                   ),
                   sizedBoxHeight(height: 10.h),
+
+                  // ===== Email ID Field =====
                   RichText(
                     text: TextSpan(
                       text: "Email ID ",
@@ -290,7 +353,7 @@ class _RegisterMedSectionState extends State<RegisterMedSection> {
                   ),
                   SizedBox(height: 12.h),
                   Container(
-                    height: 60.h,
+                    constraints: BoxConstraints(minHeight: 60.h),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(14.r),
@@ -300,8 +363,7 @@ class _RegisterMedSectionState extends State<RegisterMedSection> {
                     ),
                     child: TextFormField(
                       controller: authController.emailController,
-                      keyboardType: TextInputType.name,
-                      textCapitalization: TextCapitalization.words,
+                      keyboardType: TextInputType.emailAddress,
                       decoration: InputDecoration(
                         hintText: "Enter your email ID",
                         hintStyle: TextStyle(
@@ -325,7 +387,7 @@ class _RegisterMedSectionState extends State<RegisterMedSection> {
 
                         if (!RegExp(
                           r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                        ).hasMatch(value)) {
+                        ).hasMatch(value.trim())) {
                           return 'Please enter a valid email address';
                         }
 
@@ -333,7 +395,153 @@ class _RegisterMedSectionState extends State<RegisterMedSection> {
                       },
                     ),
                   ),
-                  sizedBoxHeight(height: 24.h),
+                  sizedBoxHeight(height: 20.h),
+
+                  // ===== Password Field =====
+                  RichText(
+                    text: TextSpan(
+                      text: "Password ",
+                      style: Helper(context).textTheme.titleSmall?.copyWith(
+                            fontSize: 14.sp,
+                            color: greyDart2,
+                          ),
+                      children: const [
+                        TextSpan(
+                          text: "*",
+                          style: TextStyle(
+                            color: Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 12.h),
+                  Container(
+                    constraints: BoxConstraints(minHeight: 60.h),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14.r),
+                      border: Border.all(
+                        color: const Color(0xFFE4E7EC),
+                      ),
+                    ),
+                    child: TextFormField(
+                      controller: authController.passwordController,
+                      obscureText: _obscurePassword,
+                      decoration: InputDecoration(
+                        hintText: "Enter your password",
+                        hintStyle: TextStyle(
+                          color: const Color(0xFF98A2B3),
+                          fontSize: 16.sp,
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.lock_outline,
+                          color: Color(0xFF2563EB),
+                        ),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                            color: const Color(0xFF98A2B3),
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16.w,
+                          vertical: 18.h,
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter password';
+                        }
+                        if (value.length < 6) {
+                          return 'Password must be at least 6 characters';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  sizedBoxHeight(height: 20.h),
+
+                  // ===== Confirm Password Field =====
+                  RichText(
+                    text: TextSpan(
+                      text: "Confirm Password ",
+                      style: Helper(context).textTheme.titleSmall?.copyWith(
+                            fontSize: 14.sp,
+                            color: greyDart2,
+                          ),
+                      children: const [
+                        TextSpan(
+                          text: "*",
+                          style: TextStyle(
+                            color: Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 12.h),
+                  Container(
+                    constraints: BoxConstraints(minHeight: 60.h),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14.r),
+                      border: Border.all(
+                        color: const Color(0xFFE4E7EC),
+                      ),
+                    ),
+                    child: TextFormField(
+                      controller: authController.confirmPasswordController,
+                      obscureText: _obscureConfirmPassword,
+                      decoration: InputDecoration(
+                        hintText: "Confirm your password",
+                        hintStyle: TextStyle(
+                          color: const Color(0xFF98A2B3),
+                          fontSize: 16.sp,
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.lock_outline,
+                          color: Color(0xFF2563EB),
+                        ),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureConfirmPassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                            color: const Color(0xFF98A2B3),
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscureConfirmPassword = !_obscureConfirmPassword;
+                            });
+                          },
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16.w,
+                          vertical: 18.h,
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please confirm your password';
+                        }
+                        if (value != authController.passwordController.text) {
+                          return 'Passwords do not match';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  sizedBoxHeight(height: 20.h),
 
                   // ===== Referral Code Field =====
                   RichText(
@@ -357,7 +565,7 @@ class _RegisterMedSectionState extends State<RegisterMedSection> {
                   ),
                   SizedBox(height: 12.h),
                   Container(
-                    height: 60.h,
+                    constraints: BoxConstraints(minHeight: 60.h),
                     decoration: BoxDecoration(
                       color: authController.referralCodeController.text.isNotEmpty
                           ? const Color(0xFFF0FDF4)
@@ -420,42 +628,31 @@ class _RegisterMedSectionState extends State<RegisterMedSection> {
                     GetBuilder<AuthController>(builder: (authController) {
                       return CustomButton(
                         isLoading: authController.isLoading,
-                        onTap: () {
+                        onTap: () async {
                           if (authController.isLoading) {
                             return;
                           }
 
-                          // navigate(
-                          //   context: context,
-                          //   page: OTPVerification(
-                          //     phone: authController.mobileNoController.text,
-                          //     gmail: authController.emailController.text,
-                          //     isPhone: true,
-                          //   ),
-                          // );
-
                           if (_formKey.currentState?.validate() ?? false) {
-                            authController.registerUser().then((value) {
-                              if (value.isSuccess) {
-                                showToast(
-                                    message: value.message,
-                                    typeCheck: value.isSuccess);
+                            final value = await authController.registerUser();
+                            if (value.isSuccess) {
+                              showToast(
+                                  message: value.message.isNotEmpty
+                                      ? value.message
+                                      : "Registration successful! Please login.",
+                                  typeCheck: value.isSuccess);
 
-                                navigate(
-                                  context: context,
-                                  page: OTPVerification(
-                                    phone:
-                                        authController.mobileNoController.text,
-                                    gmail: authController.emailController.text,
-                                    isPhone: true,
-                                  ),
-                                );
-                              } else {
-                                showToast(
-                                    message: value.message,
-                                    toastType: ToastType.warning);
-                              }
-                            });
+                              if (!context.mounted) return;
+                              navigate(
+                                context: context,
+                                page: const LoginScreen(),
+                                isReplace: true,
+                              );
+                            } else {
+                              showToast(
+                                  message: value.message,
+                                  toastType: ToastType.warning);
+                            }
                           }
                         },
                         height: 50.h,

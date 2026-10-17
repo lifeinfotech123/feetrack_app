@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/constants/colors.dart';
 import '../../../../core/widgets/animated_widgets.dart';
+import 'package:vlr/hospital/features/pharmacy/presentation/screens/pharmacy_medicine_detail_screen.dart';
 // import 'package:hospital_management_system/core/constants/colors.dart';
 // import 'package:hospital_management_system/core/widgets/animated_widgets.dart';
 
@@ -280,12 +281,22 @@ class _MedicineOrderScreenState extends State<MedicineOrderScreen> {
 
                           return FadeSlideTransitionWidget(
                             index: index,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: colorWhite,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: borderGrey),
-                              ),
+                            child: InkWell(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const PharmacyMedicineDetailScreen(medicineId: 22),
+                                  ),
+                                );
+                              },
+                              borderRadius: BorderRadius.circular(16),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: colorWhite,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: borderGrey),
+                                ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -357,7 +368,8 @@ class _MedicineOrderScreenState extends State<MedicineOrderScreen> {
                                 ],
                               ),
                             ),
-                          );
+                          ),
+                        );
                         },
                         childCount: _searchQuery.isNotEmpty 
                             ? filteredMedicines.length 

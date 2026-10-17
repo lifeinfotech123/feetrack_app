@@ -7,7 +7,10 @@ import 'package:vlr/data/models/category_model/category_model.dart';
 import 'package:vlr/services/constants.dart';
 import 'package:vlr/services/theme.dart';
 import 'package:vlr/views/base/custom_image.dart';
-import 'package:vlr/views/screens/dashboard/home_screen/All_home/gym_home/gym_home_screen.dart';
+import 'package:vlr/views/screens/gym/gym_bottom_nav_bar/gym_bottom_nav_bar_screen.dart';
+import 'package:vlr/views/screens/room_section/room_bottom_nav_bar/room_bottom_nav_bar_screen.dart';
+import 'package:vlr/views/screens/dashboard/job/job_screen.dart';
+import 'package:vlr/hospital/features/dashboard/presentation/screen/dashboard_screen.dart' as hospital;
 
 class ExploreByCategoryWidget extends StatefulWidget {
   const ExploreByCategoryWidget({super.key});
@@ -123,7 +126,90 @@ class _ExploreByCategoryWidgetState extends State<ExploreByCategoryWidget> {
     }
 
     if (!mounted) return;
-    navigate(context: context, page: const GymHomeScreen());
+
+    final String name = (category.name ?? '').toLowerCase();
+    final String slug = (category.slug ?? '').toLowerCase();
+    final String catId = category.id?.toString() ?? '';
+
+    // 1. Hospital Category
+    if (catId == "2" ||
+        name.contains("hospital") ||
+        slug.contains("hospital") ||
+        name.contains("doctor") ||
+        slug.contains("doctor") ||
+        name.contains("clinic") ||
+        slug.contains("clinic") ||
+        name.contains("medical") ||
+        slug.contains("medical") ||
+        name.contains("health") ||
+        slug.contains("health")) {
+      navigate(
+        context: context,
+        page: const hospital.HospitalDashboardScreen(),
+      );
+      return;
+    }
+
+    // 2. Gym / Fitness Category
+    final bool isGymCategory = catId == "11" ||
+        catId == "1" ||
+        name.contains("gym") ||
+        slug.contains("gym") ||
+        name.contains("fitness") ||
+        slug.contains("fitness") ||
+        name.contains("workout") ||
+        slug.contains("workout");
+    if (isGymCategory) {
+      navigate(
+        context: context,
+        page: const GymBottomNavBarScreen(),
+      );
+      return;
+    }
+
+    // 3. Room Booking / PG / Room / Hostel Category
+    final bool isRoomCategory = catId == "12" ||
+        catId == "3" ||
+        (category.hasRooms ?? false) ||
+        name.contains("room") ||
+        slug.contains("room") ||
+        name.contains("pg") ||
+        slug.contains("pg") ||
+        name.contains("hostel") ||
+        slug.contains("hostel") ||
+        name.contains("booking") ||
+        slug.contains("booking");
+
+    if (isRoomCategory) {
+      navigate(context: context, page: const RoomBottomNavBarScreen());
+      return;
+    }
+
+    // 4. HRMS / Job Category
+    if (catId == "10" ||
+        name.contains("hrms") ||
+        slug.contains("hrms") ||
+        name.contains("job") ||
+        slug.contains("job") ||
+        name.contains("career") ||
+        slug.contains("career") ||
+        name.contains("naukri") ||
+        slug.contains("naukri") ||
+        name.contains("recruitment") ||
+        slug.contains("recruitment") ||
+        name.contains("employment") ||
+        slug.contains("employment") ||
+        name.contains("work") ||
+        slug.contains("work")) {
+      navigate(
+        context: context,
+        page: const JobScreen(),
+      );
+      return;
+    }
+
+    // 5. Default Fallback
+    navigate(context: context, page: const GymBottomNavBarScreen());
   }
 
   @override

@@ -1,8 +1,6 @@
 import 'dart:developer';
 import 'package:get/get_connect/http/src/multipart/form_data.dart';
 import 'package:get/get_connect/http/src/response/response.dart';
-import 'package:vlr/services/extensions.dart';
-import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/constants.dart';
 import '../../services/device_id_service.dart';
@@ -13,7 +11,7 @@ class AuthRepo {
   final ApiClient apiClient;
   AuthRepo({required this.sharedPreferences, required this.apiClient});
 
-  Future<Response> postUserRegister({required FormData data}) async =>
+  Future<Response> postUserRegister({required dynamic data}) async =>
       await apiClient.postData(
         AppConstants.registrationUri,
         "postUserRegister",
@@ -41,6 +39,23 @@ class AuthRepo {
         "postLogin",
         data,
       );
+
+  Future<Response> postEmailPasswordLogin({
+    required String email,
+    required String password,
+  }) async {
+    Map<String, dynamic> data = {
+      "login": email,
+      "email": email,
+      "password": password,
+    };
+    return await apiClient.postData(
+      AppConstants.emailPasswordLoginUri,
+      "postEmailPasswordLogin",
+      FormData(data),
+      query: data,
+    );
+  }
 
   Future<Response> postLoginOtpVerify({required FormData data}) async =>
       await apiClient.postData(
@@ -75,7 +90,7 @@ class AuthRepo {
         data,
       );
 
-  Future<Response> postProfileUpdate({required FormData data}) async =>
+  Future<Response> postProfileUpdate({required dynamic data}) async =>
       await apiClient.postData(
         AppConstants.putUpdateProfile,
         "postProfileUpdate",
@@ -131,13 +146,22 @@ class AuthRepo {
   }
 
   bool isLoggedIn() {
-    return sharedPreferences.containsKey(AppConstants.token);
+    final token = sharedPreferences.getString(AppConstants.token);
+    return token != null && token.trim().isNotEmpty;
   }
 
   bool clearSharedData() {
+    final devId = sharedPreferences.getString('device_id');
+    sharedPreferences.clear();
+    if (devId != null && devId.isNotEmpty) {
+      sharedPreferences.setString('device_id', devId);
+    }
     sharedPreferences.remove(AppConstants.token);
     sharedPreferences.remove(AppConstants.userId);
     sharedPreferences.remove(AppConstants.fcmToken);
+    sharedPreferences.remove(AppConstants.recentOrders);
+    sharedPreferences.remove(AppConstants.isUser);
+    sharedPreferences.remove(AppConstants.razorpayKey);
     apiClient.token = '';
     apiClient.updateHeader('');
     return true;

@@ -21,6 +21,35 @@ class HomeRepo {
         query: data,
       );
 
+  Future<Response> fetchGyms({Map<String, dynamic>? query}) async =>
+      await apiClient.getData(
+        AppConstants.getGyms,
+        "fetchGyms",
+        query: query,
+      );
+
+  Future<Response> fetchGymDetails({
+    required String id,
+  }) async =>
+      await apiClient.getData(
+        AppConstants.gymDetails(id: id),
+        "fetchGymDetails",
+      );
+
+  Future<Response> fetchPgDetails({
+    required String id,
+  }) async =>
+      await apiClient.getData(
+        AppConstants.pgListingDetails(id: id),
+        "fetchPgDetails",
+      );
+
+  Future<Response> fetchGymCities() async =>
+      await apiClient.getData(
+        AppConstants.gymCities,
+        "fetchGymCities",
+      );
+
   Future<Response> fetchCategoriesListingById({
     required String id,
   }) async =>

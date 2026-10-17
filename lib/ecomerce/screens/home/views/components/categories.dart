@@ -41,7 +41,8 @@ class Categories extends StatelessWidget {
               return Padding(
                 padding: EdgeInsets.only(
                   left: index == 0 ? defaultPadding : defaultPadding / 2,
-                  right: index == categoriesList.length - 1 ? defaultPadding : 0,
+                  right:
+                      index == categoriesList.length - 1 ? defaultPadding : 0,
                 ),
                 child: CategoryBtn(
                   category: category.name,

@@ -20,18 +20,22 @@ class _GYMBookVisiSelectDateSectionState
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(20),
         color: white,
         boxShadow: [
           BoxShadow(
             offset: const Offset(0, 4),
-            blurRadius: 24,
+            blurRadius: 18,
             spreadRadius: 0,
-            color: black.withValues(alpha: 0.06),
+            color: black.withValues(alpha: 0.05),
           )
         ],
+        border: Border.all(
+          color: Colors.grey.withValues(alpha: 0.1),
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -42,30 +46,44 @@ class _GYMBookVisiSelectDateSectionState
               Row(
                 children: [
                   Container(
-                    width: 34,
-                    height: 34,
+                    width: 32,
+                    height: 32,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: textBlue.withValues(alpha: 0.08),
+                      color: primaryColor.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: Text(
                       "1",
                       style: Helper(context).textTheme.bodyLarge?.copyWith(
                             fontWeight: FontWeight.w800,
-                            fontSize: 15,
-                            color: textBlue,
+                            fontSize: 14,
+                            color: primaryColor,
                           ),
                     ),
                   ),
-                  sizedBoxWidth(width: 14),
-                  Text(
-                    "Select Date",
-                    style: Helper(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 22,
-                          color: blackText1,
+                  sizedBoxWidth(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Select Visit Date",
+                        style: Helper(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 17,
+                              color: blackText1,
+                            ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        "Choose your preferred day",
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: greyText3,
+                          fontWeight: FontWeight.w500,
                         ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -73,118 +91,127 @@ class _GYMBookVisiSelectDateSectionState
                 id: "selected_date",
                 builder: (bookAppointController) {
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: greyLight.withValues(alpha: 0.6),
-                      borderRadius: BorderRadius.circular(10),
+                      color: primaryColor.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.calendar_month_rounded, size: 14, color: textBlue.withValues(alpha: 0.8)),
+                        Icon(Icons.calendar_month_rounded,
+                            size: 13, color: primaryColor),
                         const SizedBox(width: 4),
                         Text(
-                          DateFormat('MMM yyyy').format(bookAppointController.selectedDate),
-                          style: Helper(context).textTheme.bodySmall?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 12,
-                                color: textBlue,
-                              ),
+                          DateFormat('MMM yyyy')
+                              .format(bookAppointController.selectedDate),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 11.5,
+                            color: primaryColor,
+                          ),
                         ),
                       ],
                     ),
                   );
-                }
+                },
               ),
             ],
           ),
-          sizedBoxHeight(height: 28),
-          // Calendar
+          const SizedBox(height: 18),
+          // Calendar Horizontal List
           GetBuilder<BookAppointController>(
-              id: "selected_date",
-              builder: (bookAppointController) {
-                return SizedBox(
-                  height: 95,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: 60,
-                    physics: const BouncingScrollPhysics(),
-                    itemBuilder: (context, index) {
-                      final date = DateTime.now().add(Duration(days: index));
-                      final isSelected = DateUtils.isSameDay(
-                          date, bookAppointController.selectedDate);
-                      final isToday = DateUtils.isSameDay(date, DateTime.now());
+            id: "selected_date",
+            builder: (bookAppointController) {
+              return SizedBox(
+                height: 88,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: 60,
+                  physics: const BouncingScrollPhysics(),
+                  itemBuilder: (context, index) {
+                    final date = DateTime.now().add(Duration(days: index));
+                    final isSelected = DateUtils.isSameDay(
+                        date, bookAppointController.selectedDate);
+                    final isToday = DateUtils.isSameDay(date, DateTime.now());
 
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 14),
-                        child: GestureDetector(
-                          onTap: () => bookAppointController.selectDate(date),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 250),
-                            width: 62,
-                            decoration: BoxDecoration(
-                              color: isSelected ? textBlue : white,
-                              borderRadius: BorderRadius.circular(18),
-                              border: Border.all(
-                                color: isSelected 
-                                    ? textBlue 
-                                    : isToday ? textBlue.withValues(alpha: 0.4) : greyLight2.withValues(alpha: 0.4),
-                                width: 1.5,
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: GestureDetector(
+                        onTap: () => bookAppointController.selectDate(date),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: 62,
+                          decoration: BoxDecoration(
+                            color: isSelected ? primaryColor : white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isSelected
+                                  ? primaryColor
+                                  : isToday
+                                      ? primaryColor.withValues(alpha: 0.4)
+                                      : greyLight2.withValues(alpha: 0.5),
+                              width: 1.2,
+                            ),
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color:
+                                          primaryColor.withValues(alpha: 0.25),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    )
+                                  ]
+                                : [],
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                isToday
+                                    ? "TODAY"
+                                    : DateFormat('EEE')
+                                        .format(date)
+                                        .toUpperCase(),
+                                style: TextStyle(
+                                  color: isSelected
+                                      ? white.withValues(alpha: 0.9)
+                                      : (isToday ? primaryColor : greyDart),
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 10,
+                                  letterSpacing: 0.4,
+                                ),
                               ),
-                              boxShadow: isSelected ? [
-                                BoxShadow(
-                                  color: textBlue.withValues(alpha: 0.25),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                )
-                              ] : [],
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  DateFormat('EEE').format(date).toUpperCase(),
-                                  style: Helper(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.copyWith(
-                                        color: isSelected ? white.withValues(alpha: 0.8) : greyDart,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 10,
-                                        letterSpacing: 0.6,
-                                      ),
+                              const SizedBox(height: 5),
+                              Text(
+                                date.day.toString(),
+                                style: TextStyle(
+                                  color: isSelected ? white : blackText1,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 20,
                                 ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  date.day.toString(),
-                                  style: Helper(context)
-                                      .textTheme
-                                      .titleLarge
-                                      ?.copyWith(
-                                        color: isSelected ? white : blackText1,
-                                        fontWeight: FontWeight.w800,
-                                        fontSize: 22,
-                                      ),
-                                ),
-                                if (isToday && !isSelected)
-                                  Container(
-                                    margin: const EdgeInsets.only(top: 4),
-                                    width: 5,
-                                    height: 5,
-                                    decoration: const BoxDecoration(
-                                      color: textBlue,
-                                      shape: BoxShape.circle,
-                                    ),
+                              ),
+                              if (isToday && !isSelected)
+                                Container(
+                                  margin: const EdgeInsets.only(top: 3),
+                                  width: 5,
+                                  height: 5,
+                                  decoration: BoxDecoration(
+                                    color: primaryColor,
+                                    shape: BoxShape.circle,
                                   ),
-                              ],
-                            ),
+                                ),
+                            ],
                           ),
                         ),
-                      );
-                    },
-                  ),
-                );
-              }),
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
         ],
       ),
     );

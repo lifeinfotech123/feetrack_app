@@ -8,7 +8,6 @@ import 'package:vlr/services/app_router.dart';
 import 'package:vlr/views/screens/auth_screens/login/widget/auth_mid_section.dart';
 import 'package:vlr/views/screens/auth_screens/login/widget/auth_top_section.dart';
 import 'package:vlr/views/screens/auth_screens/login/widget/login_bottom_section.dart';
-import 'package:vlr/views/screens/dashboard/dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -30,6 +29,8 @@ class _LoginScreenState extends State<LoginScreen> {
       auth.mobileNoController.clear();
       auth.emailOtpCodeController.clear();
       auth.mobileOtpCodeController.clear();
+      auth.loginEmailController.clear();
+      auth.loginPasswordController.clear();
 
       // Print FCM Token
       String token = await NotificationServices().getDeviceToken();
@@ -51,6 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
           actions: [
             TextButton(
               onPressed: () {
+                Get.find<AuthController>().continueAsGuest();
                 AppRouter.goToDashboard();
               },
               child: Text(

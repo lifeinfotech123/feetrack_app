@@ -23,8 +23,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       AuthController auth = Get.find<AuthController>();
+      auth.firstNameController.clear();
+      auth.lastNameController.clear();
       auth.fullNameController.clear();
       auth.emailController.clear();
+      auth.passwordController.clear();
+      auth.confirmPasswordController.clear();
       if (widget.mobileNumber != null) {
         auth.mobileNoController.text = widget.mobileNumber!;
       } else {

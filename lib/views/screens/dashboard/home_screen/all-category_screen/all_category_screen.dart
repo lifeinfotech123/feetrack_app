@@ -8,6 +8,11 @@ import 'package:vlr/data/models/category_model/category_model.dart';
 import 'package:vlr/services/constants.dart';
 import 'package:vlr/views/base/shimmer.dart';
 import 'package:vlr/views/screens/dashboard/home_screen/All_home/gym_home/gym_home_screen.dart';
+import 'package:vlr/views/screens/gym/gym_bottom_nav_bar/gym_bottom_nav_bar_screen.dart';
+import 'package:vlr/views/screens/room_section/room_bottom_nav_bar/room_bottom_nav_bar_screen.dart';
+import 'package:vlr/views/screens/dashboard/job/job_screen.dart';
+import 'package:vlr/hospital/features/dashboard/presentation/screen/dashboard_screen.dart'
+    as hospital;
 import 'package:vlr/views/screens/dashboard/home_screen/all_category_home/widget/category_widget_all_home.dart';
 import 'package:vlr/views/screens/dashboard/home_screen/service_appbar/service_appbar.dart';
 
@@ -26,7 +31,9 @@ class _AllCategoryScreenState extends State<AllCategoryScreen> {
       final authController = Get.find<AuthController>();
       final permissionController = Get.find<PermissionController>();
 
-      authController.fetchProfile();
+      if (authController.isLoggedIn()) {
+        authController.fetchProfile();
+      }
 
       Get.find<HomeController>().fetchCategories();
       await fetchLocation(permissionController);
@@ -92,10 +99,99 @@ class _AllCategoryScreenState extends State<AllCategoryScreen> {
                                   .updateSelectCategoryModel(categoryModel);
 
                               await fetchLocation(permissionController);
+                              if (!context.mounted) return;
 
+                              final String name =
+                                  (categoryModel.name ?? '').toLowerCase();
+                              final String slug =
+                                  (categoryModel.slug ?? '').toLowerCase();
+                              final String catId =
+                                  categoryModel.id?.toString() ?? '';
+
+                              // 1. Hospital Category
+                              if (catId == "2" ||
+                                  name.contains("hospital") ||
+                                  slug.contains("hospital") ||
+                                  name.contains("doctor") ||
+                                  slug.contains("doctor") ||
+                                  name.contains("clinic") ||
+                                  slug.contains("clinic") ||
+                                  name.contains("medical") ||
+                                  slug.contains("medical") ||
+                                  name.contains("health") ||
+                                  slug.contains("health")) {
+                                navigate(
+                                  context: context,
+                                  page:
+                                      const hospital.HospitalDashboardScreen(),
+                                );
+                                return;
+                              }
+
+                              // 2. Gym / Fitness Category
+                              final bool isGymCategory = catId == "11" ||
+                                  catId == "1" ||
+                                  name.contains("gym") ||
+                                  slug.contains("gym") ||
+                                  name.contains("fitness") ||
+                                  slug.contains("fitness") ||
+                                  name.contains("workout") ||
+                                  slug.contains("workout");
+                              if (isGymCategory) {
+                                navigate(
+                                  context: context,
+                                  page: const GymBottomNavBarScreen(),
+                                );
+                                return;
+                              }
+
+                              // 3. Room Booking / PG / Room / Hostel Category
+                              final bool isRoomCategory = catId == "12" ||
+                                  catId == "3" ||
+                                  (categoryModel.hasRooms ?? false) ||
+                                  name.contains("room") ||
+                                  slug.contains("room") ||
+                                  name.contains("pg") ||
+                                  slug.contains("pg") ||
+                                  name.contains("hostel") ||
+                                  slug.contains("hostel") ||
+                                  name.contains("booking") ||
+                                  slug.contains("booking");
+                              if (isRoomCategory) {
+                                navigate(
+                                  context: context,
+                                  page: const RoomBottomNavBarScreen(),
+                                );
+                                return;
+                              }
+
+                              // 4. HRMS / Job Category
+                              if (catId == "10" ||
+                                  name.contains("hrms") ||
+                                  slug.contains("hrms") ||
+                                  name.contains("job") ||
+                                  slug.contains("job") ||
+                                  name.contains("career") ||
+                                  slug.contains("career") ||
+                                  name.contains("naukri") ||
+                                  slug.contains("naukri") ||
+                                  name.contains("recruitment") ||
+                                  slug.contains("recruitment") ||
+                                  name.contains("employment") ||
+                                  slug.contains("employment") ||
+                                  name.contains("work") ||
+                                  slug.contains("work")) {
+                                navigate(
+                                  context: context,
+                                  page: const JobScreen(),
+                                );
+                                return;
+                              }
+
+                              // 5. Default Fallback
                               navigate(
                                   context: context,
-                                  page: const GymHomeScreen());
+                                  page: const GymBottomNavBarScreen());
                             },
                             child: homeController.isLoading
                                 ? Container(

@@ -18,8 +18,8 @@ class OtherDetailsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final email = userModel?.email ?? "test@gmail.com";
-    final mobile = userModel?.mobile ?? "7894561230";
+    final email = userModel?.email ?? "";
+    final mobile = userModel?.mobile ?? "";
 
     // Location Subtitle
     String locationSub = "Lucknow • Preferred locations";

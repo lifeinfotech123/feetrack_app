@@ -4,7 +4,7 @@ import 'package:vlr/controllers/home_controller.dart';
 import 'package:vlr/data/models/gym_model.dart';
 import 'package:vlr/services/constants.dart';
 import 'package:vlr/services/theme.dart';
-import 'package:vlr/views/screens/gym/gym_profile/gym_profile_screen.dart';
+import 'package:vlr/views/screens/dashboard/home_screen/All_home/gym_home/widget/gym_home_details_screen.dart';
 
 class GYMProfileOtherBatchSection extends StatelessWidget {
   const GYMProfileOtherBatchSection({
@@ -51,7 +51,8 @@ class GYMProfileOtherBatchSection extends StatelessWidget {
                 final _gymModel = gymModelList[index];
                 return GestureDetector(
                   onTap: () {
-                    navigate(context: context, page: GYMProfileScreen());
+                    navigate(
+                        context: context, page: const GymHomeDetailsScreen());
                   },
                   child: const SizedBox(),
                   // GymHomeScreenGymWight(

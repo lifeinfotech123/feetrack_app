@@ -1,23 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:vlr/controllers/common_controller.dart';
 import 'package:vlr/services/constants.dart';
 import 'package:vlr/services/theme.dart';
 import 'package:vlr/views/base/common_button.dart';
 import 'package:vlr/controllers/subscription_controller.dart';
 import 'package:vlr/data/models/category_model/plan_model.dart';
-import 'package:vlr/views/screens/dashboard/dashboard_screen.dart';
-import 'package:vlr/views/screens/dashboard/home_screen/All_home/room_home/widget/room_recommended_section.dart';
-import 'package:vlr/views/screens/gym/gym_profile/widget/gym_reviews_section.dart/gym_profile_review_section.dart';
-import 'package:vlr/views/screens/gym/gym_select_plan_screen.dart/gym_select_plan_screen.dart';
-import 'package:vlr/views/screens/room_section/Pg/select_sharing_type/select_sharing_type_screen.dart';
-import 'package:vlr/views/screens/room_section/room_book_visit/room_book_visit_screen.dart';
-import 'package:vlr/views/screens/room_section/room/room_configure_stay/room_configure_stay_screen.dart';
+import 'package:vlr/views/screens/room_section/room/room_booking/room_booking_screen.dart';
 import 'package:vlr/views/screens/room_section/room/room_profile_screen/widge/room_profile_med_section.dart';
 import 'package:vlr/views/screens/room_section/room/room_profile_screen/widge/room_profile_top_section.dart';
 
 import '../../../../../controllers/home_controller.dart';
 import '../../../../../controllers/room_controller.dart';
+
+import 'package:vlr/views/screens/room_section/room_book_visit/room_book_visit_screen.dart';
+import 'package:vlr/controllers/auth_controller.dart';
+import 'package:vlr/views/base/dialogs/login_required_dialog.dart';
 
 class RoomProfileScreen extends StatefulWidget {
   const RoomProfileScreen({
@@ -29,15 +26,6 @@ class RoomProfileScreen extends StatefulWidget {
 }
 
 class _RoomProfileScreenState extends State<RoomProfileScreen> {
-  void _navigateToHome() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const DashboardScreen(),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -48,10 +36,9 @@ class _RoomProfileScreenState extends State<RoomProfileScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-
           centerTitle: true,
           title: Text(
-            "Property Details",
+            "Room Profile",
             style: Helper(context).textTheme.bodyMedium?.copyWith(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -59,81 +46,10 @@ class _RoomProfileScreenState extends State<RoomProfileScreen> {
                 ),
           ),
         ),
-        bottomNavigationBar: Padding(
-          padding: AppConstants.screenPadding,
-          child: SafeArea(
-            child: ColoredBox(
-              color: white,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      // Expanded(
-                      //   child: CustomButton(
-                      //     height: 56,
-                      //     radius: 16,
-                      //     type: ButtonType.secondary,
-                      //     onTap: () {
-                      //       navigate(
-                      //           context: context,
-                      //           page: const RoomBookVisitScreen());
-                      //     },
-                      //     child: Text(
-                      //       "Book a Visit",
-                      //       style:
-                      //           Helper(context).textTheme.titleMedium?.copyWith(
-                      //                 fontSize: 14,
-                      //                 color: primaryColor,
-                      //               ),
-                      //     ),
-                      //   ),
-                      // ),
-                      sizedBoxWidth(width: 16),
-                      Expanded(
-                        child: GetBuilder<CommonController>(
-                            builder: (commonController) {
-                          return CustomButton(
-                            height: 56,
-                            color: primaryColor,
-                            borderColor: primaryColor,
-                            radius: 16,
-                            type: ButtonType.secondary,
-                            onTap: () {
-                              final roomController = Get.find<RoomController>();
-                              final subController = Get.find<SubscriptionController>();
-                              final homeController = Get.find<HomeController>();
-
-                              final listingId = homeController.selectListingModel?.id ?? "";
-                              final roomId = roomController.selectedRoomDetails?.id;
-
-                              subController.fetchPlanListingById(
-                                id: listingId,
-                                roomId: roomId,
-                              );
-
-                              navigate(context: context, page: const GymSelectPlanScreen());
-                            },
-                            child: Text(
-                              "Book This Room",
-                              style:
-                                  Helper(context).textTheme.titleMedium?.copyWith(
-                                        fontSize: 14,
-                                        color: white,
-                                      ),
-                            ),
-                          );
-                        }),
-                      )
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+        bottomNavigationBar: _buildBottomBookingBar(context),
         body: GetBuilder<RoomController>(builder: (roomController) {
-          if (roomController.isLoading && roomController.selectedRoomDetails == null) {
+          if (roomController.isLoading &&
+              roomController.selectedRoomDetails == null) {
             return const Center(child: CircularProgressIndicator());
           }
           if (roomController.selectedRoomDetails == null) {
@@ -147,13 +63,207 @@ class _RoomProfileScreenState extends State<RoomProfileScreen> {
               children: [
                 const RoomProfileTopSection(),
                 const RoomProfileMedSection(),
-                // const _ListingPlansSection(),
+                const _ListingPlansSection(),
                 sizedBoxHeight(height: 20)
               ],
             ),
           );
         }),
       ),
+    );
+  }
+
+  Widget _buildBottomBookingBar(BuildContext context) {
+    return GetBuilder<RoomController>(
+      builder: (roomController) {
+        final room = roomController.selectedRoomDetails;
+        if (room == null) return const SizedBox.shrink();
+
+        final dynamic rent =
+            room.perBedRent ?? room.startingPrice ?? room.fullRent;
+        final String rentUnit = room.perBedRent != null
+            ? "/ bed"
+            : (room.fullRent != null ? "/ full room" : "/ month");
+
+        return Container(
+          padding: EdgeInsets.fromLTRB(
+              16, 12, 16, MediaQuery.of(context).padding.bottom + 12),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x14000000),
+                blurRadius: 16,
+                offset: Offset(0, -4),
+              )
+            ],
+          ),
+          child: Row(
+            children: [
+              // Left: Rent & Deposit
+              Expanded(
+                flex: 3,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (rent != null)
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(
+                            "₹$rent",
+                            style: const TextStyle(
+                              fontSize: 19,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF002060),
+                            ),
+                          ),
+                          const SizedBox(width: 3),
+                          Flexible(
+                            child: Text(
+                              rentUnit,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF64748B),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    if (room.securityDeposit != null)
+                      Text(
+                        "Deposit: ₹${room.securityDeposit}",
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFE11D48),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      )
+                    else
+                      Text(
+                        room.roomType ?? "Available",
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF64748B),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+
+              // Action 1: Visit Button
+              OutlinedButton(
+                onPressed: () {
+                  final bool isLoggedIn =
+                      Get.isRegistered<AuthController>() &&
+                          Get.find<AuthController>().isLoggedIn();
+                  if (!isLoggedIn) {
+                    showLoginRequiredDialog(
+                      context: context,
+                      title: "Login Required",
+                      message:
+                          "Please login to your account first before scheduling a property visit.",
+                    );
+                    return;
+                  }
+
+                  navigate(
+                    context: context,
+                    page: RoomBookVisitScreen(
+                      listingModel: room.listing,
+                      listingId: room.listing?.id ?? room.listingId,
+                    ),
+                  );
+                },
+                style: OutlinedButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  side: const BorderSide(color: Color(0xFF002060), width: 1.5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  "Visit",
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF002060),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+
+              // Action 2: Book Now Button (Primary)
+              Expanded(
+                flex: 4,
+                child: ElevatedButton(
+                  onPressed: () {
+                    final bool isLoggedIn =
+                        Get.isRegistered<AuthController>() &&
+                            Get.find<AuthController>().isLoggedIn();
+                    if (!isLoggedIn) {
+                      showLoginRequiredDialog(
+                        context: context,
+                        title: "Login Required",
+                        message:
+                            "Please login to your account first before booking this room.",
+                      );
+                      return;
+                    }
+
+                    navigate(
+                      context: context,
+                      page: RoomBookingScreen(
+                        roomModel: room,
+                        listingModel: room.listing,
+                        roomId: room.id,
+                        listingId: room.listing?.id ?? room.listingId,
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF002060),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Book Now",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      SizedBox(width: 4),
+                      Icon(Icons.arrow_forward_rounded, size: 16),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -165,7 +275,8 @@ class _ListingPlansSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return GetBuilder<SubscriptionController>(builder: (subController) {
       if (subController.isLoading && subController.allPlanList.isEmpty) {
-        return const Center(child: Padding(
+        return const Center(
+            child: Padding(
           padding: EdgeInsets.all(20.0),
           child: CircularProgressIndicator(),
         ));
@@ -187,7 +298,8 @@ class _ListingPlansSection extends StatelessWidget {
                 ),
           ),
           sizedBoxHeight(height: 16),
-          ...subController.allPlanList.map((plan) => _DetailedPlanCard(plan: plan)).toList(),
+          ...subController.allPlanList
+              .map((plan) => _DetailedPlanCard(plan: plan)),
         ],
       );
     });
@@ -218,7 +330,8 @@ class _DetailedPlanCard extends StatelessWidget {
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
           tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          childrenPadding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
+          childrenPadding:
+              const EdgeInsets.only(left: 20, right: 20, bottom: 20),
           title: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -254,7 +367,10 @@ class _DetailedPlanCard extends StatelessWidget {
                 ),
                 child: Text(
                   plan.durationLabel ?? plan.type ?? "",
-                  style: const TextStyle(color: primaryColor, fontSize: 12, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      color: primaryColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -263,11 +379,14 @@ class _DetailedPlanCard extends StatelessWidget {
             padding: const EdgeInsets.only(top: 8.0),
             child: Row(
               children: [
-                 Icon(Icons.person_outline, size: 14, color: greyDart2),
+                Icon(Icons.person_outline, size: 14, color: greyDart2),
                 const SizedBox(width: 4),
                 Text(
                   "Occupancy: ${plan.occupancyType?.replaceAll('_', ' ').capitalizeFirst ?? ''}",
-                  style: Helper(context).textTheme.bodySmall?.copyWith(color: greyDart2, fontSize: 12),
+                  style: Helper(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: greyDart2, fontSize: 12),
                 ),
               ],
             ),
@@ -275,29 +394,35 @@ class _DetailedPlanCard extends StatelessWidget {
           children: [
             const Divider(),
             sizedBoxHeight(height: 12),
-            
+
             // Details Grid
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _DetailItem(label: "Price", value: "₹${plan.price}"),
-                _DetailItem(label: "Duration", value: "${plan.durationDays ?? '--'} Days"),
+                _DetailItem(
+                    label: "Duration",
+                    value: "${plan.durationDays ?? '--'} Days"),
               ],
             ),
-            
+
             sizedBoxHeight(height: 16),
-            
+
             // Features Section
             if (plan.features != null && plan.features!.isNotEmpty) ...[
               Text(
                 "Features & Inclusions",
-                style: Helper(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold, fontSize: 13),
+                style: Helper(context)
+                    .textTheme
+                    .titleSmall
+                    ?.copyWith(fontWeight: FontWeight.bold, fontSize: 13),
               ),
               sizedBoxHeight(height: 8),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: plan.features!.map((f) => _FeatureChip(label: f)).toList(),
+                children:
+                    plan.features!.map((f) => _FeatureChip(label: f)).toList(),
               ),
               sizedBoxHeight(height: 16),
             ],
@@ -306,20 +431,27 @@ class _DetailedPlanCard extends StatelessWidget {
             if (plan.mealPlans != null) ...[
               Text(
                 "Meal Plan Details",
-                style: Helper(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold, fontSize: 13),
+                style: Helper(context)
+                    .textTheme
+                    .titleSmall
+                    ?.copyWith(fontWeight: FontWeight.bold, fontSize: 13),
               ),
               sizedBoxHeight(height: 8),
               Row(
                 children: [
-                  if (plan.mealPlans!.hasBreakfast ?? false) const _MealTag(label: "Breakfast"),
-                  if (plan.mealPlans!.hasLunch ?? false) const _MealTag(label: "Lunch"),
-                  if (plan.mealPlans!.hasDinner ?? false) const _MealTag(label: "Dinner"),
+                  if (plan.mealPlans!.hasBreakfast ?? false)
+                    const _MealTag(label: "Breakfast"),
+                  if (plan.mealPlans!.hasLunch ?? false)
+                    const _MealTag(label: "Lunch"),
+                  if (plan.mealPlans!.hasDinner ?? false)
+                    const _MealTag(label: "Dinner"),
                 ],
               ),
               sizedBoxHeight(height: 4),
               Text(
                 "Meal Type: ${plan.mealPlans!.mealType?.capitalizeFirst ?? 'Standard'}",
-                style: Helper(context).textTheme.bodySmall?.copyWith(fontSize: 12),
+                style:
+                    Helper(context).textTheme.bodySmall?.copyWith(fontSize: 12),
               ),
               sizedBoxHeight(height: 16),
             ],
@@ -330,10 +462,30 @@ class _DetailedPlanCard extends StatelessWidget {
               minWidth: double.infinity,
               radius: 12,
               onTap: () {
-                Get.find<SubscriptionController>().updateSelectPlan(plan);
-                navigate(context: context, page: const GymSelectPlanScreen());
+                final subController = Get.find<SubscriptionController>();
+                final roomController = Get.find<RoomController>();
+                final homeController = Get.find<HomeController>();
+
+                subController.updateSelectPlan(plan);
+
+                final effectiveListingId =
+                    homeController.selectListingModel?.id ??
+                        roomController.selectedListingDetails?.id ??
+                        "";
+
+                navigate(
+                  context: context,
+                  page: RoomBookingScreen(
+                    roomModel: roomController.selectedRoomDetails,
+                    listingModel: homeController.selectListingModel ??
+                        roomController.selectedListingDetails,
+                    listingId: effectiveListingId,
+                    roomId: roomController.selectedRoomDetails?.id,
+                  ),
+                );
               },
-              child:  Text("Select This Plan", style: TextStyle(color: white, fontWeight: FontWeight.bold)),
+              child: Text("Select This Plan",
+                  style: TextStyle(color: white, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -352,8 +504,12 @@ class _DetailItem extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style:  TextStyle(fontSize: 11, color: greyText2)),
-        Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryColor)),
+        Text(label, style: TextStyle(fontSize: 11, color: greyText2)),
+        Text(value,
+            style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: primaryColor)),
       ],
     );
   }
@@ -372,7 +528,7 @@ class _FeatureChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: greyLight1.withValues(alpha: 0.2)),
       ),
-      child: Text(label, style:  TextStyle(fontSize: 11, color: greyDart2)),
+      child: Text(label, style: TextStyle(fontSize: 11, color: greyDart2)),
     );
   }
 }
@@ -395,7 +551,9 @@ class _MealTag extends StatelessWidget {
         children: [
           const Icon(Icons.restaurant_menu, size: 10, color: greenDark),
           const SizedBox(width: 4),
-          Text(label, style: const TextStyle(color: greenDark, fontSize: 10, fontWeight: FontWeight.bold)),
+          Text(label,
+              style: const TextStyle(
+                  color: greenDark, fontSize: 10, fontWeight: FontWeight.bold)),
         ],
       ),
     );

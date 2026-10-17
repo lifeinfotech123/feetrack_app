@@ -17,7 +17,7 @@ class ProfileHeaderWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = candidateUser?.name ?? userModel?.name ?? "Mohd Zaid";
+    final name = candidateUser?.name ?? userModel?.name ?? "Guest";
     final profileImage = candidateUser?.profileImageUrl ?? userModel?.image;
 
     String jobSubtitle = "Candidate";

@@ -1,11 +1,11 @@
 import 'dart:developer';
 
 import 'package:get/get.dart';
+import 'package:vlr/controllers/home_controller.dart';
 import 'package:vlr/controllers/room_controller.dart';
 import 'package:vlr/data/models/billing_preview_model.dart';
 import 'package:vlr/data/models/booking_model.dart';
 import 'package:vlr/data/models/category_model/batch_model.dart';
-import 'package:vlr/data/models/category_model/listing_model.dart';
 import 'package:vlr/data/models/category_model/package_model.dart';
 import 'package:vlr/data/models/category_model/plan_during_model.dart';
 import 'package:vlr/data/models/category_model/plan_model.dart';
@@ -348,9 +348,57 @@ class SubscriptionController extends GetxController implements GetxService {
           response.body['message'] ?? "Error",
         );
       }
+
+      if (allPlanList.isEmpty) {
+        final homeController = Get.find<HomeController>();
+        final gymPackages = homeController.selectListingModel?.packages;
+        if (gymPackages != null && gymPackages.isNotEmpty) {
+          allPlanList = gymPackages.map((p) => PlanModel(
+            id: p.id,
+            name: p.name,
+            type: p.type,
+            durationLabel: p.durationLabel ?? (p.durationDays != null ? "${p.durationDays} Days" : "1 Month"),
+            durationDays: p.durationDays,
+            price: p.price != null ? (double.tryParse(p.price!)?.toInt() ?? p.price) : null,
+            features: p.features,
+          )).toList();
+
+          planModelList = List.from(allPlanList);
+          if (planModelList.isNotEmpty) {
+            planModelList.first.isSelected = true;
+            selectedPlan = planModelList.first;
+          }
+          responseModel = ResponseModel(true, "Loaded from gym packages");
+        }
+      }
     } catch (e) {
       log('ERROR AT fetchPlanListingById(): $e');
-      responseModel = ResponseModel(false, e.toString());
+      if (allPlanList.isEmpty) {
+        final homeController = Get.find<HomeController>();
+        final gymPackages = homeController.selectListingModel?.packages;
+        if (gymPackages != null && gymPackages.isNotEmpty) {
+          allPlanList = gymPackages.map((p) => PlanModel(
+            id: p.id,
+            name: p.name,
+            type: p.type,
+            durationLabel: p.durationLabel ?? (p.durationDays != null ? "${p.durationDays} Days" : "1 Month"),
+            durationDays: p.durationDays,
+            price: p.price != null ? (double.tryParse(p.price!)?.toInt() ?? p.price) : null,
+            features: p.features,
+          )).toList();
+
+          planModelList = List.from(allPlanList);
+          if (planModelList.isNotEmpty) {
+            planModelList.first.isSelected = true;
+            selectedPlan = planModelList.first;
+          }
+          responseModel = ResponseModel(true, "Loaded from gym packages");
+        } else {
+          responseModel = ResponseModel(false, e.toString());
+        }
+      } else {
+        responseModel = ResponseModel(false, e.toString());
+      }
     }
 
     isLoading = false;

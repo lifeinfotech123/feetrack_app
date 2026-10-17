@@ -16,6 +16,15 @@ class VisitRepo {
         data,
       );
 
+  Future<Response> bookGymVisit({
+    required Map<String, dynamic> data,
+  }) async =>
+      await apiClient.postData(
+        AppConstants.gymBookVisit,
+        "bookGymVisit",
+        data,
+      );
+
   Future<Response> fetchVisits({required int page}) async =>
       await apiClient.getData(
         '${AppConstants.visitsUrl}?page=$page',
@@ -32,5 +41,33 @@ class VisitRepo {
       await apiClient.deleteData(
         AppConstants.getVisitDetailUrl(id),
         "cancelVisit",
+      );
+
+  Future<Response> cancelPgVisit({required String id}) async =>
+      await apiClient.postData(
+        AppConstants.pgCustomerVisitCancel(id: id),
+        "cancelPgVisit",
+        {},
+      );
+
+  Future<Response> schedulePgVisit({
+    required Map<String, dynamic> data,
+  }) async =>
+      await apiClient.postData(
+        AppConstants.pgScheduleVisit,
+        "schedulePgVisit",
+        data,
+      );
+
+  Future<Response> fetchPgVisits() async =>
+      await apiClient.getData(
+        AppConstants.pgVisits,
+        "fetchPgVisits",
+      );
+
+  Future<Response> fetchPgVisitDetail({required String id}) async =>
+      await apiClient.getData(
+        AppConstants.pgVisitDetail(id),
+        "fetchPgVisitDetail",
       );
 }

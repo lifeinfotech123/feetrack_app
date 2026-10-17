@@ -2,6 +2,7 @@ import 'dart:developer';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:get/get.dart';
+import 'package:vlr/controllers/auth_controller.dart';
 import 'package:vlr/data/models/job_post_model.dart';
 import 'package:vlr/data/models/job_detail_model.dart';
 import 'package:vlr/data/models/response/response_model.dart';
@@ -20,8 +21,11 @@ class JobController extends GetxController implements GetxService {
     update();
     try {
       Response response = await jobRepo.getJobList();
-      if ((response.statusCode == 200 || response.statusCode == 201) && response.body != null) {
-        if (response.body['success'] == true || response.body['success'] == 'true' || response.body['status'] == 'success') {
+      if ((response.statusCode == 200 || response.statusCode == 201) &&
+          response.body != null) {
+        if (response.body['success'] == true ||
+            response.body['success'] == 'true' ||
+            response.body['status'] == 'success') {
           var rawData = response.body['data'];
           List items = [];
           if (rawData is List) {
@@ -29,7 +33,9 @@ class JobController extends GetxController implements GetxService {
           } else if (rawData is Map && rawData['data'] is List) {
             items = rawData['data'];
           }
-          jobList = items.map((e) => JobPostModel.fromJson(Map<String, dynamic>.from(e))).toList();
+          jobList = items
+              .map((e) => JobPostModel.fromJson(Map<String, dynamic>.from(e)))
+              .toList();
         }
       }
     } catch (e) {
@@ -57,7 +63,8 @@ class JobController extends GetxController implements GetxService {
     update();
   }
 
-  Future<bool> shareReferral({required int postId, required String referralCode}) async {
+  Future<bool> shareReferral(
+      {required int postId, required String referralCode}) async {
     try {
       Map<String, dynamic> data = {
         "post_id": postId,
@@ -65,8 +72,10 @@ class JobController extends GetxController implements GetxService {
       };
 
       Response response = await jobRepo.shareReferral(data);
-      if ((response.statusCode == 200 || response.statusCode == 201) && response.body != null) {
-        if (response.body['success'] == true || response.body['status'] == "success") {
+      if ((response.statusCode == 200 || response.statusCode == 201) &&
+          response.body != null) {
+        if (response.body['success'] == true ||
+            response.body['status'] == "success") {
           return true;
         }
       }
@@ -82,7 +91,8 @@ class JobController extends GetxController implements GetxService {
     update();
     try {
       Response response = await jobRepo.getJobDetailsByReferral(referralCode);
-      if ((response.statusCode == 200 || response.statusCode == 201) && response.body != null) {
+      if ((response.statusCode == 200 || response.statusCode == 201) &&
+          response.body != null) {
         if (response.body['success'] == true && response.body['data'] != null) {
           selectedJob = JobDetailData.fromJson(response.body['data']);
         }
@@ -110,13 +120,15 @@ class JobController extends GetxController implements GetxService {
     try {
       final Map<String, dynamic> data = {
         "post_id": postId.toString(),
-        if (referralCode != null && referralCode.isNotEmpty) "referral_code": referralCode,
+        if (referralCode != null && referralCode.isNotEmpty)
+          "referral_code": referralCode,
         "designation": designation,
         "address": address,
       };
 
       if (resumeFile != null) {
-        final fileName = resumeFileName ?? resumeFile.path.split(Platform.pathSeparator).last;
+        final fileName = resumeFileName ??
+            resumeFile.path.split(Platform.pathSeparator).last;
         data["resume"] = MultipartFile(resumeFile, filename: fileName);
       } else if (resumeBytes != null && resumeFileName != null) {
         data["resume"] = MultipartFile(resumeBytes, filename: resumeFileName);
@@ -125,14 +137,22 @@ class JobController extends GetxController implements GetxService {
       final formData = FormData(data);
       Response response = await jobRepo.applyJob(formData);
 
-      if ((response.statusCode == 200 || response.statusCode == 201) && response.body != null) {
-        if (response.body['success'] == true || response.body['status'] == "success") {
-          return ResponseModel(true, response.body['message'] ?? "Application submitted successfully!");
+      if ((response.statusCode == 200 || response.statusCode == 201) &&
+          response.body != null) {
+        if (response.body['success'] == true ||
+            response.body['status'] == "success") {
+          return ResponseModel(
+              true,
+              response.body['message'] ??
+                  "Application submitted successfully!");
         } else {
-          return ResponseModel(false, response.body['message'] ?? "Failed to submit application.");
+          return ResponseModel(false,
+              response.body['message'] ?? "Failed to submit application.");
         }
       } else {
-        final errorMsg = response.statusText ?? response.body?['message'] ?? "Failed to submit application. Please check your details.";
+        final errorMsg = response.statusText ??
+            response.body?['message'] ??
+            "Failed to submit application. Please check your details.";
         return ResponseModel(false, errorMsg);
       }
     } catch (e) {
@@ -152,7 +172,8 @@ class JobController extends GetxController implements GetxService {
     update();
     try {
       Response response = await jobRepo.getAppliedJobs();
-      if ((response.statusCode == 200 || response.statusCode == 201) && response.body != null) {
+      if ((response.statusCode == 200 || response.statusCode == 201) &&
+          response.body != null) {
         if (response.body['success'] == true && response.body['data'] != null) {
           var rawData = response.body['data'];
           List items = [];
@@ -165,7 +186,9 @@ class JobController extends GetxController implements GetxService {
               items = [rawData];
             }
           }
-          appliedJobList = items.map((e) => JobPostModel.fromJson(Map<String, dynamic>.from(e))).toList();
+          appliedJobList = items
+              .map((e) => JobPostModel.fromJson(Map<String, dynamic>.from(e)))
+              .toList();
         } else {
           appliedJobList = [];
         }
@@ -189,9 +212,11 @@ class JobController extends GetxController implements GetxService {
     update();
     try {
       Response response = await jobRepo.getAppliedJobDetails(appliedId);
-      if ((response.statusCode == 200 || response.statusCode == 201) && response.body != null) {
+      if ((response.statusCode == 200 || response.statusCode == 201) &&
+          response.body != null) {
         if (response.body['success'] == true && response.body['data'] != null) {
-          appliedJobDetail = JobPostModel.fromJson(Map<String, dynamic>.from(response.body['data']));
+          appliedJobDetail = JobPostModel.fromJson(
+              Map<String, dynamic>.from(response.body['data']));
         }
       }
     } catch (e) {

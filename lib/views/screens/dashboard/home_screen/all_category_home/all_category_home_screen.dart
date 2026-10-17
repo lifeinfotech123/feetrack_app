@@ -17,6 +17,13 @@ import 'package:vlr/views/base/common_button.dart';
 import 'package:vlr/views/base/shimmer.dart';
 import 'package:vlr/views/base/custom_image.dart';
 import 'package:vlr/views/screens/dashboard/home_screen/All_home/gym_home/gym_home_screen.dart';
+import 'package:vlr/views/screens/gym/gym_bottom_nav_bar/gym_bottom_nav_bar_screen.dart';
+import 'package:vlr/views/screens/room_section/room_bottom_nav_bar/room_bottom_nav_bar_screen.dart';
+import 'package:vlr/views/screens/room_section/pg_profile/pg_profile_screen.dart';
+import 'package:vlr/views/screens/dashboard/job/job_screen.dart';
+import 'package:vlr/hospital/features/dashboard/presentation/screen/dashboard_screen.dart'
+    as hospital;
+import 'package:vlr/controllers/room_controller.dart';
 import 'package:vlr/views/screens/dashboard/home_screen/all-category_screen/all_category_screen.dart';
 import 'package:vlr/views/screens/dashboard/home_screen/all_category_home/slider_card/slider_card.dart';
 import 'package:vlr/views/screens/dashboard/home_screen/all_category_home/widget/recent_paymant_section.dart';
@@ -34,9 +41,8 @@ import 'package:vlr/views/widget/home_screen_widget/explore_by_category_widget.d
 import 'package:vlr/controllers/wallet_controller.dart';
 
 import '../../../../../controllers/transaction_controller.dart';
-import '../../../gym/gym_profile/gym_profile_screen.dart';
+import '../All_home/gym_home/widget/gym_home_details_screen.dart';
 import '../../../search/search_all_screen.dart';
-import '../All_home/gym_home/widget/home_banner_section.dart';
 
 class AllCategoryHomeScreen extends StatefulWidget {
   const AllCategoryHomeScreen({super.key});
@@ -70,13 +76,16 @@ class _AllCategoryHomeScreenState extends State<AllCategoryHomeScreen> {
       final homeController = Get.find<HomeController>();
       final commonController = Get.find<CommonController>();
       final transactionController = Get.find<TransactionController>();
-      final walletController = Get.find<WalletController>();
-
-      authController.fetchProfile();
+      if (authController.isLoggedIn()) {
+        authController.fetchProfile();
+        transactionController.fetchRecentTransactions();
+        if (Get.isRegistered<WalletController>()) {
+          final walletController = Get.find<WalletController>();
+          walletController.fetchWalletSummary();
+          walletController.fetchReserveHistory();
+        }
+      }
       commonController.fetchBanner();
-      transactionController.fetchRecentTransactions();
-      walletController.fetchWalletSummary();
-      walletController.fetchReserveHistory();
 
       await homeController.fetchCategories();
       await fetchLocation(permissionController);
@@ -98,6 +107,10 @@ class _AllCategoryHomeScreenState extends State<AllCategoryHomeScreen> {
         latitude: permissionController.latitude,
         longitude: permissionController.longitude,
       );
+
+      if (Get.isRegistered<RoomController>()) {
+        Get.find<RoomController>().fetchPgListings();
+      }
     });
   }
 
@@ -125,26 +138,112 @@ class _AllCategoryHomeScreenState extends State<AllCategoryHomeScreen> {
   }
 
   // Find category matching dynamic ID (Gym is "1", Dance is "2", PG is "3", etc.)
-  void _onCategorySelected(String categoryId) async {
+  void _onCategorySelected(String categoryId, [CategoryModel? model]) async {
     final homeController = Get.find<HomeController>();
     final permissionController = Get.find<PermissionController>();
 
-    final category = homeController.categoryModelList.firstWhere(
-      (element) => element.id.toString() == categoryId,
-      orElse: () => CategoryModel(
-        id: int.tryParse(categoryId),
-        name: categoryId == "1"
-            ? "Gym"
-            : (categoryId == "3"
-                ? "PG / Hostel"
-                : (categoryId == "2" ? "Dance Center" : "Services")),
-      ),
-    );
+    final category = model ??
+        homeController.categoryModelList.firstWhere(
+          (element) => element.id.toString() == categoryId,
+          orElse: () => CategoryModel(
+            id: int.tryParse(categoryId),
+            name: categoryId == "1"
+                ? "Gym"
+                : (categoryId == "3"
+                    ? "PG / Hostel"
+                    : (categoryId == "2" ? "Dance Center" : "Services")),
+          ),
+        );
 
     homeController.updateSelectCategoryModel(category);
     await fetchLocation(permissionController);
 
     if (!mounted) return;
+
+    final String name = (category.name ?? '').toLowerCase();
+    final String slug = (category.slug ?? '').toLowerCase();
+    final String catId = category.id?.toString() ?? categoryId;
+
+    // 1. Hospital Category
+    if (catId == "2" ||
+        name.contains("hospital") ||
+        slug.contains("hospital") ||
+        name.contains("doctor") ||
+        slug.contains("doctor") ||
+        name.contains("clinic") ||
+        slug.contains("clinic") ||
+        name.contains("medical") ||
+        slug.contains("medical") ||
+        name.contains("health") ||
+        slug.contains("health")) {
+      navigate(
+        context: context,
+        page: const hospital.HospitalDashboardScreen(),
+      );
+      return;
+    }
+
+    // 2. Gym / Fitness Category
+    final bool isGymCategory = catId == "11" ||
+        catId == "1" ||
+        name.contains("gym") ||
+        slug.contains("gym") ||
+        name.contains("fitness") ||
+        slug.contains("fitness") ||
+        name.contains("workout") ||
+        slug.contains("workout");
+    if (isGymCategory) {
+      navigate(
+        context: context,
+        page: const GymBottomNavBarScreen(),
+      );
+      return;
+    }
+
+    // 3. Room Booking / PG / Room / Hostel Category
+    final bool isRoomCategory = catId == "12" ||
+        catId == "3" ||
+        (category.hasRooms ?? false) ||
+        name.contains("room") ||
+        slug.contains("room") ||
+        name.contains("pg") ||
+        slug.contains("pg") ||
+        name.contains("hostel") ||
+        slug.contains("hostel") ||
+        name.contains("booking") ||
+        slug.contains("booking");
+    if (isRoomCategory) {
+      navigate(
+        context: context,
+        page: const RoomBottomNavBarScreen(),
+      );
+      return;
+    }
+
+    // 4. HRMS / Job Category
+    if (catId == "10" ||
+        name.contains("hrms") ||
+        slug.contains("hrms") ||
+        name.contains("job") ||
+        slug.contains("job") ||
+        name.contains("career") ||
+        slug.contains("career") ||
+        name.contains("naukri") ||
+        slug.contains("naukri") ||
+        name.contains("recruitment") ||
+        slug.contains("recruitment") ||
+        name.contains("employment") ||
+        slug.contains("employment") ||
+        name.contains("work") ||
+        slug.contains("work")) {
+      navigate(
+        context: context,
+        page: const JobScreen(),
+      );
+      return;
+    }
+
+    // 5. Default Fallback
     navigate(context: context, page: const GymHomeScreen());
   }
 
@@ -184,7 +283,7 @@ class _AllCategoryHomeScreenState extends State<AllCategoryHomeScreen> {
                                     child: CustomShimmer(
                                       isLoading: authController.isLoading,
                                       child: Text(
-                                        "Hii, ${capitalize(authController.userModel?.name ?? 'Guest')}",
+                                        "Hii, ${authController.isLoggedIn() ? capitalize(authController.userModel?.name ?? 'Guest') : 'Guest'}",
                                         style: Helper(context)
                                             .textTheme
                                             .titleMedium
@@ -198,40 +297,6 @@ class _AllCategoryHomeScreenState extends State<AllCategoryHomeScreen> {
                                   ),
                                 ],
                               ),
-                              // Text(
-                              //   "Welcome back to FeeTrack",
-                              //   style: Helper(context)
-                              //       .textTheme
-                              //       .bodyMedium
-                              //       ?.copyWith(
-                              //         fontSize: 12.sp,
-                              //         color: greyText3,
-                              //       ),
-                              // ),
-                              // sizedBoxHeight(height: 4),
-                              // GetBuilder<WalletController>(
-                              //   builder: (walletController) {
-                              //     return Row(
-                              //       children: [
-                              //         _buildWalletInfo(
-                              //           icon:
-                              //               Icons.account_balance_wallet_rounded,
-                              //           amount: walletController.walletBalance,
-                              //           label: "Wallet",
-                              //           color: Colors.blueAccent,
-                              //         ),
-                              //         sizedBoxWidth(width: 12.w),
-                              //         _buildWalletInfo(
-                              //           icon: Icons.lock_clock_rounded,
-                              //           amount:
-                              //               walletController.totalReservedAmount,
-                              //           label: "Reserved",
-                              //           color: Colors.orangeAccent,
-                              //         ),
-                              //       ],
-                              //     );
-                              //   },
-                              // ),
 
                               //! --
                               SizedBox(height: 7.h),
@@ -388,8 +453,9 @@ class _AllCategoryHomeScreenState extends State<AllCategoryHomeScreen> {
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(100),
                                     child: CustomImage(
-                                      path:
-                                          authController.userModel?.image ?? "",
+                                      path: authController.isLoggedIn()
+                                          ? (authController.userModel?.image ?? "")
+                                          : "",
                                       isProfile: true,
                                       fit: BoxFit.cover,
                                     ),
@@ -569,7 +635,8 @@ class _AllCategoryHomeScreenState extends State<AllCategoryHomeScreen> {
                         child: GestureDetector(
                           onTap: () async {
                             if (homeController.isLoading) return;
-                            _onCategorySelected(categoryModel.id.toString());
+                            _onCategorySelected(
+                                categoryModel.id.toString(), categoryModel);
                           },
                           child: homeController.isLoading
                               ? Container(
@@ -587,24 +654,6 @@ class _AllCategoryHomeScreenState extends State<AllCategoryHomeScreen> {
               );
             }),
 
-            // sizedBoxHeight(height: 20),
-
-            // Text(
-            //   "Quick Actions",
-            //   style: Helper(context).textTheme.titleMedium?.copyWith(
-            //         fontSize: 16.sp,
-            //         color: blackText1,
-            //         fontWeight: FontWeight.w800,
-            //       ),
-            // ),
-            // sizedBoxHeight(height: 10),
-            // _buildQuickAccessSection(),
-            sizedBoxHeight(height: 20),
-            // Modern Banner Carousel
-
-            const HomeBanner(),
-            sizedBoxHeight(height: 20),
-
             // Gym Section
             GetBuilder<HomeController>(builder: (homeController) {
               return GymListingSection(
@@ -619,14 +668,15 @@ class _AllCategoryHomeScreenState extends State<AllCategoryHomeScreen> {
                 onListingTap: (listingModel) {
                   homeController.updateSelectListingModel(value: listingModel);
                   if (homeController.selectListingModel != null) {
-                    navigate(context: context, page: const GYMProfileScreen());
+                    navigate(
+                        context: context, page: const GymHomeDetailsScreen());
                   }
                 },
               );
             }),
             sizedBoxHeight(height: 20),
 
-            // Dance Section
+            // Gym Section
             GetBuilder<HomeController>(builder: (homeController) {
               return DanceCentreSectionWidget(
                 danceList: homeController.danceList,
@@ -640,31 +690,51 @@ class _AllCategoryHomeScreenState extends State<AllCategoryHomeScreen> {
                 onListingTap: (listingModel) {
                   homeController.updateSelectListingModel(value: listingModel);
                   if (homeController.selectListingModel != null) {
-                    navigate(context: context, page: const GYMProfileScreen());
+                    navigate(
+                        context: context, page: const GymHomeDetailsScreen());
                   }
                 },
               );
             }),
             sizedBoxHeight(height: 20),
 
-            // PG/Hostel Section
-            GetBuilder<HomeController>(builder: (homeController) {
-              return PgSectionWidget(
-                pgList: homeController.pgHostelList,
-                isLoading: homeController.isPgHostelLoading,
-                fallbackImages: _pgImages,
-                onViewAll: () => _onCategorySelected(
-                  homeController.pgHostelList.isNotEmpty
-                      ? homeController.pgHostelList.first.categoryId ?? "3"
-                      : "3",
-                ),
-                onListingTap: (listingModel) {
-                  homeController.updateSelectListingModel(value: listingModel);
-                  if (homeController.selectListingModel != null) {
-                    navigate(context: context, page: const GYMProfileScreen());
-                  }
-                },
-              );
+            // PG/Hostel Section — mirrors Gym module flow: goes to PgProfileScreen
+            GetBuilder<RoomController>(builder: (roomController) {
+              return GetBuilder<HomeController>(builder: (homeController) {
+                final displayList = roomController.pgListingList.isNotEmpty
+                    ? roomController.pgListingList
+                    : homeController.pgHostelList;
+                final bool isPgLoading = roomController.pgListingList.isNotEmpty
+                    ? false
+                    : (roomController.isListingsLoading ||
+                        homeController.isPgHostelLoading);
+
+                return PgSectionWidget(
+                  pgList: displayList,
+                  isLoading: isPgLoading,
+                  fallbackImages: _pgImages,
+                  onViewAll: () {
+                    navigate(
+                        context: context, page: const RoomBottomNavBarScreen());
+                  },
+                  onListingTap: (listingModel) {
+                    homeController.updateSelectListingModel(
+                        value: listingModel);
+                    roomController.selectedListingDetails = listingModel;
+                    if (listingModel.id != null &&
+                        listingModel.id!.isNotEmpty) {
+                      roomController.fetchPgListingDetails(listingModel.id!);
+                    }
+                    navigate(
+                      context: context,
+                      page: PgProfileScreen(
+                        listingId: listingModel.id,
+                        initialModel: listingModel,
+                      ),
+                    );
+                  },
+                );
+              });
             }),
             sizedBoxHeight(height: 20),
 
@@ -754,28 +824,29 @@ class _AllCategoryHomeScreenState extends State<AllCategoryHomeScreen> {
   // Visual grid item for categories
   Widget _buildCategoryGridItem(CategoryModel categoryModel) {
     final Color itemColor = categoryModel.colorValue;
+    final String? imgUrl = categoryModel.imageUrl;
     return SmallCardWidget(
       title: categoryModel.name ?? "",
       onTap: () async {
-        _onCategorySelected(categoryModel.id.toString());
+        _onCategorySelected(categoryModel.id.toString(), categoryModel);
       },
       bgColor: itemColor.withValues(alpha: 0.08),
-      size: 44.w,
-      image: categoryModel.iconUrl != null && categoryModel.iconUrl!.isNotEmpty
+      size: 48.w,
+      image: (imgUrl != null && imgUrl.isNotEmpty)
           ? Container(
-              width: 44.w,
-              height: 44.w,
+              width: 48.w,
+              height: 48.w,
               clipBehavior: Clip.antiAlias,
               decoration: const BoxDecoration(shape: BoxShape.circle),
               child: CachedNetworkImage(
-                imageUrl: categoryModel.iconUrl!,
-                width: 44.w,
-                height: 44.w,
+                imageUrl: imgUrl,
+                width: 48.w,
+                height: 48.w,
                 fit: BoxFit.cover,
                 placeholder: (context, url) => Center(
                   child: SizedBox(
-                    width: 12.sp,
-                    height: 12.sp,
+                    width: 14.sp,
+                    height: 14.sp,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
                       color: itemColor,

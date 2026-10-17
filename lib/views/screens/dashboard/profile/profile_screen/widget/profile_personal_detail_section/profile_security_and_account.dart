@@ -6,7 +6,8 @@ import 'package:vlr/services/constants.dart';
 import 'package:vlr/services/theme.dart';
 import 'package:vlr/views/base/shimmer.dart';
 import 'package:vlr/views/screens/auth_screens/login/login_screen.dart';
-import 'package:vlr/views/screens/bookings/booking_screen.dart';
+import 'package:vlr/views/base/dialogs/logout_dialog.dart';
+import 'package:vlr/services/app_router.dart';
 import 'package:vlr/views/screens/dashboard/profile/profile_screen/widget/row_security_widget.dart';
 
 class ProfileSecurityAndAccount extends StatelessWidget {
@@ -136,15 +137,22 @@ List<ProfileInfoRowModel> profileInfoRowModelList(
       ProfileInfoRowModel(
           icon: Assets.svgsLogout,
           title: "Logout",
-          onTap: () {
-            authController.logout().then((value) {
-              if (value.isSuccess) {
-                showToast(message: value.message, typeCheck: value.isSuccess);
+          onTap: () async {
+            bool? logout = await showLogoutDialogue(context: context);
+            if (logout == true) {
+              final value = await authController.logout();
+              showToast(
+                  message: value.message.isNotEmpty
+                      ? value.message
+                      : "Logged out successfully",
+                  typeCheck: true);
+              if (context.mounted) {
                 navigate(
-                    context: context, isRemoveUntil: true, page: LoginScreen());
-              } else {
-                showToast(message: value.message, typeCheck: value.isSuccess);
+                    context: context,
+                    isRemoveUntil: true,
+                    page: const LoginScreen());
               }
-            });
+              AppRouter.goToLogin();
+            }
           }),
     ];

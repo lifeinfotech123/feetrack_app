@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
+import 'package:vlr/controllers/auth_controller.dart';
 import 'package:vlr/controllers/home_controller.dart';
 import 'package:vlr/generated/assets.dart';
 import 'package:vlr/services/constants.dart';
 import 'package:vlr/services/lanch_helper.dart';
 import 'package:vlr/services/theme.dart';
 import 'package:vlr/views/base/common_button.dart';
+import 'package:vlr/views/base/dialogs/login_required_dialog.dart';
 import 'package:vlr/views/screens/gym/gym_book_visit/gym_book_visit_screen.dart';
 import 'package:vlr/views/screens/gym/gym_select_plan_screen.dart/gym_select_plan_screen.dart';
 
@@ -41,6 +43,17 @@ class GymProfileMedSection extends StatelessWidget {
               height: 48,
               radius: 999,
               onTap: () {
+                final bool isLoggedIn = Get.isRegistered<AuthController>() &&
+                    Get.find<AuthController>().isLoggedIn();
+                if (!isLoggedIn) {
+                  showLoginRequiredDialog(
+                    context: context,
+                    title: "Login Required",
+                    message:
+                        "Please login to your account first before booking.",
+                  );
+                  return;
+                }
                 navigate(context: context, page: GymSelectPlanScreen());
               },
               color: const Color(0xFF022C7F),
@@ -72,6 +85,18 @@ class GymProfileMedSection extends StatelessWidget {
               Expanded(
                 child: CustomButton(
                   onTap: () {
+                    final bool isLoggedIn =
+                        Get.isRegistered<AuthController>() &&
+                            Get.find<AuthController>().isLoggedIn();
+                    if (!isLoggedIn) {
+                      showLoginRequiredDialog(
+                        context: context,
+                        title: "Login Required",
+                        message:
+                            "Please login to your account first before booking a visit.",
+                      );
+                      return;
+                    }
                     navigate(
                       context: context,
                       page: const GymBookVisitScreen(),

@@ -8,7 +8,9 @@ import 'package:vlr/services/theme.dart';
 import 'package:vlr/views/base/custom_image.dart';
 import 'package:vlr/views/widget/text_box/app_text_box.dart';
 import '../../../data/models/category_model/listing_model.dart';
-import '../gym/gym_profile/gym_profile_screen.dart';
+import '../dashboard/home_screen/All_home/gym_home/widget/gym_home_details_screen.dart';
+import 'package:vlr/controllers/room_controller.dart';
+import 'package:vlr/views/screens/room_section/pg_profile/pg_profile_screen.dart';
 
 class SearchAllScreen extends StatefulWidget {
   const SearchAllScreen({super.key});
@@ -129,7 +131,27 @@ class _SearchListingCard extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         Get.find<HomeController>().updateSelectListingModel(value: listing);
-        navigate(context: context, page: const GYMProfileScreen());
+        final bool isRoom = (listing.category?.hasRooms ?? false) ||
+            (listing.categoryId == "3") ||
+            (listing.category?.name?.toLowerCase().contains("pg") ?? false) ||
+            (listing.category?.name?.toLowerCase().contains("hostel") ?? false);
+
+        if (isRoom) {
+          final listingId = listing.id ?? "";
+          if (listingId.isNotEmpty) {
+            Get.find<RoomController>().fetchPgListingDetails(listingId);
+          }
+          Get.find<RoomController>().selectedListingDetails = listing;
+          navigate(
+            context: context,
+            page: PgProfileScreen(
+              listingId: listing.id,
+              initialModel: listing,
+            ),
+          );
+        } else {
+          navigate(context: context, page: const GymHomeDetailsScreen());
+        }
       },
       child: Container(
         decoration: BoxDecoration(

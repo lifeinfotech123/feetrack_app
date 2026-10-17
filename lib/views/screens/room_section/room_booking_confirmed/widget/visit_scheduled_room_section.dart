@@ -4,8 +4,11 @@ import 'package:vlr/services/theme.dart';
 import 'package:vlr/views/base/custom_image.dart';
 
 class VisitScheduledRoomSection extends StatelessWidget {
+  final String? propertyTitle;
+
   const VisitScheduledRoomSection({
     super.key,
+    this.propertyTitle,
   });
 
   @override
@@ -28,10 +31,12 @@ class VisitScheduledRoomSection extends StatelessWidget {
           ),
           sizedBoxHeight(height: 8),
           Text(
-            "Your appointment for Urban Oasis Suite has been successfully booked.",
+            propertyTitle != null && propertyTitle!.isNotEmpty
+                ? "Your appointment for $propertyTitle has been successfully booked."
+                : "Your appointment for property visit has been successfully booked.",
             textAlign: TextAlign.center,
             style: Helper(context).textTheme.bodySmall?.copyWith(
-                  fontSize: 18,
+                  fontSize: 16,
                   color: greyDart2,
                 ),
           ),

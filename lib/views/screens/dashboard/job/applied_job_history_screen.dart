@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:vlr/controllers/auth_controller.dart';
 import 'package:vlr/controllers/job_controller.dart';
 import 'package:vlr/data/models/job_post_model.dart';
 import 'package:vlr/services/constants.dart';
 import 'package:vlr/services/theme.dart';
+import 'package:vlr/views/screens/auth_screens/login/login_screen.dart';
 import 'package:vlr/views/screens/dashboard/job/applied_job_history_detail_screen.dart';
 
 class AppliedJobHistoryScreen extends StatefulWidget {
@@ -20,7 +22,10 @@ class _AppliedJobHistoryScreenState extends State<AppliedJobHistoryScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Get.find<JobController>().getAppliedJobList();
+      final authCtrl = Get.isRegistered<AuthController>() ? Get.find<AuthController>() : null;
+      if (authCtrl != null && authCtrl.isLoggedIn()) {
+        Get.find<JobController>().getAppliedJobList();
+      }
     });
   }
 
@@ -36,6 +41,88 @@ class _AppliedJobHistoryScreenState extends State<AppliedJobHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authCtrl = Get.isRegistered<AuthController>() ? Get.find<AuthController>() : null;
+    final bool isLoggedIn = authCtrl?.isLoggedIn() ?? false;
+
+    if (!isLoggedIn) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF8FAFC),
+        appBar: AppBar(
+          elevation: 0,
+          backgroundColor: Colors.white,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios_new_rounded, color: const Color(0xFF101828), size: 18.sp),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(
+            "Applied Job History",
+            style: TextStyle(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF101828),
+            ),
+          ),
+          centerTitle: true,
+        ),
+        body: Center(
+          child: Padding(
+            padding: EdgeInsets.all(24.w),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: EdgeInsets.all(16.w),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade50,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.lock_outline_rounded,
+                    size: 48.sp,
+                    color: Colors.amber.shade800,
+                  ),
+                ),
+                SizedBox(height: 16.h),
+                Text(
+                  "Browsing as Guest",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18.sp,
+                    color: const Color(0xFF101828),
+                  ),
+                ),
+                SizedBox(height: 6.h),
+                Text(
+                  "Please log in to view and track your submitted job applications.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13.sp, color: const Color(0xFF667085)),
+                ),
+                SizedBox(height: 20.h),
+                ElevatedButton.icon(
+                  onPressed: () => Get.to(() => const LoginScreen()),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryColor,
+                    padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.r),
+                    ),
+                  ),
+                  icon: Icon(Icons.login_rounded, color: Colors.white, size: 18.sp),
+                  label: Text(
+                    "Log In to FeeTrack",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(

@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:vlr/controllers/auth_controller.dart';
 
 import '../../../../core/constants/colors.dart';
 import '../../../../core/widgets/animated_widgets.dart';
-// import 'package:hospital_management_system/core/constants/colors.dart';
-// import 'package:hospital_management_system/core/widgets/animated_widgets.dart';
 
 class HomeSampleCollectionScreen extends StatefulWidget {
   final List<String> selectedTestNames;
   final int totalPrice;
 
   const HomeSampleCollectionScreen({
-    Key? key,
-    this.selectedTestNames = const ['Complete Blood Count (CBC)', 'Thyroid Profile'],
-    this.totalPrice = 65,
-  }) : super(key: key);
+    super.key,
+    this.selectedTestNames = const ['Diagnostic Pathology Examination'],
+    this.totalPrice = 150,
+  });
 
   @override
   State<HomeSampleCollectionScreen> createState() => _HomeSampleCollectionScreenState();
@@ -21,8 +21,17 @@ class HomeSampleCollectionScreen extends StatefulWidget {
 
 class _HomeSampleCollectionScreenState extends State<HomeSampleCollectionScreen> {
   String _selectedSlot = 'Tomorrow, 07:00 AM - 08:00 AM (Fasting Slot)';
-  String _selectedPatient = 'Self (Ahmed Mohamed)';
-  final TextEditingController _addressCtrl = TextEditingController(text: 'Flat 402, Sunshine Heights, Main Road, Block B');
+  late final TextEditingController _addressCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    final authCtrl = Get.isRegistered<AuthController>() ? Get.find<AuthController>() : null;
+    final userAddress = authCtrl?.address1Controller.text.isNotEmpty == true
+        ? authCtrl!.address1Controller.text
+        : '';
+    _addressCtrl = TextEditingController(text: userAddress);
+  }
 
   final List<String> _slots = [
     'Tomorrow, 06:30 AM - 07:30 AM (Fasting Slot)',

@@ -4,7 +4,7 @@ import 'package:vlr/controllers/common_controller.dart';
 import 'package:vlr/services/constants.dart';
 import 'package:vlr/services/theme.dart';
 import 'package:vlr/views/base/common_button.dart';
-import 'package:vlr/views/screens/gym/gym_billing_screen/gym_billing_screen.dart';
+import 'package:vlr/views/screens/room_section/room/room_booking/room_booking_screen.dart';
 import 'package:vlr/views/screens/room_section/term_and_condition/widget/term_and_condition_iagree_widget.dart';
 import 'package:vlr/views/screens/room_section/term_and_condition/widget/term_and_condition_med_section.dart';
 import 'package:vlr/views/screens/room_section/term_and_condition/widget/term_and_condition_top_section.dart';
@@ -68,7 +68,7 @@ class _TermAndConditionScreenState extends State<TermAndConditionScreen> {
                           message: "Select Term and Condition",
                           toastType: ToastType.info);
                     }
-                    navigate(context: context, page: const GymBillingScreen());
+                    navigate(context: context, page: const RoomBookingScreen());
                   },
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,

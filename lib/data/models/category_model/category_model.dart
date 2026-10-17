@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vlr/services/constants.dart';
 
 class CategoryModel {
   final int? id;
@@ -7,6 +8,7 @@ class CategoryModel {
   final String? slug;
   final String? icon;
   final String? iconUrl;
+  final String? image;
   final String? color;
   final bool? isActive;
   final bool? hasShifts;
@@ -25,6 +27,7 @@ class CategoryModel {
     this.slug,
     this.icon,
     this.iconUrl,
+    this.image,
     this.color,
     this.isActive,
     this.hasShifts,
@@ -37,13 +40,32 @@ class CategoryModel {
     this.deletedAt,
   });
 
+  String? get imageUrl {
+    final String? raw = (image != null && image!.trim().isNotEmpty)
+        ? image!.trim()
+        : ((iconUrl != null && iconUrl!.trim().isNotEmpty) ? iconUrl!.trim() : null);
+
+    if (raw == null || raw.isEmpty) return null;
+
+    if (raw.startsWith('http://') || raw.startsWith('https://')) {
+      return raw;
+    }
+    if (raw.startsWith('/')) {
+      return "${AppConstants.baseUrl.replaceAll('/api/', '').replaceAll('/api', '')}$raw";
+    }
+    return "${AppConstants.baseImageUrl}$raw";
+  }
+
+  String? get displayImage => imageUrl ?? icon;
+
   factory CategoryModel.fromJson(Map<String, dynamic> json) => CategoryModel(
         id: json["id"] is int ? json["id"] : int.tryParse(json["id"]?.toString() ?? ""),
         parentId: json["parent_id"],
         name: json["name"],
         slug: json["slug"],
         icon: json["icon"],
-        iconUrl: json["icon_url"],
+        iconUrl: json["icon_url"] ?? json["image"]?.toString(),
+        image: json["image"]?.toString(),
         color: json["color"],
         isActive: json["is_active"] is bool ? json["is_active"] : (json["is_active"] == 1 || json["is_active"] == "1"),
         hasShifts: json["has_shifts"] is bool ? json["has_shifts"] : (json["has_shifts"] == 1 || json["has_shifts"] == "1"),
@@ -53,10 +75,10 @@ class CategoryModel {
         sortOrder: json["sort_order"]?.toString(),
         createdAt: json["created_at"] == null
             ? null
-            : DateTime.parse(json["created_at"]),
+            : DateTime.tryParse(json["created_at"].toString()),
         updatedAt: json["updated_at"] == null
             ? null
-            : DateTime.parse(json["updated_at"]),
+            : DateTime.tryParse(json["updated_at"].toString()),
         deletedAt: json["deleted_at"],
       );
 

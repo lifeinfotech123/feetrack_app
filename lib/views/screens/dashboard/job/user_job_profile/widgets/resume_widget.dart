@@ -15,7 +15,7 @@ class ResumeWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String resumeName = "MohdZaid_Resume.pdf";
+    String resumeName = "No resume uploaded";
     if (candidateProfile?.resumePath != null && candidateProfile!.resumePath!.isNotEmpty) {
       resumeName = candidateProfile!.resumePath!.split('/').last;
     }

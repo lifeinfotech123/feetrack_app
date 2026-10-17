@@ -16,11 +16,15 @@ class StaffModel {
   });
 
   factory StaffModel.fromJson(Map<String, dynamic> json) => StaffModel(
-        id: json["id"],
+        id: json["id"] is int
+            ? json["id"]
+            : int.tryParse(json["id"]?.toString() ?? ""),
         name: json["name"],
         specialization: json["specialization"] ?? json["designation"],
-        experienceYears:
-            (json["experience_years"] ?? json["experience"])?.toString(),
+        experienceYears: (json["experience_years"] ??
+                json["experience_label"] ??
+                json["experience"])
+            ?.toString(),
         photoUrl: json["photo_url"] ?? json["image_url"] ?? json["photo"],
         description: json["description"],
       );

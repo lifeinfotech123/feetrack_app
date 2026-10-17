@@ -96,7 +96,8 @@ class Init {
       Get.lazyPut(() => AttendanceController(attendanceRepo: Get.find()));
       Get.lazyPut(() => NotificationController(notificationRepo: Get.find()));
       Get.lazyPut(() => JobController(jobRepo: Get.find()));
-      Get.lazyPut(() => JobCandidateProfileUpdateController(jobRepo: Get.find()));
+      Get.lazyPut(
+          () => JobCandidateProfileUpdateController(jobRepo: Get.find()));
     } catch (e) {
       log('---- ${e.toString()} ----', name: "ERROR AT initialize()");
     }

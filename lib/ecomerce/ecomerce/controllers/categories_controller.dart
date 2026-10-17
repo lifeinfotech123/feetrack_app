@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import '../../../data/models/category_model/category_model.dart';
 import '../../services/category_service.dart';
 
-
 class CategoriesController extends GetxController implements GetxService {
   final CategoryService _categoryService = CategoryService();
 
@@ -42,8 +41,9 @@ class CategoriesController extends GetxController implements GetxService {
       errorMessage.value = '';
       final fetchedCategories = await _categoryService.getCategories();
       if (fetchedCategories.isNotEmpty) {
-        categories.assignAll(fetchedCategories);
-        if (categories.first.slug != null && categories.first.slug!.isNotEmpty) {
+        categories.assignAll(fetchedCategories as Iterable<CategoryModel>);
+        if (categories.first.slug != null &&
+            categories.first.slug!.isNotEmpty) {
           fetchCategoryDetails(categories.first.slug!);
         }
       } else {
@@ -62,7 +62,7 @@ class CategoriesController extends GetxController implements GetxService {
       subCategoryError.value = '';
       final details = await _categoryService.getCategoryDetails(slug);
       if (details != null) {
-        selectedCategoryDetails.value = details;
+        selectedCategoryDetails.value = details as CategoryModel?;
       } else {
         subCategoryError.value = "Subcategories not found";
       }

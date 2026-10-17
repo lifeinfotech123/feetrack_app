@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:vlr/controllers/auth_controller.dart';
 
 import '../../../../../ecomerce/constants.dart';
 import '../../../../core/constants/colors.dart' hide primaryColor;
 import '../../../../core/widgets/animated_widgets.dart';
-import '../../../medicine_order/presentation/screen/medicine_order_screen.dart';
+import '../../../pharmacy/presentation/screens/pharmacy_screen.dart';
 
 class DigitalPrescriptionScreen extends StatelessWidget {
   final String rxId;
   final String doctorName;
   final String specialty;
   final String date;
+  final String? patientName;
 
   const DigitalPrescriptionScreen({
     Key? key,
@@ -17,6 +20,7 @@ class DigitalPrescriptionScreen extends StatelessWidget {
     this.doctorName = 'Dr. Mohamed Saeed',
     this.specialty = 'Neurology Specialist',
     this.date = '14 Sep 2026',
+    this.patientName,
   }) : super(key: key);
 
   @override
@@ -103,13 +107,20 @@ class DigitalPrescriptionScreen extends StatelessWidget {
                     ],
                   ),
                   const Divider(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _buildInfoItem('Patient', 'Ahmed Mohamed (28 M)'),
-                      _buildInfoItem('Date', date),
-                      _buildInfoItem('Prescription ID', rxId),
-                    ],
+                  Builder(
+                    builder: (context) {
+                      final authCtrl = Get.isRegistered<AuthController>() ? Get.find<AuthController>() : null;
+                      final bool isAuth = authCtrl?.isLoggedIn() ?? false;
+                      final String resolvedName = patientName ?? (isAuth ? (authCtrl?.userModel?.name ?? 'Guest') : 'Guest');
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _buildInfoItem('Patient', resolvedName),
+                          _buildInfoItem('Date', date),
+                          _buildInfoItem('Prescription ID', rxId),
+                        ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 12),
                   Container(
@@ -135,7 +146,7 @@ class DigitalPrescriptionScreen extends StatelessWidget {
                 const Text('Prescribed Medications (3)', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textDark)),
                 TextButton.icon(
                   onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => const MedicineOrderScreen()));
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const PharmacyScreen()));
                   },
                   icon: const Icon(Icons.shopping_bag_outlined, size: 16, color: primaryColor),
                   label: const Text('Order All Online', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: primaryColor)),
@@ -228,7 +239,7 @@ class DigitalPrescriptionScreen extends StatelessWidget {
                   elevation: 4,
                 ),
                 onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const MedicineOrderScreen()));
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const PharmacyScreen()));
                 },
                 icon: const Icon(Icons.local_shipping_outlined, color: colorWhite),
                 label: const Text('Deliver Medicines to Home', style: TextStyle(color: colorWhite, fontSize: 15, fontWeight: FontWeight.bold)),

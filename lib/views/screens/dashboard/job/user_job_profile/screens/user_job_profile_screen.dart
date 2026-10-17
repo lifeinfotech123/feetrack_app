@@ -24,8 +24,13 @@ class _UserJobProfileScreenState extends State<UserJobProfileScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Get.find<AuthController>().fetchProfile();
-      Get.find<JobCandidateProfileUpdateController>().getCandidateProfile();
+      final authCtrl = Get.isRegistered<AuthController>() ? Get.find<AuthController>() : null;
+      if (authCtrl != null && authCtrl.isLoggedIn()) {
+        authCtrl.fetchProfile();
+        if (Get.isRegistered<JobCandidateProfileUpdateController>()) {
+          Get.find<JobCandidateProfileUpdateController>().getCandidateProfile();
+        }
+      }
     });
   }
 

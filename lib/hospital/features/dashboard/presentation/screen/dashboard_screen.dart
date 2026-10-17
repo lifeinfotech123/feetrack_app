@@ -1,25 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:vlr/controllers/auth_controller.dart';
+import 'package:vlr/hospital/features/lab_reports/presentation/screen/lab_reports_screen.dart';
+import 'package:vlr/hospital/features/profile/presentation/screen/profile_screen.dart';
+import 'package:vlr/hospital/features/profile/logics/hospital_profile_controller.dart';
 
-import '../../../../../ecomerce/screens/home/views/home_screen.dart';
-import '../../../../../ecomerce/screens/profile/views/profile_screen.dart';
 import '../../../../core/constants/colors.dart';
 import '../../../appointments/presentation/screen/appointments_screen.dart';
 import '../../../home_screen/presentation/screen/home_screen.dart';
-import '../../../visits/presentation/screen/visits_screen.dart';
-
 
 class HospitalDashboardScreen extends StatefulWidget {
-  final String username;
-  final String userId;
+  final String? username;
+  final String? userId;
 
   const HospitalDashboardScreen({
-    Key? key,
-    this.username = "User",
-    this.userId = "1",
-  }) : super(key: key);
+    super.key,
+    this.username,
+    this.userId,
+  });
 
   @override
-  State<HospitalDashboardScreen> createState() => _HospitalDashboardScreenState();
+  State<HospitalDashboardScreen> createState() =>
+      _HospitalDashboardScreenState();
 }
 
 class _HospitalDashboardScreenState extends State<HospitalDashboardScreen> {
@@ -30,11 +32,21 @@ class _HospitalDashboardScreenState extends State<HospitalDashboardScreen> {
   @override
   void initState() {
     super.initState();
+    if (!Get.isRegistered<HospitalProfileController>()) {
+      Get.put(HospitalProfileController());
+    }
+
+    final authCtrl =
+        Get.isRegistered<AuthController>() ? Get.find<AuthController>() : null;
+    final bool isLoggedIn = authCtrl?.isLoggedIn() ?? false;
+    final resolvedUserId = widget.userId ??
+        (isLoggedIn ? (authCtrl?.userModel?.id?.toString() ?? '') : '');
+
     _screens = [
       const HospitalHomeScreen(),
-      AppointmentsScreen(userId: widget.userId),
-      const VisitsScreen(),
-      const ProfileScreen(),
+      AppointmentsScreen(userId: resolvedUserId),
+      const LabReportsScreen(),
+      const HospitalProfileScreen(),
     ];
   }
 
@@ -52,7 +64,7 @@ class _HospitalDashboardScreenState extends State<HospitalDashboardScreen> {
           color: colorWhite,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
+              color: Colors.black.withValues(alpha: 0.06),
               blurRadius: 20,
               offset: const Offset(0, -4),
             ),
@@ -61,13 +73,11 @@ class _HospitalDashboardScreenState extends State<HospitalDashboardScreen> {
         child: SafeArea(
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-
             children: [
               _buildNavItem(0, Icons.home, 'Home'),
               _buildNavItem(1, Icons.calendar_month_rounded, 'Appointments'),
-              _buildNavItem(2, Icons.local_hospital_rounded, 'Visits'),
+              _buildNavItem(2, Icons.science_rounded, 'Lab Reports'),
               _buildNavItem(3, Icons.person_rounded, 'Profile'),
-
             ],
           ),
         ),
@@ -91,7 +101,9 @@ class _HospitalDashboardScreenState extends State<HospitalDashboardScreen> {
             duration: const Duration(milliseconds: 250),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             decoration: BoxDecoration(
-              color: isSelected ? primaryColor.withOpacity(0.12) : Colors.transparent,
+              color: isSelected
+                  ? primaryColor.withValues(alpha: 0.12)
+                  : Colors.transparent,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
