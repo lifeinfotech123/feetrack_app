@@ -12,6 +12,15 @@ class SelectPgFloor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String titleText = pgFloorModel?.floorNo ?? pgFloorModel?.displayName ?? "Floor";
+    final String subTitleText = (pgFloorModel?.floorName != null &&
+            pgFloorModel!.floorName!.isNotEmpty &&
+            pgFloorModel!.floorName != titleText)
+        ? pgFloorModel!.floorName!
+        : (pgFloorModel?.availableBeds != null
+            ? "${pgFloorModel!.availableBeds} Beds Available"
+            : "${pgFloorModel?.totalRooms ?? 0} Rooms");
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
@@ -24,13 +33,13 @@ class SelectPgFloor extends StatelessWidget {
         boxShadow: (pgFloorModel?.isSelect ?? false)
             ? [
                 BoxShadow(
-                  offset: Offset(0, 4),
+                  offset: const Offset(0, 4),
                   blurRadius: 6,
                   spreadRadius: -4,
                   color: black.withValues(alpha: 0.10),
                 ),
                 BoxShadow(
-                  offset: Offset(0, 10),
+                  offset: const Offset(0, 10),
                   blurRadius: 15,
                   spreadRadius: -3,
                   color: black.withValues(alpha: 0.10),
@@ -43,17 +52,19 @@ class SelectPgFloor extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            pgFloorModel?.floorNo ?? "",
+            titleText,
             style: Helper(context).textTheme.bodySmall?.copyWith(
-                  fontSize: 16,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
                   color: (pgFloorModel?.isSelect ?? false) ? white : blackText3,
                 ),
           ),
           sizedBoxHeight(height: 4),
           Text(
-            pgFloorModel?.floorName ?? "",
+            subTitleText,
             style: Helper(context).textTheme.titleMedium?.copyWith(
-                  fontSize: 16,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
                   color: (pgFloorModel?.isSelect ?? false) ? white : blackText3,
                 ),
           ),

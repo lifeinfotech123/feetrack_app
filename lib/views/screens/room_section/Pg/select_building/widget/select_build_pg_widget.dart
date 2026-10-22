@@ -285,6 +285,15 @@ class SelectPgFloor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String titleText = pgFloorModel?.floorNo ?? pgFloorModel?.displayName ?? "Floor";
+    final String subTitleText = (pgFloorModel?.floorName != null &&
+            pgFloorModel!.floorName!.isNotEmpty &&
+            pgFloorModel!.floorName != titleText)
+        ? pgFloorModel!.floorName!
+        : (pgFloorModel?.availableBeds != null
+            ? "${pgFloorModel!.availableBeds} Beds Available"
+            : "${pgFloorModel?.totalRooms ?? 0} Rooms");
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
@@ -316,17 +325,19 @@ class SelectPgFloor extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            pgFloorModel?.floorNo ?? "",
+            titleText,
             style: Helper(context).textTheme.bodySmall?.copyWith(
-                  fontSize: 16,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
                   color: (pgFloorModel?.isSelect ?? false) ? white : blackText3,
                 ),
           ),
           sizedBoxHeight(height: 4),
           Text(
-            pgFloorModel?.floorName ?? "",
+            subTitleText,
             style: Helper(context).textTheme.titleMedium?.copyWith(
-                  fontSize: 16,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
                   color: (pgFloorModel?.isSelect ?? false) ? white : blackText3,
                 ),
           ),
@@ -425,12 +436,12 @@ class SelectBuildPgWidget extends StatelessWidget {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemBuilder: (context, index) {
-                final _pgFloorModel = roomController.pgFloorModelList[index];
+                final floorModel = roomController.pgFloorModelList[index];
                 return GestureDetector(
                     onTap: () {
-                      roomController.updateSelectPgFloor(_pgFloorModel);
+                      roomController.updateSelectPgFloor(floorModel);
                     },
-                    child: SelectPgFloor(pgFloorModel: _pgFloorModel));
+                    child: SelectPgFloor(pgFloorModel: floorModel));
               },
               separatorBuilder: (_, __) => sizedBoxWidth(width: 16),
               itemCount: roomController.pgFloorModelList.length,

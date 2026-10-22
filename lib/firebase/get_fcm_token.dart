@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:vlr/firebase_options_primary.dart';
 import 'package:vlr/main.dart';
+import 'package:vlr/hospital/features/appointments/presentation/screen/booking_succsess_screen.dart';
 import 'package:vlr/views/screens/dashboard/wallet_screen/add_money_screen/add_money_screen.dart';
 import 'package:vlr/views/screens/gym/gym_book_visit_success/gym_book_visit_success_screen.dart';
 
@@ -202,7 +203,7 @@ class NotificationServices {
         if (message.data.containsKey('booking_id')) {
           navigatorKey.currentState?.pushAndRemoveUntil(
             MaterialPageRoute(
-                builder: (_) => const GymBookVisitSuccessScreen()),
+                builder: (_) => const BookingSuccsessScreen()),
             (route) => false,
           );
         } else {
@@ -247,7 +248,7 @@ class NotificationServices {
         if (message.data.containsKey('booking_id')) {
           navigatorKey.currentState?.pushAndRemoveUntil(
             MaterialPageRoute(
-                builder: (_) => const GymBookVisitSuccessScreen()),
+                builder: (_) => const BookingSuccsessScreen()),
             (route) => false,
           );
         } else {

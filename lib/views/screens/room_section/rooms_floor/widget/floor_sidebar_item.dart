@@ -15,11 +15,7 @@ class FloorSidebarItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isSelect = floor.isSelect;
-
-    String floorBadge = "F${floor.floorNumber ?? ''}";
-    if (floor.floorNumber == '0') {
-      floorBadge = "G";
-    }
+    final String floorBadge = floor.floorBadge;
 
     return GestureDetector(
       onTap: onTap,
@@ -71,7 +67,7 @@ class FloorSidebarItem extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              floor.name ?? "Floor ${floor.floorNumber}",
+              floor.displayName,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: isSelect ? Colors.white : const Color(0xFF1E293B),

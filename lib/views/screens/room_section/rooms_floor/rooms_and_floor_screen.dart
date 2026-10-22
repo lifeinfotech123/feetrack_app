@@ -277,12 +277,7 @@ class _RoomsAndFloorScreenState extends State<RoomsAndFloorScreen>
                         children: [
                           Expanded(
                             child: Text(
-                              selectedFloor.name ??
-                                  (selectedFloor.floorNumber != null
-                                      ? (selectedFloor.floorNumber == '0'
-                                          ? "Ground Floor"
-                                          : "Floor ${selectedFloor.floorNumber}")
-                                      : "Floor"),
+                              selectedFloor.displayName,
                               style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w800,

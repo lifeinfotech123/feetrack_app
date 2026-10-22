@@ -10,6 +10,7 @@ import 'package:vlr/services/constants.dart';
 import 'package:vlr/services/theme.dart';
 import 'package:vlr/views/base/common_button.dart';
 import 'package:vlr/views/base/dialogs/login_required_dialog.dart';
+import 'package:vlr/hospital/features/appointments/presentation/screen/booking_succsess_screen.dart';
 import 'package:vlr/views/screens/gym/gym_book_visit_success/gym_book_visit_success_screen.dart';
 
 import 'widget/gym_book_visit_gym_profile_section.dart';
@@ -602,16 +603,20 @@ class _GymBookVisitScreenState extends State<GymBookVisitScreen> {
                             toastType: ToastType.success,
                           );
                           final data = value.data is Map ? value.data : null;
-                          Get.off(() => GymBookVisitSuccessScreen(
+                          Get.off(() => BookingSuccsessScreen(
+                                bookingType: 'gym',
                                 isMembership: false,
                                 gymTitle: data?['gym_title'] ?? gymTitle,
-                                visitId: data?['visit_id']?.toString(),
-                                visitDate: data?['visit_date'] ?? apiDate,
-                                visitTime: data?['slot_label'] ??
+                                bookingId: data?['visit_id']?.toString(),
+                                date: data?['visit_date'] ?? apiDate,
+                                time: data?['slot_label'] ??
                                     data?['visit_time'] ??
                                     bookController.selectedTime,
+                                paymentMethod: 'offline',
                                 status: data?['status'] ?? "pending",
                                 message: data?['message'] ?? value.message,
+                                bookingData:
+                                    data is Map<String, dynamic> ? data : null,
                               ));
                         } else {
                           showToast(

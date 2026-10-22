@@ -444,7 +444,7 @@ class RoomController extends GetxController implements GetxService {
           log("Fetched ${pgRoomModelList.length} rooms for listing '$listingId'");
 
           // Dynamically build/group floors from rooms if pgFloorModelList is empty
-          if (pgRoomModelList.isNotEmpty) {
+          if (pgRoomModelList.isNotEmpty && pgFloorModelList.isEmpty) {
             final Map<String, List<PgRoomModel>> floorGroup = {};
             final Map<String, String> floorNames = {};
 
@@ -457,10 +457,20 @@ class RoomController extends GetxController implements GetxService {
             }
 
             pgFloorModelList = floorGroup.entries.map((entry) {
+              final String? fName = floorNames[entry.key];
+              String? fNum;
+              if (fName != null) {
+                if (fName.toLowerCase().contains('ground')) {
+                  fNum = '0';
+                } else {
+                  final match = RegExp(r'(\d+)').firstMatch(fName);
+                  if (match != null) fNum = match.group(1);
+                }
+              }
               return PgFloorModel(
                 id: entry.key,
-                floorNumber: entry.key,
-                name: floorNames[entry.key] ?? "Floor ${entry.key}",
+                floorNumber: fNum ?? entry.key,
+                name: fName ?? "Floor ${fNum ?? entry.key}",
                 rooms: entry.value,
                 isSelect: false,
               );
@@ -544,32 +554,71 @@ class RoomController extends GetxController implements GetxService {
   // 10. FETCH PG FLOORS (api/v1/pg/floors)
   // ══════════════════════════════════════════════════════════════════
   Future<void> fetchPgFloors({String? listingId}) async {
-    log("RoomController: fetchPgFloors called with listingId: $listingId");
+    final String? effectiveListingId = (listingId != null && listingId.isNotEmpty)
+        ? listingId
+        : selectedListingDetails?.id;
+    log("RoomController: fetchPgFloors called with listingId: $effectiveListingId");
     isFloorsLoading = true;
     isLoading = true;
     update();
 
     try {
       final Response response =
-          await roomRepo.fetchPgFloors(listingId: listingId);
+          await roomRepo.fetchPgFloors(listingId: effectiveListingId);
       log("RoomController: fetchPgFloors response status: ${response.statusCode}");
+
       if (response.statusCode == 200 && response.body != null) {
         final data = response.body['data'];
         if (data is List) {
-          pgFloorModelList = data
+          List<PgFloorModel> fetchedList = data
               .map((v) => PgFloorModel.fromJson(Map<String, dynamic>.from(v)))
               .toList();
-          log("Fetched ${pgFloorModelList.length} floors");
+
+          if (effectiveListingId != null && effectiveListingId.isNotEmpty) {
+            final filtered = fetchedList
+                .where((f) =>
+                    f.listingId != null &&
+                    f.listingId.toString().toLowerCase() ==
+                        effectiveListingId.toLowerCase())
+                .toList();
+            if (filtered.isNotEmpty) {
+              fetchedList = filtered;
+            }
+          }
+
+          if (fetchedList.isNotEmpty) {
+            pgFloorModelList = fetchedList;
+          } else if (selectedListingDetails?.floors != null &&
+              selectedListingDetails!.floors!.isNotEmpty) {
+            pgFloorModelList = List.from(selectedListingDetails!.floors!);
+          }
+
+          log("Fetched ${pgFloorModelList.length} floors for listing '$effectiveListingId'");
 
           if (pgFloorModelList.isNotEmpty) {
-            // Unselect all, then select first
+            PgFloorModel? currentSel;
+            if (selectedFloor != null) {
+              final matches = pgFloorModelList.where((f) =>
+                  f.id != null &&
+                  selectedFloor!.id != null &&
+                  f.id.toString() == selectedFloor!.id.toString());
+              if (matches.isNotEmpty) {
+                currentSel = matches.first;
+              }
+            }
+
             for (var f in pgFloorModelList) {
               f.isSelect = false;
             }
-            pgFloorModelList.first.isSelect = true;
-            selectedFloor = pgFloorModelList.first;
 
-            // Fetch floor details and rooms for the first floor
+            if (currentSel != null) {
+              currentSel.isSelect = true;
+              selectedFloor = currentSel;
+            } else {
+              pgFloorModelList.first.isSelect = true;
+              selectedFloor = pgFloorModelList.first;
+            }
+
             await fetchFloorRoomsAndDetails(selectedFloor!.id);
           } else {
             selectedFloor = null;
@@ -590,10 +639,10 @@ class RoomController extends GetxController implements GetxService {
   // 11. FETCH FLOOR DETAILS & ROOMS (api/v1/pg/floors/{id} & /rooms)
   // ══════════════════════════════════════════════════════════════════
   Future<void> fetchFloorRoomsAndDetails(dynamic floorId) async {
+    if (floorId == null) return;
     log("RoomController: fetchFloorRoomsAndDetails called for floor ID: $floorId");
     isFloorDetailsLoading = true;
     isLoading = true;
-    pgRoomModelList = [];
     update();
 
     try {
@@ -610,8 +659,8 @@ class RoomController extends GetxController implements GetxService {
           selectedFloor = floorDetails;
 
           // Update in pgFloorModelList so All Floors List has full updated data!
-          final idx = pgFloorModelList
-              .indexWhere((f) => f.id.toString() == floorId.toString());
+          final idx = pgFloorModelList.indexWhere((f) =>
+              f.id != null && f.id.toString() == floorId.toString());
           if (idx != -1) {
             pgFloorModelList[idx] = floorDetails;
           }
@@ -627,18 +676,36 @@ class RoomController extends GetxController implements GetxService {
       log("fetchPgFloorRooms status: ${roomsResponse.statusCode}");
       if (roomsResponse.statusCode == 200 && roomsResponse.body != null) {
         final dynamic rawData = roomsResponse.body['data'];
-        if (rawData is Map && rawData['rooms'] is List) {
-          pgRoomModelList = (rawData['rooms'] as List)
-              .whereType<Map>()
-              .map((x) => PgRoomModel.fromJson(Map<String, dynamic>.from(x)))
-              .toList();
-          log("Fetched ${pgRoomModelList.length} rooms from floor rooms API");
+        if (rawData is Map) {
+          final listingMap = rawData['listing'] is Map
+              ? Map<String, dynamic>.from(rawData['listing'])
+              : (selectedFloor?.listing != null ? selectedFloor!.listing!.toJson() : null);
+          final floorMap = rawData['floor'] is Map
+              ? Map<String, dynamic>.from(rawData['floor'])
+              : {
+                  'id': selectedFloor?.id,
+                  'name': selectedFloor?.name,
+                  'floor_number': selectedFloor?.floorNumber,
+                };
+
+          if (rawData['rooms'] is List) {
+            pgRoomModelList = (rawData['rooms'] as List).whereType<Map>().map((x) {
+              final Map<String, dynamic> roomJson = Map<String, dynamic>.from(x);
+              if (!roomJson.containsKey('listing') && listingMap != null) {
+                roomJson['listing'] = listingMap;
+              }
+              if (!roomJson.containsKey('floor') && floorMap != null) {
+                roomJson['floor'] = floorMap;
+              }
+              return PgRoomModel.fromJson(roomJson);
+            }).toList();
+            log("Fetched ${pgRoomModelList.length} rooms from floor rooms API");
+          }
         } else if (rawData is List) {
           pgRoomModelList = rawData
               .whereType<Map>()
               .map((x) => PgRoomModel.fromJson(Map<String, dynamic>.from(x)))
               .toList();
-          log("Fetched ${pgRoomModelList.length} rooms from floor rooms API (direct list)");
         }
       }
 
@@ -649,7 +716,7 @@ class RoomController extends GetxController implements GetxService {
           floorNumber: selectedFloor!.floorNumber,
           name: selectedFloor!.name,
           listingId: selectedFloor!.listingId,
-          totalRooms: selectedFloor!.totalRooms,
+          totalRooms: selectedFloor!.totalRooms ?? pgRoomModelList.length,
           totalCapacity: selectedFloor!.totalCapacity,
           availableBeds: selectedFloor!.availableBeds,
           listing: selectedFloor!.listing,
@@ -657,8 +724,8 @@ class RoomController extends GetxController implements GetxService {
           rooms: pgRoomModelList,
           isSelect: true,
         );
-        final idx = pgFloorModelList
-            .indexWhere((f) => f.id.toString() == floorId.toString());
+        final idx = pgFloorModelList.indexWhere((f) =>
+            f.id != null && f.id.toString() == floorId.toString());
         if (idx != -1) {
           pgFloorModelList[idx] = selectedFloor!;
         }
@@ -688,9 +755,26 @@ class RoomController extends GetxController implements GetxService {
   // ══════════════════════════════════════════════════════════════════
   void selectFloor(PgFloorModel floor) {
     for (var f in pgFloorModelList) {
-      f.isSelect = (f.id.toString() == floor.id.toString());
+      f.isSelect = (f.id != null && floor.id != null
+          ? f.id.toString() == floor.id.toString()
+          : f == floor);
     }
     selectedFloor = floor;
+
+    // Immediately show cached rooms if available
+    if (floor.rooms != null && floor.rooms!.isNotEmpty) {
+      pgRoomModelList = List.from(floor.rooms!);
+      if (pgRoomModelList.isNotEmpty) {
+        for (var r in pgRoomModelList) {
+          r.isSelect = false;
+        }
+        pgRoomModelList.first.isSelect = true;
+        selectedRoomDetails = pgRoomModelList.first;
+      }
+    } else {
+      pgRoomModelList = [];
+    }
+
     update();
 
     if (floor.id != null) {

@@ -11,6 +11,7 @@ import 'package:vlr/services/theme.dart';
 import 'package:vlr/views/base/dialogs/login_required_dialog.dart';
 import 'package:vlr/views/base/common_button.dart';
 import 'package:vlr/views/base/custom_image.dart';
+import 'package:vlr/hospital/features/appointments/presentation/screen/booking_succsess_screen.dart';
 import 'package:vlr/views/screens/gym/gym_book_visit_success/gym_book_visit_success_screen.dart';
 import 'package:vlr/views/screens/gym/gym_final_step_screen/widget/gym_final_mid_section/month_auth_pay_benefty_row.dart';
 import '../../../../../../generated/assets.dart';
@@ -73,20 +74,24 @@ class GYMFinalCashPaymentSection extends StatelessWidget {
 
                 navigate(
                   context: context,
-                  page: GymBookVisitSuccessScreen(
+                  page: BookingSuccsessScreen(
+                    bookingType: 'gym',
                     isMembership: true,
                     otp: otp?.toString(),
-                    bookingNumber: bookingData?['booking_number']?.toString(),
-                    invoiceNumber: bookingData?['invoice_number']?.toString(),
-                    visitId: bookingData?['visit_id']?.toString(),
+                    bookingId: bookingData?['booking_number']?.toString() ??
+                        bookingData?['visit_id']?.toString(),
                     gymTitle: bookingData?['gym_title']?.toString() ??
                         homeController.selectListingModel?.title,
                     packageName: bookingData?['package_name']?.toString() ??
                         subscriptionController.selectedPlan?.name,
-                    finalAmount: bookingData?['final_amount'] ??
-                        subscriptionController.billingPreviewModel?.total,
+                    amount: (bookingData?['final_amount'] ??
+                            subscriptionController.billingPreviewModel?.total)
+                        ?.toString(),
+                    paymentMethod: 'cash',
                     status: bookingData?['status']?.toString() ?? "completed",
                     message: bookingData?['message']?.toString() ?? value.message,
+                    bookingData:
+                        bookingData is Map<String, dynamic> ? bookingData : null,
                   ),
                   isRemoveUntil: true,
                 );

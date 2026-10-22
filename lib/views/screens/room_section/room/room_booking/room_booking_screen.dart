@@ -11,6 +11,7 @@ import 'package:vlr/data/models/rooom/pg_room_model.dart';
 import 'package:vlr/services/constants.dart';
 import 'package:vlr/views/base/custom_image.dart';
 import 'package:vlr/views/base/dialogs/login_required_dialog.dart';
+import 'package:vlr/hospital/features/appointments/presentation/screen/booking_succsess_screen.dart';
 import 'package:vlr/views/screens/room_section/room/room_booking/room_booking_success_screen.dart';
 
 class RoomBookingScreen extends StatefulWidget {
@@ -219,13 +220,22 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
       return;
     }
 
-    // Open Razorpay Checkout before confirming any booking
-    _openRazorpayCheckout(
-      room: room,
-      listing: listing,
-      monthlyRent: monthlyRent,
-      totalAmount: totalAmount,
-    );
+    if (_selectedPaymentMethod == 'pay_at_property') {
+      await _executeBookingCreation(
+        room: room,
+        listing: listing,
+        monthlyRent: monthlyRent,
+        totalAmount: totalAmount,
+        razorpayPaymentId: null,
+      );
+    } else {
+      _openRazorpayCheckout(
+        room: room,
+        listing: listing,
+        monthlyRent: monthlyRent,
+        totalAmount: totalAmount,
+      );
+    }
   }
 
   void _openRazorpayCheckout({
@@ -337,7 +347,7 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
           planId: planId,
           roomId: roomId.isNotEmpty ? roomId : null,
           bedsBooked: _selectedBeds,
-          paymentMode: "razorpay",
+          paymentMode: _selectedPaymentMethod == 'pay_at_property' ? "cash" : "razorpay",
         );
       }
     } catch (e) {
@@ -361,21 +371,23 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
     });
 
     Get.off(
-      () => RoomBookingSuccessScreen(
-        bookingNumber: bookingNumber,
+      () => BookingSuccsessScreen(
+        bookingType: 'pg',
+        bookingId: bookingNumber,
         propertyName:
             listing?.title ?? room?.listing?.title ?? "Premium PG & Hostel",
-        propertyAddress:
+        address:
             listing?.address ?? room?.listing?.address ?? "Aliganj, Lucknow",
         roomNumber: room?.roomNumber ?? "Standard Room",
         floorName: room?.floorName ?? "1st Floor",
-        roomType: room?.roomType ?? "Double Sharing",
+        sharingType: room?.roomType ?? "Double Sharing",
         moveInDate: DateFormat("dd MMM yyyy").format(_moveInDate),
-        durationMonths: _selectedDurationMonths,
-        totalAmount: totalAmount,
-        paymentMethod: "Razorpay Online (Paid)",
-        tenantName: _nameController.text.trim(),
-        tenantPhone: _phoneController.text.trim(),
+        amount: totalAmount.toString(),
+        paymentMethod: _selectedPaymentMethod,
+        phone: _phoneController.text.trim(),
+        message: _selectedPaymentMethod == 'pay_at_property'
+            ? "Your room reservation is confirmed! Pay at property on check-in."
+            : "Your room reservation is confirmed!",
       ),
     );
   }

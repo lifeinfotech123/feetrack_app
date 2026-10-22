@@ -28,16 +28,42 @@ class PgFloorModel {
     this.isSelect = false,
   });
 
-  // Keep old field names as getters for backward compatibility
-  String? get floorNo => floorNumber;
+  // Display helpers & backward compatibility getters
+  String get floorBadge {
+    if (floorNumber == '0' || floorNumber == '0.0') return 'G';
+    final n = name?.toLowerCase() ?? '';
+    if (n.contains('ground')) return 'G';
+    if (floorNumber != null && floorNumber!.isNotEmpty) return 'F$floorNumber';
+    final match = RegExp(r'(\d+)').firstMatch(n);
+    if (match != null) return 'F${match.group(1)}';
+    return 'F';
+  }
+
+  String? get floorNo {
+    if (floorNumber == '0' || floorNumber == '0.0') return 'Ground Floor';
+    if (floorNumber == '1') return '1st Floor';
+    if (floorNumber == '2') return '2nd Floor';
+    if (floorNumber == '3') return '3rd Floor';
+    if (floorNumber != null && floorNumber!.isNotEmpty) return 'Floor $floorNumber';
+    if (name != null && name!.isNotEmpty) return name;
+    return 'Floor';
+  }
+
   String? get floorName => name;
+
+  String get displayName {
+    if (name != null && name!.isNotEmpty) return name!;
+    if (floorNumber == '0' || floorNumber == '0.0') return 'Ground Floor';
+    if (floorNumber != null && floorNumber!.isNotEmpty) return 'Floor $floorNumber';
+    return 'Floor';
+  }
 
   factory PgFloorModel.fromJson(Map<String, dynamic> json) {
     return PgFloorModel(
       id: json['id'],
       floorNumber: json['floor_number']?.toString(),
       name: json['name']?.toString(),
-      listingId: json['listing_id']?.toString(),
+      listingId: (json['listing_id'] ?? json['listing']?['id'])?.toString(),
       totalRooms: json['total_rooms'] != null
           ? int.tryParse(json['total_rooms'].toString())
           : null,

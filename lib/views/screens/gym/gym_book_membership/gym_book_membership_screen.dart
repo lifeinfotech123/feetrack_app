@@ -12,7 +12,7 @@ import 'package:vlr/services/constants.dart';
 import 'package:vlr/services/theme.dart';
 import 'package:vlr/views/base/common_button.dart';
 import 'package:vlr/views/base/dialogs/login_required_dialog.dart';
-import 'package:vlr/views/screens/gym/gym_book_visit_success/gym_book_visit_success_screen.dart';
+import 'package:vlr/hospital/features/appointments/presentation/screen/booking_succsess_screen.dart';
 
 class GymBookMembershipScreen extends StatefulWidget {
   final PlanModel? planModel;
@@ -264,22 +264,24 @@ class _GymBookMembershipScreenState extends State<GymBookMembershipScreen> {
           );
         }
 
-        Get.off(() => GymBookVisitSuccessScreen(
+        Get.off(() => BookingSuccsessScreen(
+              bookingType: 'gym',
               isMembership: true,
               otp: data?['otp']?.toString(),
-              bookingNumber: data?['booking_number']?.toString(),
-              invoiceNumber: data?['invoice_number']?.toString(),
-              visitId: data?['visit_id']?.toString(),
+              bookingId: data?['booking_number']?.toString() ??
+                  data?['visit_id']?.toString(),
               gymTitle:
                   data?['gym_title']?.toString() ?? gym?.title ?? "Gym",
               packageName: data?['package_name']?.toString() ??
                   plan?.name ??
                   "Membership Package",
-              finalAmount: data?['final_amount'] ?? planPrice,
-              visitDate: formattedDate,
-              visitTime: _selectedTime,
+              amount: (data?['final_amount'] ?? planPrice)?.toString(),
+              date: formattedDate,
+              time: _selectedTime,
+              paymentMethod: 'online',
               status: "completed",
               message: value.message,
+              bookingData: data is Map<String, dynamic> ? data : null,
             ));
       } else {
         // API failure after payment — show error, do NOT navigate to success
@@ -503,6 +505,7 @@ class _GymBookMembershipScreenState extends State<GymBookMembershipScreen> {
         backgroundColor: Colors.white,
         shadowColor: black.withValues(alpha: 0.05),
         centerTitle: false,
+
         title: Text(
           "Book Membership",
           style: Helper(context).textTheme.bodyMedium?.copyWith(
@@ -1477,23 +1480,28 @@ class _GymBookMembershipScreenState extends State<GymBookMembershipScreen> {
                           toastType: ToastType.success,
                         );
                         final data = value.data is Map ? value.data : null;
-                        Get.off(() => GymBookVisitSuccessScreen(
+                        Get.off(() => BookingSuccsessScreen(
+                              bookingType: 'gym',
                               isMembership: true,
                               otp: data?['otp']?.toString(),
-                              bookingNumber:
-                                  data?['booking_number']?.toString(),
-                              invoiceNumber:
-                                  data?['invoice_number']?.toString(),
-                              visitId: data?['visit_id']?.toString(),
-                              gymTitle: data?['gym_title']?.toString(),
-                              packageName: data?['package_name']?.toString(),
-                              finalAmount: data?['final_amount'] ?? planPrice,
-                              visitDate: formattedDate,
-                              visitTime: _selectedTime,
+                              bookingId:
+                                  data?['booking_number']?.toString() ??
+                                      data?['visit_id']?.toString(),
+                              gymTitle: data?['gym_title']?.toString() ??
+                                  gymTitle,
+                              packageName: data?['package_name']?.toString() ??
+                                  planName,
+                              amount: (data?['final_amount'] ?? planPrice)
+                                  ?.toString(),
+                              date: formattedDate,
+                              time: _selectedTime,
+                              paymentMethod: 'cash',
                               status:
                                   data?['status']?.toString() ?? "completed",
                               message:
                                   data?['message']?.toString() ?? value.message,
+                              bookingData:
+                                  data is Map<String, dynamic> ? data : null,
                             ));
                       } else {
                         showToast(

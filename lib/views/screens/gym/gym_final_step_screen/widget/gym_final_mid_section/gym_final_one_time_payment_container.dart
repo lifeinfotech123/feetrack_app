@@ -11,6 +11,7 @@ import 'package:vlr/services/theme.dart';
 import 'package:vlr/views/base/dialogs/login_required_dialog.dart';
 import 'package:vlr/views/base/common_button.dart';
 import 'package:vlr/views/base/custom_image.dart';
+import 'package:vlr/hospital/features/appointments/presentation/screen/booking_succsess_screen.dart';
 import 'package:vlr/views/screens/gym/gym_book_visit_success/gym_book_visit_success_screen.dart';
 import 'package:vlr/views/screens/gym/gym_final_step_screen/widget/gym_final_mid_section/month_auth_pay_benefty_row.dart';
 import 'package:vlr/views/base/web_view.dart';
@@ -74,7 +75,25 @@ class GYMFinalOneTimePaymentSection extends StatelessWidget {
                     page: CustomWebView(url: paymentLink, title: "Payment"),
                   );
                 } else {
-                  navigate(context: context, page: const GymBookVisitSuccessScreen(), isRemoveUntil: true);
+                  navigate(
+                    context: context,
+                    page: BookingSuccsessScreen(
+                      bookingType: 'gym',
+                      isMembership: true,
+                      bookingId: value.data?['booking_number']?.toString() ??
+                          value.data?['visit_id']?.toString(),
+                      gymTitle: homeController.selectListingModel?.title,
+                      packageName: subscriptionController.selectedPlan?.name,
+                      amount: subscriptionController.billingPreviewModel?.total
+                          ?.toString(),
+                      paymentMethod: 'online',
+                      status: 'confirmed',
+                      bookingData: value.data is Map<String, dynamic>
+                          ? value.data
+                          : null,
+                    ),
+                    isRemoveUntil: true,
+                  );
                 }
               } else {
                 showToast(message: value.message, toastType: ToastType.error);

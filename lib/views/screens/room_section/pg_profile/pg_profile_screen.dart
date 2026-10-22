@@ -1292,7 +1292,7 @@ class _PgProfileScreenState extends State<PgProfileScreen> {
                         onPressed: () {
                           navigate(
                             context: context,
-                            page: const RoomsAndFloorScreen(),
+                            page: RoomsAndFloorScreen(listingId: listing?.id),
                           );
                         },
                         child: const Text(

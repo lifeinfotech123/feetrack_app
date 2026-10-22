@@ -11,6 +11,7 @@ import 'package:vlr/services/theme.dart';
 import 'package:vlr/views/base/common_button.dart';
 import 'package:vlr/views/base/custom_image.dart';
 import 'package:vlr/views/base/dialogs/login_required_dialog.dart';
+import 'package:vlr/hospital/features/appointments/presentation/screen/booking_succsess_screen.dart';
 import 'package:vlr/views/screens/gym/gym_book_visit_success/gym_book_visit_success_screen.dart';
 
 class GymBookTrainerBottomSheet extends StatefulWidget {
@@ -162,16 +163,18 @@ class _GymBookTrainerBottomSheetState extends State<GymBookTrainerBottomSheet> {
     final bookingNum =
         "TRN-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}";
 
-    Get.to(() => GymBookVisitSuccessScreen(
+    Get.to(() => BookingSuccsessScreen(
+          bookingType: 'gym',
           isMembership: false,
           otp: "PAID",
-          bookingNumber: bookingNum,
+          bookingId: bookingNum,
           gymTitle: widget.gymTitle ?? "Gym Sanctuary",
           packageName:
               "Personal Training Session with ${widget.staffModel.name ?? 'Trainer'}",
-          finalAmount: widget.sessionPrice,
-          visitDate: formattedDate,
-          visitTime: _selectedSlot,
+          amount: widget.sessionPrice.toString(),
+          date: formattedDate,
+          time: _selectedSlot,
+          paymentMethod: 'online',
           status: "confirmed",
           message:
               "🎉 Session Booked with ${widget.staffModel.name ?? 'Trainer'}! Razorpay Payment Successful (ID: ${response.paymentId}).",

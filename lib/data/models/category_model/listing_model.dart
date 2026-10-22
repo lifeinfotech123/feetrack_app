@@ -165,7 +165,13 @@ class ListingModel {
         floors: json["floors"] == null
             ? null
             : List<PgFloorModel>.from(
-                (json["floors"] as List).map((x) => PgFloorModel.fromJson(Map<String, dynamic>.from(x)))),
+                (json["floors"] as List).whereType<Map>().map((x) {
+                  final Map<String, dynamic> fMap = Map<String, dynamic>.from(x);
+                  if (fMap['listing_id'] == null && json['id'] != null) {
+                    fMap['listing_id'] = json['id'].toString();
+                  }
+                  return PgFloorModel.fromJson(fMap);
+                })),
         fullyBooked: json["fully_booked"] is bool ? json["fully_booked"] : (json["fully_booked"] == 1 || json["fully_booked"] == "1"),
         startingPrice: json["starting_price"] != null
             ? double.tryParse(json["starting_price"].toString())?.toInt()

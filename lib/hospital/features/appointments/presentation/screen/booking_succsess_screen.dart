@@ -1,8 +1,12 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:vlr/views/screens/dashboard/dashboard_screen.dart';
+import 'package:vlr/views/screens/gym/gym_bottom_nav_bar/gym_bottom_nav_bar_screen.dart';
+import 'package:vlr/views/screens/room_section/room_bottom_nav_bar/room_bottom_nav_bar_screen.dart';
 import '../../../dashboard/presentation/screen/dashboard_screen.dart';
 import '../../../../core/constants/colors.dart';
 import '../../../../core/widgets/animated_widgets.dart';
@@ -17,6 +21,25 @@ class BookingSuccsessScreen extends StatefulWidget {
   final Map<String, dynamic>? bookingData;
   final Map<String, dynamic>? doctorData;
 
+  // Additional fields for Gym, PG/Room, and General bookings
+  final String? bookingType; // 'gym', 'pg', 'hospital', 'lab', etc.
+  final String? gymTitle;
+  final String? packageName;
+  final String? propertyName;
+  final String? roomNumber;
+  final String? floorName;
+  final String? sharingType;
+  final String? moveInDate;
+  final String? otp;
+  final String? paymentMethod; // 'cash', 'offline', 'online', 'pay_at_property', 'razorpay'
+  final String? address;
+  final String? phone;
+  final String? email;
+  final String? status;
+  final String? message;
+  final bool isMembership;
+  final VoidCallback? onBackToDashboard;
+
   const BookingSuccsessScreen({
     Key? key,
     this.bookingId,
@@ -27,6 +50,23 @@ class BookingSuccsessScreen extends StatefulWidget {
     this.amount,
     this.bookingData,
     this.doctorData,
+    this.bookingType,
+    this.gymTitle,
+    this.packageName,
+    this.propertyName,
+    this.roomNumber,
+    this.floorName,
+    this.sharingType,
+    this.moveInDate,
+    this.otp,
+    this.paymentMethod,
+    this.address,
+    this.phone,
+    this.email,
+    this.status,
+    this.message,
+    this.isMembership = false,
+    this.onBackToDashboard,
   }) : super(key: key);
 
   @override
@@ -49,6 +89,39 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
     35,
     (index) => _ConfettiParticle.generate(),
   );
+
+  String get _resolvedType {
+    if (widget.bookingType != null && widget.bookingType!.isNotEmpty) {
+      return widget.bookingType!.toLowerCase();
+    }
+    if (widget.gymTitle != null ||
+        widget.packageName != null ||
+        widget.isMembership ||
+        widget.bookingData?['gym_title'] != null ||
+        widget.bookingData?['package_name'] != null) {
+      return 'gym';
+    }
+    if (widget.propertyName != null ||
+        widget.roomNumber != null ||
+        widget.moveInDate != null ||
+        widget.sharingType != null) {
+      return 'pg';
+    }
+    return 'hospital';
+  }
+
+  bool get _isCashBooking {
+    final method = (widget.paymentMethod ??
+            widget.bookingData?['payment_mode'] ??
+            widget.bookingData?['payment_method'] ??
+            '')
+        .toString()
+        .toLowerCase();
+    return method.contains('cash') ||
+        method.contains('offline') ||
+        method.contains('property') ||
+        method.contains('center');
+  }
 
   Map<String, dynamic>? get _hospital {
     final bookingHospital = widget.bookingData?['hospital'];
@@ -81,30 +154,8 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
     return '';
   }
 
-  String get _hospitalPhone => _hospitalContactValue([
-        'phone',
-        'phone_number',
-        'contact_number',
-        'contact_phone',
-        'mobile',
-        'telephone',
-      ]);
-
-  String get _hospitalEmail => _hospitalContactValue([
-        'email',
-        'contact_email',
-        'support_email',
-      ]);
-
   String get _doctorAddress =>
       widget.doctorData?['address']?.toString().trim() ?? '';
-
-  bool get _isCashBooking =>
-      widget.bookingData?['payment_mode']
-          ?.toString()
-          .toLowerCase()
-          .contains('cash') ??
-      false;
 
   String get _hospitalAddress {
     final hospital = _hospital;
@@ -126,54 +177,147 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
         .join(', ');
   }
 
-  Future<void> _openHospitalDirections() async {
-    final hospital = _hospital;
-    if (hospital == null) return;
-    final location = hospital['location'];
-    final lat = hospital['latitude'] ??
-        hospital['lat'] ??
-        (location is Map ? location['lat'] ?? location['latitude'] : null);
-    final lng = hospital['longitude'] ??
-        hospital['lng'] ??
-        (location is Map ? location['lng'] ?? location['longitude'] : null);
-    final destination = lat != null && lng != null
-        ? '${lat.toString().trim()},${lng.toString().trim()}'
-        : _hospitalAddress.isNotEmpty
-            ? _hospitalAddress
-            : _hospitalName;
+  String get _displayProviderName {
+    if (widget.gymTitle != null && widget.gymTitle!.isNotEmpty) {
+      return widget.gymTitle!;
+    }
+    if (widget.propertyName != null && widget.propertyName!.isNotEmpty) {
+      return widget.propertyName!;
+    }
+    if (widget.doctorName != null && widget.doctorName!.isNotEmpty) {
+      return widget.doctorName!;
+    }
+    if (_hospitalName.isNotEmpty) return _hospitalName;
+    final bGym = widget.bookingData?['gym_title']?.toString().trim();
+    if (bGym != null && bGym.isNotEmpty) return bGym;
+    return 'Feetrack Partner Center';
+  }
+
+  String get _displayProviderLabel {
+    final type = _resolvedType;
+    if (type == 'gym') return 'Gym Center';
+    if (type == 'pg' || type == 'room') return 'PG / Property';
+    return 'Doctor Name';
+  }
+
+  String get _displayService {
+    if (widget.title != null && widget.title!.isNotEmpty) {
+      return widget.title!;
+    }
+    if (widget.packageName != null && widget.packageName!.isNotEmpty) {
+      return widget.packageName!;
+    }
+    if (widget.sharingType != null && widget.sharingType!.isNotEmpty) {
+      return 'PG Accommodation (${widget.sharingType})';
+    }
+    final bPkg = widget.bookingData?['package_name']?.toString().trim();
+    if (bPkg != null && bPkg.isNotEmpty) return bPkg;
+    return _resolvedType == 'gym'
+        ? 'Gym Plan / Visit'
+        : _resolvedType == 'pg'
+            ? 'Room Stay Reservation'
+            : 'General Consultation & Checkup';
+  }
+
+  String get _displayDate {
+    if (widget.moveInDate != null && widget.moveInDate!.isNotEmpty) {
+      return widget.moveInDate!;
+    }
+    if (widget.date != null && widget.date!.isNotEmpty) {
+      return widget.date!;
+    }
+    final d = widget.bookingData?['visit_date'] ?? widget.bookingData?['date'];
+    if (d != null && d.toString().trim().isNotEmpty) {
+      return d.toString().trim();
+    }
+    return 'Confirmed Schedule';
+  }
+
+  String? get _displayTime {
+    if (widget.time != null && widget.time!.isNotEmpty) {
+      return widget.time!;
+    }
+    final t = widget.bookingData?['visit_time'] ?? widget.bookingData?['slot_label'];
+    if (t != null && t.toString().trim().isNotEmpty) {
+      return t.toString().trim();
+    }
+    return null;
+  }
+
+  String get _displayAddress {
+    if (widget.address != null && widget.address!.isNotEmpty) {
+      return widget.address!;
+    }
+    if (_doctorAddress.isNotEmpty) return _doctorAddress;
+    if (_hospitalAddress.isNotEmpty) return _hospitalAddress;
+    final bAddr = widget.bookingData?['hospital']?['address'] ??
+        widget.bookingData?['gym']?['address'] ??
+        widget.bookingData?['address'];
+    if (bAddr != null && bAddr.toString().trim().isNotEmpty) {
+      return bAddr.toString().trim();
+    }
+    return '';
+  }
+
+  String? get _otpCode {
+    if (widget.otp != null && widget.otp!.isNotEmpty) {
+      return widget.otp!;
+    }
+    final bOtp = widget.bookingData?['otp'];
+    if (bOtp != null && bOtp.toString().trim().isNotEmpty) {
+      return bOtp.toString().trim();
+    }
+    return null;
+  }
+
+  Future<void> _openDirections() async {
+    final destination = _displayAddress.isNotEmpty
+        ? _displayAddress
+        : _displayProviderName;
     if (destination.trim().isEmpty) return;
 
-    final url = Uri.https('www.google.com', '/maps/dir/', {
+    final url = Uri.https('www.google.com', '/maps/search/', {
       'api': '1',
-      'destination': destination,
+      'query': destination,
     });
     if (!await launchUrl(url, mode: LaunchMode.externalApplication) &&
         mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to open hospital directions.')),
+        const SnackBar(content: Text('Unable to open location directions.')),
       );
     }
   }
 
-  Future<void> _openDoctorDirections() async {
-    if (_doctorAddress.isEmpty) return;
-    final url = Uri.https('www.google.com', '/maps/search/', {
-      'api': '1',
-      'query': _doctorAddress,
-    });
-    if (!await launchUrl(url, mode: LaunchMode.externalApplication) &&
-        mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to open doctor location.')),
-      );
+  void _navigateBackToDashboard() {
+    if (widget.onBackToDashboard != null) {
+      widget.onBackToDashboard!();
+      return;
     }
+    final type = _resolvedType;
+    if (type == 'gym') {
+      Get.offAll(() => const GymBottomNavBarScreen(initialIndex: 1));
+      return;
+    }
+    if (type == 'pg' || type == 'room') {
+      Get.offAll(() => const RoomBottomNavBarScreen(initialIndex: 1));
+      return;
+    }
+    if (type == 'hospital') {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => const HospitalDashboardScreen(),
+        ),
+        (route) => route.isFirst,
+      );
+      return;
+    }
+    Get.offAll(() => const DashboardScreen());
   }
 
   @override
   void initState() {
     super.initState();
 
-    // Badge animation controller
     _badgeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),
@@ -200,7 +344,6 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
       ),
     );
 
-    // Content entry controller
     _contentController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -223,13 +366,11 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
       ),
     );
 
-    // Confetti animation controller
     _confettiController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 3000),
     );
 
-    // Sequence start
     _badgeController.forward().then((_) {
       _contentController.forward();
       _confettiController.forward();
@@ -246,37 +387,56 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
 
   @override
   Widget build(BuildContext context) {
-    final bookingRef =
-        widget.bookingId ?? 'HMS-${math.Random().nextInt(89999) + 10000}';
-    final doctor = widget.doctorName ?? 'Dr. Jane Cooper';
-    final service = widget.title ?? 'General Consultation & Checkup';
-    final bookingDate = widget.date ?? '15 Sep 2026, 10:30 AM';
-    final totalPaid = widget.amount != null
-        ? (widget.amount!.startsWith('₹')
-            ? widget.amount!
-            : '₹${widget.amount}')
+    final prefix = _resolvedType == 'gym'
+        ? 'GYM-'
+        : _resolvedType == 'pg'
+            ? 'PG-'
+            : 'HMS-';
+    final bookingRef = widget.bookingId ??
+        '$prefix${math.Random().nextInt(89999) + 10000}';
+    final rawAmt = widget.amount ?? widget.bookingData?['final_amount']?.toString();
+    final totalPaid = rawAmt != null
+        ? (rawAmt.toString().startsWith('₹')
+            ? rawAmt.toString()
+            : '₹$rawAmt')
         : '₹500.00';
+
+    final paymentStatusText = _isCashBooking
+        ? (_resolvedType == 'gym'
+            ? 'Confirmed, Pay at Gym'
+            : _resolvedType == 'pg'
+                ? 'Confirmed, Pay at Property'
+                : 'Confirmed, Pay at Hospital')
+        : 'Confirmed & Paid';
+
+    final subTitleMessage = widget.message ??
+        (_resolvedType == 'gym'
+            ? 'Your gym booking has been placed successfully!\nShow your activation details on arrival.'
+            : _resolvedType == 'pg'
+                ? 'Your room reservation is confirmed!\nPlease arrive on your move-in date.'
+                : 'Your appointment has been confirmed.\nA notification was sent to your registered details.');
 
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (_) => const HospitalDashboardScreen(),
-          ),
-          (route) => route.isFirst,
-        );
+        _navigateBackToDashboard();
       },
       child: Scaffold(
         backgroundColor: backgroundColor,
         appBar: AppBar(
-          title: const Text("Booking Successful"),
+          title: Text(
+            _resolvedType == 'gym'
+                ? "Gym Booking Successful"
+                : _resolvedType == 'pg'
+                    ? "PG Booking Successful"
+                    : "Booking Successful",
+          ),
+          automaticallyImplyLeading: false,
         ),
         body: SafeArea(
           child: Stack(
             children: [
-              // Floating animated confetti background
               AnimatedBuilder(
                 animation: _confettiController,
                 builder: (context, child) {
@@ -290,7 +450,6 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
                 },
               ),
 
-              // Main Content Area
               SingleChildScrollView(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
@@ -298,7 +457,7 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
                   children: [
                     const SizedBox(height: 20),
 
-                    // Animated Hero Success Badge with ripples
+                    // Animated Hero Success Badge
                     Center(
                       child: AnimatedBuilder(
                         animation: _badgeController,
@@ -306,7 +465,6 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
                           return Stack(
                             alignment: Alignment.center,
                             children: [
-                              // Outer pulsing aura
                               Transform.scale(
                                 scale: _rippleAnimation.value,
                                 child: Container(
@@ -314,14 +472,13 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
                                   height: 140,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: wellnessGreen.withOpacity(
-                                      (1.3 - _rippleAnimation.value)
+                                    color: wellnessGreen.withValues(
+                                      alpha: (1.3 - _rippleAnimation.value)
                                           .clamp(0.0, 0.25),
                                     ),
                                   ),
                                 ),
                               ),
-                              // Middle soft glow ring
                               Container(
                                 width: 120,
                                 height: 120,
@@ -330,14 +487,13 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
                                   color: wellnessGreenBg,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: wellnessGreen.withOpacity(0.2),
+                                      color: wellnessGreen.withValues(alpha: 0.2),
                                       blurRadius: 20,
                                       spreadRadius: 2,
                                     ),
                                   ],
                                 ),
                               ),
-                              // Inner main circle with icon
                               Transform.scale(
                                 scale: _scaleAnimation.value,
                                 child: Transform.rotate(
@@ -379,14 +535,12 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
 
                     const SizedBox(height: 32),
 
-                    // Animated Staggered Content
                     FadeTransition(
                       opacity: _contentOpacity,
                       child: SlideTransition(
                         position: _contentSlide,
                         child: Column(
                           children: [
-                            // Success Title & Subtitle
                             const Text(
                               'Booking Successful!',
                               style: TextStyle(
@@ -398,9 +552,9 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
                               textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: 8),
-                            const Text(
-                              'Your appointment has been confirmed.\nA notification was sent to your registered details.',
-                              style: TextStyle(
+                            Text(
+                              subTitleMessage,
+                              style: const TextStyle(
                                 fontSize: 13,
                                 color: textMuted,
                                 height: 1.4,
@@ -408,7 +562,116 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
                               textAlign: TextAlign.center,
                             ),
 
-                            const SizedBox(height: 28),
+                            const SizedBox(height: 24),
+
+                            // Activation OTP Card (if OTP is available)
+                            if (_otpCode != null && _otpCode!.isNotEmpty) ...[
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(18),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFF002060), Color(0xFF0D47A1)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(20),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF002060).withValues(alpha: 0.3),
+                                      blurRadius: 16,
+                                      offset: const Offset(0, 8),
+                                    )
+                                  ],
+                                ),
+                                child: Column(
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(Icons.vpn_key_rounded,
+                                            color: Color(0xFFFFD54F), size: 18),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          "ACTIVATION OTP",
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 1.5,
+                                            color: Colors.white.withValues(alpha: 0.9),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            _otpCode!,
+                                            style: const TextStyle(
+                                              fontSize: 30,
+                                              fontWeight: FontWeight.w900,
+                                              letterSpacing: 4,
+                                              color: Colors.white,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        InkWell(
+                                          onTap: () {
+                                            Clipboard.setData(
+                                              ClipboardData(text: _otpCode!),
+                                            );
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  'OTP copied: $_otpCode',
+                                                ),
+                                                behavior:
+                                                    SnackBarBehavior.floating,
+                                              ),
+                                            );
+                                          },
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          child: const Padding(
+                                            padding: EdgeInsets.all(6.0),
+                                            child: Icon(
+                                              Icons.copy_rounded,
+                                              color: Colors.white,
+                                              size: 22,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Text(
+                                        "Please share this OTP with staff upon arrival to activate your booking.",
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontSize: 11.5,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                            ],
 
                             // Booking Details Card
                             ModernCard(
@@ -416,7 +679,7 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
                               borderRadius: 20,
                               shadows: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.04),
+                                  color: Colors.black.withValues(alpha: 0.04),
                                   blurRadius: 16,
                                   offset: const Offset(0, 6),
                                 ),
@@ -424,7 +687,7 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // Card Top Bar: Reference ID & Copy button
+                                  // Card Top Bar
                                   Container(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 14,
@@ -438,29 +701,32 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            const Text(
-                                              'BOOKING REFERENCE',
-                                              style: TextStyle(
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.bold,
-                                                color: primaryDark,
-                                                letterSpacing: 0.5,
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              const Text(
+                                                'BOOKING REFERENCE',
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: primaryDark,
+                                                  letterSpacing: 0.5,
+                                                ),
                                               ),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              bookingRef,
-                                              style: const TextStyle(
-                                                fontSize: 15,
-                                                fontWeight: FontWeight.bold,
-                                                color: textDark,
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                bookingRef,
+                                                style: const TextStyle(
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: textDark,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
                                               ),
-                                            ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
                                         InkWell(
                                           onTap: () {
@@ -484,6 +750,7 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
                                           child: const Padding(
                                             padding: EdgeInsets.all(6.0),
                                             child: Row(
+                                              mainAxisSize: MainAxisSize.min,
                                               children: [
                                                 Icon(
                                                   Icons.copy_rounded,
@@ -511,33 +778,55 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
                                   const Divider(height: 1, color: borderGrey),
                                   const SizedBox(height: 16),
 
-                                  // Details Rows
                                   _buildDetailRow(
-                                    icon: Icons.medical_services_outlined,
+                                    icon: _resolvedType == 'gym'
+                                        ? Icons.fitness_center_rounded
+                                        : _resolvedType == 'pg'
+                                            ? Icons.bed_rounded
+                                            : Icons.medical_services_outlined,
                                     iconColor: primaryColor,
-                                    label: 'Service / Purpose',
-                                    value: service,
+                                    label: 'Service / Plan',
+                                    value: _displayService,
                                   ),
                                   const SizedBox(height: 14),
                                   _buildDetailRow(
-                                    icon: Icons.person_outline_rounded,
+                                    icon: _resolvedType == 'gym'
+                                        ? Icons.fitness_center_outlined
+                                        : _resolvedType == 'pg'
+                                            ? Icons.apartment_rounded
+                                            : Icons.person_outline_rounded,
                                     iconColor: diagnosticViolet,
-                                    label: 'Doctor Name',
-                                    value: doctor,
+                                    label: _displayProviderLabel,
+                                    value: _displayProviderName,
                                   ),
+                                  if (widget.roomNumber != null &&
+                                      widget.roomNumber!.isNotEmpty) ...[
+                                    const SizedBox(height: 14),
+                                    _buildDetailRow(
+                                      icon: Icons.meeting_room_outlined,
+                                      iconColor: pharmacyTeal,
+                                      label: 'Room & Floor',
+                                      value:
+                                          'Room ${widget.roomNumber}${widget.floorName != null ? " • ${widget.floorName}" : ""}',
+                                    ),
+                                  ],
                                   const SizedBox(height: 14),
                                   _buildDetailRow(
                                     icon: Icons.calendar_today_outlined,
                                     iconColor: pharmacyTeal,
-                                    label: 'Date & Time',
-                                    value: bookingDate,
+                                    label: _resolvedType == 'pg'
+                                        ? 'Move-in Date'
+                                        : 'Date & Time',
+                                    value: _displayTime != null
+                                        ? '$_displayDate, $_displayTime'
+                                        : _displayDate,
                                   ),
                                   const SizedBox(height: 14),
                                   _buildDetailRow(
                                     icon: Icons.payment_outlined,
                                     iconColor: wellnessGreen,
                                     label: _isCashBooking
-                                        ? 'Consultation Fee'
+                                        ? 'Total Amount'
                                         : 'Amount Paid',
                                     value: totalPaid,
                                     valueColor: wellnessGreen,
@@ -552,6 +841,8 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
                                   Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
                                     children: [
                                       const Text(
                                         'Payment Status',
@@ -560,40 +851,45 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
                                           color: textMuted,
                                         ),
                                       ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: wellnessGreenBg,
-                                          borderRadius:
-                                              BorderRadius.circular(20),
-                                          border: Border.all(
-                                            color:
-                                                wellnessGreen.withOpacity(0.3),
+                                      const SizedBox(width: 8),
+                                      Flexible(
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 4,
                                           ),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            const Icon(
-                                              Icons.check_circle_rounded,
-                                              size: 14,
-                                              color: wellnessGreen,
+                                          decoration: BoxDecoration(
+                                            color: wellnessGreenBg,
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                            border: Border.all(
+                                              color: wellnessGreen
+                                                  .withValues(alpha: 0.3),
                                             ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              _isCashBooking
-                                                  ? 'Confirmed, Pay at Hospital'
-                                                  : 'Confirmed & Paid',
-                                              style: const TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.bold,
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(
+                                                Icons.check_circle_rounded,
+                                                size: 14,
                                                 color: wellnessGreen,
                                               ),
-                                            ),
-                                          ],
+                                              const SizedBox(width: 4),
+                                              Flexible(
+                                                child: Text(
+                                                  paymentStatusText,
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: wellnessGreen,
+                                                  ),
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -602,20 +898,20 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
                               ),
                             ),
 
-                            if (_doctorAddress.isNotEmpty) ...[
+                            if (_displayAddress.isNotEmpty) ...[
                               const SizedBox(height: 18),
                               ModernCard(
                                 padding: const EdgeInsets.all(20),
                                 borderRadius: 20,
                                 shadows: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.04),
+                                    color: Colors.black.withValues(alpha: 0.04),
                                     blurRadius: 16,
                                     offset: const Offset(0, 6),
                                   ),
                                 ],
                                 child: InkWell(
-                                  onTap: _openDoctorDirections,
+                                  onTap: _openDirections,
                                   borderRadius: BorderRadius.circular(14),
                                   child: Row(
                                     crossAxisAlignment:
@@ -624,7 +920,7 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
                                       Container(
                                         padding: const EdgeInsets.all(10),
                                         decoration: BoxDecoration(
-                                          color: primaryColor.withOpacity(0.1),
+                                          color: primaryColor.withValues(alpha: 0.1),
                                           borderRadius:
                                               BorderRadius.circular(12),
                                         ),
@@ -640,7 +936,7 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
                                               CrossAxisAlignment.start,
                                           children: [
                                             const Text(
-                                              'Doctor Address',
+                                              'Location Address',
                                               style: TextStyle(
                                                 color: textMuted,
                                                 fontSize: 11,
@@ -648,7 +944,7 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
                                             ),
                                             const SizedBox(height: 4),
                                             Text(
-                                              _doctorAddress,
+                                              _displayAddress,
                                               style: const TextStyle(
                                                 color: textDark,
                                                 fontSize: 13,
@@ -663,151 +959,7 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
                                                     color: primaryColor),
                                                 SizedBox(width: 4),
                                                 Text(
-                                                  'Open Location',
-                                                  style: TextStyle(
-                                                    color: primaryColor,
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-
-                            if (_hospitalName.isNotEmpty ||
-                                _hospitalAddress.isNotEmpty ||
-                                _hospitalPhone.isNotEmpty ||
-                                _hospitalEmail.isNotEmpty) ...[
-                              const SizedBox(height: 18),
-                              // Existing card styling is retained; its content
-                              // now reflects the booked doctor's hospital.
-                              ModernCard(
-                                padding: const EdgeInsets.all(20),
-                                borderRadius: 20,
-                                shadows: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.04),
-                                    blurRadius: 16,
-                                    offset: const Offset(0, 6),
-                                  ),
-                                ],
-                                child: InkWell(
-                                  onTap: _openHospitalDirections,
-                                  borderRadius: BorderRadius.circular(14),
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(10),
-                                        decoration: BoxDecoration(
-                                          color: primaryColor.withOpacity(0.1),
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                        ),
-                                        child: const Icon(
-                                          Icons.local_hospital_rounded,
-                                          color: primaryColor,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            const Text(
-                                              'Hospital Information',
-                                              style: TextStyle(
-                                                color: textMuted,
-                                                fontSize: 11,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 3),
-                                            Text(
-                                              _hospitalName,
-                                              style: const TextStyle(
-                                                color: textDark,
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            if (_hospitalAddress
-                                                .isNotEmpty) ...[
-                                              const SizedBox(height: 5),
-                                              Text(
-                                                _hospitalAddress,
-                                                style: const TextStyle(
-                                                  color: textMuted,
-                                                  fontSize: 12,
-                                                  height: 1.35,
-                                                ),
-                                              ),
-                                            ],
-                                            if (_hospitalPhone.isNotEmpty) ...[
-                                              const SizedBox(height: 8),
-                                              Row(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  const Icon(
-                                                    Icons.phone_outlined,
-                                                    size: 15,
-                                                    color: primaryColor,
-                                                  ),
-                                                  const SizedBox(width: 6),
-                                                  Expanded(
-                                                    child: Text(
-                                                      _hospitalPhone,
-                                                      style: const TextStyle(
-                                                        color: textMuted,
-                                                        fontSize: 12,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                            if (_hospitalEmail.isNotEmpty) ...[
-                                              const SizedBox(height: 6),
-                                              Row(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  const Icon(
-                                                    Icons.email_outlined,
-                                                    size: 15,
-                                                    color: primaryColor,
-                                                  ),
-                                                  const SizedBox(width: 6),
-                                                  Expanded(
-                                                    child: Text(
-                                                      _hospitalEmail,
-                                                      style: const TextStyle(
-                                                        color: textMuted,
-                                                        fontSize: 12,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                            const SizedBox(height: 8),
-                                            const Row(
-                                              children: [
-                                                Icon(Icons.directions_rounded,
-                                                    size: 15,
-                                                    color: primaryColor),
-                                                SizedBox(width: 4),
-                                                Text(
-                                                  'Get Directions',
+                                                  'Open Location / Directions',
                                                   style: TextStyle(
                                                     color: primaryColor,
                                                     fontSize: 12,
@@ -831,15 +983,7 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
-                                onPressed: () {
-                                  Navigator.of(context).pushAndRemoveUntil(
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          const HospitalDashboardScreen(),
-                                    ),
-                                    (route) => route.isFirst,
-                                  );
-                                },
+                                onPressed: _navigateBackToDashboard,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: primaryColor,
                                   foregroundColor: Colors.white,
@@ -849,7 +993,7 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                   elevation: 2,
-                                  shadowColor: primaryColor.withOpacity(0.4),
+                                  shadowColor: primaryColor.withValues(alpha: 0.4),
                                 ),
                                 child: const Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
@@ -937,7 +1081,7 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: iconColor.withOpacity(0.1),
+            color: iconColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(icon, size: 18, color: iconColor),
@@ -1030,7 +1174,7 @@ class _ConfettiPainter extends CustomPainter {
 
       final opacity = (1.0 - (progress * 0.8)).clamp(0.0, 1.0);
       final paint = Paint()
-        ..color = p.color.withOpacity(opacity)
+        ..color = p.color.withValues(alpha: opacity)
         ..style = PaintingStyle.fill;
 
       canvas.save();
