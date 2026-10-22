@@ -103,16 +103,24 @@ class RazorpayOrderData {
 
   factory RazorpayOrderData.fromJson(Map<String, dynamic> json) {
     return RazorpayOrderData(
-      orderId: json['order_id']?.toString(),
-      amount: json['amount'] is num ? json['amount'] : num.tryParse(json['amount']?.toString() ?? '0'),
+      orderId: (json['order_id'] ?? json['razorpay_order_id'] ?? json['id'])
+          ?.toString(),
+      amount: json['amount'] is num
+          ? json['amount']
+          : num.tryParse(
+              (json['amount'] ?? json['amount_in_paise'])?.toString() ?? '0',
+            ),
       amountRupees: json['amount_rupees'] is num
           ? json['amount_rupees']
           : num.tryParse(json['amount_rupees']?.toString() ?? '0'),
       currency: json['currency']?.toString() ?? 'INR',
-      key: json['key']?.toString(),
+      key: (json['key'] ?? json['key_id'] ?? json['razorpay_key_id'])
+          ?.toString(),
       name: json['name']?.toString(),
       description: json['description']?.toString(),
-      prefill: json['prefill'] is Map ? RazorpayPrefill.fromJson(Map<String, dynamic>.from(json['prefill'])) : null,
+      prefill: json['prefill'] is Map
+          ? RazorpayPrefill.fromJson(Map<String, dynamic>.from(json['prefill']))
+          : null,
     );
   }
 }
@@ -136,7 +144,9 @@ class OrderBillItem {
 
   factory OrderBillItem.fromJson(Map<String, dynamic> json) {
     return OrderBillItem(
-      billId: json['bill_id'] is int ? json['bill_id'] : int.tryParse(json['bill_id']?.toString() ?? ''),
+      billId: json['bill_id'] is int
+          ? json['bill_id']
+          : int.tryParse(json['bill_id']?.toString() ?? ''),
       billNo: json['bill_no']?.toString(),
       groupOrderNo: json['group_order_no']?.toString(),
       netAmount: json['net_amount'] is num
@@ -179,46 +189,75 @@ class PlaceOrderResponse {
     this.storeName,
   });
 
-  factory PlaceOrderResponse.fromJson(Map<String, dynamic> json, {String? msg}) {
+  factory PlaceOrderResponse.fromJson(Map<String, dynamic> json,
+      {String? msg}) {
+    var data = Map<String, dynamic>.from(json);
+    for (var depth = 0; depth < 3 && data['data'] is Map; depth++) {
+      data = {
+        ...data,
+        ...Map<String, dynamic>.from(data['data'] as Map),
+      };
+    }
+
+    final rawRazorpay =
+        data['razorpay'] ?? data['payment'] ?? data['payment_gateway'];
+    final razorpayData = <String, dynamic>{
+      ...data,
+      if (rawRazorpay is Map) ...Map<String, dynamic>.from(rawRazorpay),
+    };
+    if (razorpayData['order'] is Map) {
+      razorpayData.addAll(Map<String, dynamic>.from(razorpayData['order']));
+    }
+    final hasRazorpayDetails = razorpayData['order_id'] != null ||
+        razorpayData['razorpay_order_id'] != null ||
+        razorpayData['amount'] != null ||
+        razorpayData['key'] != null ||
+        razorpayData['key_id'] != null;
+
     List<OrderBillItem> billsList = [];
-    if (json['bills'] is List) {
-      billsList = (json['bills'] as List)
+    if (data['bills'] is List) {
+      billsList = (data['bills'] as List)
           .map((e) => OrderBillItem.fromJson(Map<String, dynamic>.from(e)))
           .toList();
     }
 
-    final resolvedLabName = json['lab_name']?.toString() ??
-        json['lab']?.toString() ??
-        json['pharmacy_name']?.toString() ??
-        json['hospital_name']?.toString() ??
-        (json['hospital'] is Map ? json['hospital']['name']?.toString() : null) ??
-        (json['hospital'] is String ? json['hospital']?.toString() : null);
+    final resolvedLabName = data['lab_name']?.toString() ??
+        data['lab']?.toString() ??
+        data['pharmacy_name']?.toString() ??
+        data['hospital_name']?.toString() ??
+        (data['hospital'] is Map
+            ? data['hospital']['name']?.toString()
+            : null) ??
+        (data['hospital'] is String ? data['hospital']?.toString() : null);
 
     return PlaceOrderResponse(
-      success: json['success'] == true ||
-          json['success'] == 1 ||
-          json['status'] == true ||
-          (json['razorpay'] != null) ||
-          (json['group_order_no'] != null && json['group_order_no'].toString().isNotEmpty) ||
-          (json['bill_id'] != null),
-      billId: json['bill_id'] is int ? json['bill_id'] : int.tryParse(json['bill_id']?.toString() ?? ''),
-      billNo: json['bill_no']?.toString(),
-      groupOrderNo: json['group_order_no']?.toString(),
-      grandTotal: json['grand_total'] is num
-          ? json['grand_total']
-          : num.tryParse(json['grand_total']?.toString() ?? '0'),
-      paymentMode: json['payment_mode']?.toString(),
-      orderStatus: json['order_status']?.toString() ?? 'pending',
+      success: data['success'] == true ||
+          data['success'] == 1 ||
+          data['status'] == true ||
+          hasRazorpayDetails ||
+          (data['group_order_no'] != null &&
+              data['group_order_no'].toString().isNotEmpty) ||
+          (data['bill_id'] != null),
+      billId: data['bill_id'] is int
+          ? data['bill_id']
+          : int.tryParse(data['bill_id']?.toString() ?? ''),
+      billNo: data['bill_no']?.toString(),
+      groupOrderNo: data['group_order_no']?.toString(),
+      grandTotal: data['grand_total'] is num
+          ? data['grand_total']
+          : num.tryParse(data['grand_total']?.toString() ?? '0'),
+      paymentMode: data['payment_mode']?.toString(),
+      orderStatus: data['order_status']?.toString() ?? 'pending',
       bills: billsList,
-      razorpay: json['razorpay'] is Map
-          ? RazorpayOrderData.fromJson(Map<String, dynamic>.from(json['razorpay']))
-          : null,
-      hospital: json['hospital'] is Map
-          ? HospitalInfo.fromJson(Map<String, dynamic>.from(json['hospital']))
+      razorpay:
+          hasRazorpayDetails ? RazorpayOrderData.fromJson(razorpayData) : null,
+      hospital: data['hospital'] is Map
+          ? HospitalInfo.fromJson(Map<String, dynamic>.from(data['hospital']))
           : null,
       message: msg,
       labName: resolvedLabName,
-      storeName: json['store_name']?.toString() ?? json['pharmacy_name']?.toString(),
+      storeName:
+          data['store_name']?.toString() ?? data['pharmacy_name']?.toString(),
     );
   }
 }
@@ -279,7 +318,8 @@ class VerifyPaymentResponse {
     this.storeName,
   });
 
-  factory VerifyPaymentResponse.fromJson(Map<String, dynamic> json, {String? msg}) {
+  factory VerifyPaymentResponse.fromJson(Map<String, dynamic> json,
+      {String? msg}) {
     List<OrderBillItem> billsList = [];
     if (json['bills'] is List) {
       billsList = (json['bills'] as List)
@@ -291,7 +331,9 @@ class VerifyPaymentResponse {
         json['lab']?.toString() ??
         json['pharmacy_name']?.toString() ??
         json['hospital_name']?.toString() ??
-        (json['hospital'] is Map ? json['hospital']['name']?.toString() : null) ??
+        (json['hospital'] is Map
+            ? json['hospital']['name']?.toString()
+            : null) ??
         (json['hospital'] is String ? json['hospital']?.toString() : null);
 
     return VerifyPaymentResponse(
@@ -301,7 +343,8 @@ class VerifyPaymentResponse {
           json['order_status'] == 'confirmed' ||
           json['payment_status'] == 'paid' ||
           (msg != null && msg.toLowerCase().contains('success')),
-      alreadyVerified: json['already_verified'] == true || json['already_verified'] == 1,
+      alreadyVerified:
+          json['already_verified'] == true || json['already_verified'] == 1,
       orderStatus: json['order_status']?.toString() ?? 'confirmed',
       paymentStatus: json['payment_status']?.toString() ?? 'paid',
       paymentMode: json['payment_mode']?.toString(),
@@ -313,7 +356,8 @@ class VerifyPaymentResponse {
           : null,
       message: msg,
       labName: resolvedLabName,
-      storeName: json['store_name']?.toString() ?? json['pharmacy_name']?.toString(),
+      storeName:
+          json['store_name']?.toString() ?? json['pharmacy_name']?.toString(),
     );
   }
 }

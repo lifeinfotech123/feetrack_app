@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:get/get.dart';
+import 'package:vlr/controllers/auth_controller.dart';
 import 'package:vlr/controllers/home_controller.dart';
 import 'package:vlr/data/models/category_model/staff_model.dart';
 import 'package:vlr/data/models/gym_profile_banner_model.dart';
@@ -259,8 +260,23 @@ class GymController extends GetxController implements GetxService {
     return responseModel;
   }
 
+  void clearMyGymBookings() {
+    myGymBookingsData = null;
+    myGymBookingsList = [];
+    myGymMembershipsList = [];
+    myGymVisitsList = [];
+    isMyGymBookingsLoading = false;
+    update();
+  }
+
   Future<ResponseModel> fetchMyGymBookings() async {
     log('----------- fetchMyGymBookings (v1/gym/my-bookings) ----------');
+    if (Get.isRegistered<AuthController>() &&
+        !Get.find<AuthController>().isLoggedIn()) {
+      clearMyGymBookings();
+      return ResponseModel(false, "User not logged in");
+    }
+
     isMyGymBookingsLoading = true;
     update();
 
@@ -283,6 +299,10 @@ class GymController extends GetxController implements GetxService {
           myGymVisitsList = myGymBookingsData!['visits'] is List
               ? myGymBookingsData!['visits']
               : [];
+        } else {
+          myGymBookingsList = [];
+          myGymMembershipsList = [];
+          myGymVisitsList = [];
         }
         responseModel = ResponseModel(
           true,
@@ -290,6 +310,7 @@ class GymController extends GetxController implements GetxService {
           myGymBookingsData,
         );
       } else {
+        clearMyGymBookings();
         responseModel = ResponseModel(
           false,
           body?['message'] ?? "Failed to retrieve gym bookings.",
@@ -297,6 +318,7 @@ class GymController extends GetxController implements GetxService {
       }
     } catch (e) {
       log('ERROR AT fetchMyGymBookings(): $e');
+      clearMyGymBookings();
       responseModel = ResponseModel(false, "Error: $e");
     }
 

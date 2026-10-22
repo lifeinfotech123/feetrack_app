@@ -474,7 +474,7 @@ class _PharmacyBookingsScreenState extends State<PharmacyBookingsScreen> {
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
-                              '${order.hospital!.name ?? "Hospital"} (${order.hospital!.domain ?? ""})',
+                              order.hospital!.name ?? "Hospital",
                               style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,

@@ -194,11 +194,6 @@ class _PharmacyInvoiceDetailScreenState extends State<PharmacyInvoiceDetailScree
                     color: pharmacyTeal,
                   ),
                 ),
-                if (invoice.hospital?.domain != null)
-                  Text(
-                    'Domain: ${invoice.hospital!.domain!}',
-                    style: const TextStyle(fontSize: 11, color: textMuted),
-                  ),
               ],
             ),
           ),

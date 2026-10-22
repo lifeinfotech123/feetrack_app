@@ -131,9 +131,25 @@ class _ExploreByCategoryWidgetState extends State<ExploreByCategoryWidget> {
     final String slug = (category.slug ?? '').toLowerCase();
     final String catId = category.id?.toString() ?? '';
 
-    // 1. Hospital Category
-    if (catId == "2" ||
-        name.contains("hospital") ||
+    // 1. Gym / Fitness Category
+    final bool isGymCategory = name.contains("gym") ||
+        slug.contains("gym") ||
+        name.contains("fitness") ||
+        slug.contains("fitness") ||
+        name.contains("workout") ||
+        slug.contains("workout") ||
+        catId == "11" ||
+        catId == "1";
+    if (isGymCategory) {
+      navigate(
+        context: context,
+        page: const GymBottomNavBarScreen(),
+      );
+      return;
+    }
+
+    // 2. Hospital / Doctor Category
+    if (name.contains("hospital") ||
         slug.contains("hospital") ||
         name.contains("doctor") ||
         slug.contains("doctor") ||
@@ -146,23 +162,6 @@ class _ExploreByCategoryWidgetState extends State<ExploreByCategoryWidget> {
       navigate(
         context: context,
         page: const hospital.HospitalDashboardScreen(),
-      );
-      return;
-    }
-
-    // 2. Gym / Fitness Category
-    final bool isGymCategory = catId == "11" ||
-        catId == "1" ||
-        name.contains("gym") ||
-        slug.contains("gym") ||
-        name.contains("fitness") ||
-        slug.contains("fitness") ||
-        name.contains("workout") ||
-        slug.contains("workout");
-    if (isGymCategory) {
-      navigate(
-        context: context,
-        page: const GymBottomNavBarScreen(),
       );
       return;
     }

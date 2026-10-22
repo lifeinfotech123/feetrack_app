@@ -46,3 +46,10 @@ app.*.map.json
 
 # Local backup folders
 assets_backup/
+
+# Local signing credentials and machine-specific config
+/key.properties
+**/local.properties
+*.jks
+*.keystore
+/upload_certificate.pem

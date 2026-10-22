@@ -200,6 +200,8 @@ class AppointmentRepo {
         AppConstants.hospitalAppointmentVerifyPaymentUri(appointmentId);
     final payload = {
       "hospital": hospitalDomain,
+      "hospital_domain": hospitalDomain,
+      "domain": hospitalDomain,
       "razorpay_order_id": razorpayOrderId,
       "razorpay_payment_id": razorpayPaymentId,
       "razorpay_signature": razorpaySignature,

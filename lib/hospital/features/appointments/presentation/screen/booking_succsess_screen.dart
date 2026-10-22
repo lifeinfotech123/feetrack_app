@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../dashboard/presentation/screen/dashboard_screen.dart';
 import '../../../../core/constants/colors.dart';
@@ -13,6 +14,8 @@ class BookingSuccsessScreen extends StatefulWidget {
   final String? date;
   final String? time;
   final String? amount;
+  final Map<String, dynamic>? bookingData;
+  final Map<String, dynamic>? doctorData;
 
   const BookingSuccsessScreen({
     Key? key,
@@ -22,6 +25,8 @@ class BookingSuccsessScreen extends StatefulWidget {
     this.date,
     this.time,
     this.amount,
+    this.bookingData,
+    this.doctorData,
   }) : super(key: key);
 
   @override
@@ -44,6 +49,125 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
     35,
     (index) => _ConfettiParticle.generate(),
   );
+
+  Map<String, dynamic>? get _hospital {
+    final bookingHospital = widget.bookingData?['hospital'];
+    if (bookingHospital is Map) {
+      return Map<String, dynamic>.from(bookingHospital);
+    }
+    final doctorHospital = widget.doctorData?['hospital'];
+    if (doctorHospital is Map) {
+      return Map<String, dynamic>.from(doctorHospital);
+    }
+    return null;
+  }
+
+  String get _hospitalName => _hospital?['name']?.toString().trim() ?? '';
+
+  String _hospitalContactValue(List<String> keys) {
+    final hospital = _hospital;
+    if (hospital == null) return '';
+    for (final key in keys) {
+      final value = hospital[key]?.toString().trim() ?? '';
+      if (value.isNotEmpty) return value;
+    }
+    final contact = hospital['contact'];
+    if (contact is Map) {
+      for (final key in keys) {
+        final value = contact[key]?.toString().trim() ?? '';
+        if (value.isNotEmpty) return value;
+      }
+    }
+    return '';
+  }
+
+  String get _hospitalPhone => _hospitalContactValue([
+        'phone',
+        'phone_number',
+        'contact_number',
+        'contact_phone',
+        'mobile',
+        'telephone',
+      ]);
+
+  String get _hospitalEmail => _hospitalContactValue([
+        'email',
+        'contact_email',
+        'support_email',
+      ]);
+
+  String get _doctorAddress =>
+      widget.doctorData?['address']?.toString().trim() ?? '';
+
+  bool get _isCashBooking =>
+      widget.bookingData?['payment_mode']
+          ?.toString()
+          .toLowerCase()
+          .contains('cash') ??
+      false;
+
+  String get _hospitalAddress {
+    final hospital = _hospital;
+    if (hospital == null) return '';
+    final direct = hospital['full_address'] ??
+        hospital['address'] ??
+        hospital['location_address'];
+    if (direct != null && direct.toString().trim().isNotEmpty) {
+      return direct.toString().trim();
+    }
+    return [
+      hospital['landmark'],
+      hospital['city'],
+      hospital['state'],
+      hospital['pincode']
+    ]
+        .where((value) => value != null && value.toString().trim().isNotEmpty)
+        .map((value) => value.toString().trim())
+        .join(', ');
+  }
+
+  Future<void> _openHospitalDirections() async {
+    final hospital = _hospital;
+    if (hospital == null) return;
+    final location = hospital['location'];
+    final lat = hospital['latitude'] ??
+        hospital['lat'] ??
+        (location is Map ? location['lat'] ?? location['latitude'] : null);
+    final lng = hospital['longitude'] ??
+        hospital['lng'] ??
+        (location is Map ? location['lng'] ?? location['longitude'] : null);
+    final destination = lat != null && lng != null
+        ? '${lat.toString().trim()},${lng.toString().trim()}'
+        : _hospitalAddress.isNotEmpty
+            ? _hospitalAddress
+            : _hospitalName;
+    if (destination.trim().isEmpty) return;
+
+    final url = Uri.https('www.google.com', '/maps/dir/', {
+      'api': '1',
+      'destination': destination,
+    });
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication) &&
+        mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to open hospital directions.')),
+      );
+    }
+  }
+
+  Future<void> _openDoctorDirections() async {
+    if (_doctorAddress.isEmpty) return;
+    final url = Uri.https('www.google.com', '/maps/search/', {
+      'api': '1',
+      'query': _doctorAddress,
+    });
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication) &&
+        mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to open doctor location.')),
+      );
+    }
+  }
 
   @override
   void initState() {
@@ -146,6 +270,9 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
       },
       child: Scaffold(
         backgroundColor: backgroundColor,
+        appBar: AppBar(
+          title: const Text("Booking Successful"),
+        ),
         body: SafeArea(
           child: Stack(
             children: [
@@ -409,7 +536,9 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
                                   _buildDetailRow(
                                     icon: Icons.payment_outlined,
                                     iconColor: wellnessGreen,
-                                    label: 'Amount Paid',
+                                    label: _isCashBooking
+                                        ? 'Consultation Fee'
+                                        : 'Amount Paid',
                                     value: totalPaid,
                                     valueColor: wellnessGreen,
                                     isBold: true,
@@ -445,18 +574,20 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
                                                 wellnessGreen.withOpacity(0.3),
                                           ),
                                         ),
-                                        child: const Row(
+                                        child: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            Icon(
+                                            const Icon(
                                               Icons.check_circle_rounded,
                                               size: 14,
                                               color: wellnessGreen,
                                             ),
-                                            SizedBox(width: 4),
+                                            const SizedBox(width: 4),
                                             Text(
-                                              'Confirmed & Paid',
-                                              style: TextStyle(
+                                              _isCashBooking
+                                                  ? 'Confirmed, Pay at Hospital'
+                                                  : 'Confirmed & Paid',
+                                              style: const TextStyle(
                                                 fontSize: 11,
                                                 fontWeight: FontWeight.bold,
                                                 color: wellnessGreen,
@@ -470,6 +601,229 @@ class _BookingSuccsessScreenState extends State<BookingSuccsessScreen>
                                 ],
                               ),
                             ),
+
+                            if (_doctorAddress.isNotEmpty) ...[
+                              const SizedBox(height: 18),
+                              ModernCard(
+                                padding: const EdgeInsets.all(20),
+                                borderRadius: 20,
+                                shadows: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.04),
+                                    blurRadius: 16,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
+                                child: InkWell(
+                                  onTap: _openDoctorDirections,
+                                  borderRadius: BorderRadius.circular(14),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(10),
+                                        decoration: BoxDecoration(
+                                          color: primaryColor.withOpacity(0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                        child: const Icon(
+                                          Icons.location_on_rounded,
+                                          color: primaryColor,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const Text(
+                                              'Doctor Address',
+                                              style: TextStyle(
+                                                color: textMuted,
+                                                fontSize: 11,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              _doctorAddress,
+                                              style: const TextStyle(
+                                                color: textDark,
+                                                fontSize: 13,
+                                                height: 1.4,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            const Row(
+                                              children: [
+                                                Icon(Icons.map_outlined,
+                                                    size: 15,
+                                                    color: primaryColor),
+                                                SizedBox(width: 4),
+                                                Text(
+                                                  'Open Location',
+                                                  style: TextStyle(
+                                                    color: primaryColor,
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+
+                            if (_hospitalName.isNotEmpty ||
+                                _hospitalAddress.isNotEmpty ||
+                                _hospitalPhone.isNotEmpty ||
+                                _hospitalEmail.isNotEmpty) ...[
+                              const SizedBox(height: 18),
+                              // Existing card styling is retained; its content
+                              // now reflects the booked doctor's hospital.
+                              ModernCard(
+                                padding: const EdgeInsets.all(20),
+                                borderRadius: 20,
+                                shadows: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.04),
+                                    blurRadius: 16,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
+                                child: InkWell(
+                                  onTap: _openHospitalDirections,
+                                  borderRadius: BorderRadius.circular(14),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(10),
+                                        decoration: BoxDecoration(
+                                          color: primaryColor.withOpacity(0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                        child: const Icon(
+                                          Icons.local_hospital_rounded,
+                                          color: primaryColor,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const Text(
+                                              'Hospital Information',
+                                              style: TextStyle(
+                                                color: textMuted,
+                                                fontSize: 11,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 3),
+                                            Text(
+                                              _hospitalName,
+                                              style: const TextStyle(
+                                                color: textDark,
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            if (_hospitalAddress
+                                                .isNotEmpty) ...[
+                                              const SizedBox(height: 5),
+                                              Text(
+                                                _hospitalAddress,
+                                                style: const TextStyle(
+                                                  color: textMuted,
+                                                  fontSize: 12,
+                                                  height: 1.35,
+                                                ),
+                                              ),
+                                            ],
+                                            if (_hospitalPhone.isNotEmpty) ...[
+                                              const SizedBox(height: 8),
+                                              Row(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  const Icon(
+                                                    Icons.phone_outlined,
+                                                    size: 15,
+                                                    color: primaryColor,
+                                                  ),
+                                                  const SizedBox(width: 6),
+                                                  Expanded(
+                                                    child: Text(
+                                                      _hospitalPhone,
+                                                      style: const TextStyle(
+                                                        color: textMuted,
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                            if (_hospitalEmail.isNotEmpty) ...[
+                                              const SizedBox(height: 6),
+                                              Row(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  const Icon(
+                                                    Icons.email_outlined,
+                                                    size: 15,
+                                                    color: primaryColor,
+                                                  ),
+                                                  const SizedBox(width: 6),
+                                                  Expanded(
+                                                    child: Text(
+                                                      _hospitalEmail,
+                                                      style: const TextStyle(
+                                                        color: textMuted,
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                            const SizedBox(height: 8),
+                                            const Row(
+                                              children: [
+                                                Icon(Icons.directions_rounded,
+                                                    size: 15,
+                                                    color: primaryColor),
+                                                SizedBox(width: 4),
+                                                Text(
+                                                  'Get Directions',
+                                                  style: TextStyle(
+                                                    color: primaryColor,
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
 
                             const SizedBox(height: 32),
 

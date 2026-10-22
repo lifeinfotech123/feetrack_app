@@ -159,11 +159,11 @@ class PgDashboardMetrics {
 
 class PgDashboardSections {
   final List<PgCustomerBookingItem> recentBookings;
-  final List<dynamic> activeSubscriptions;
-  final List<dynamic> pendingInvoices;
+  final List<PgCustomerSubscriptionItem> activeSubscriptions;
+  final List<PgCustomerInvoiceItem> pendingInvoices;
   final List<dynamic> recentAttendance;
   final List<PgCustomerVisitItem> recentVisits;
-  final List<dynamic> savedListings;
+  final List<PgSavedListingItem> savedListings;
   final List<dynamic> recentReviews;
   final List<dynamic> notifications;
 
@@ -187,10 +187,17 @@ class PgDashboardSections {
               .toList()
           : [],
       activeSubscriptions: (json['active_subscriptions'] is List)
-          ? json['active_subscriptions']
+          ? (json['active_subscriptions'] as List)
+              .whereType<Map>()
+              .map((s) => PgCustomerSubscriptionItem.fromJson(Map<String, dynamic>.from(s)))
+              .toList()
           : [],
-      pendingInvoices:
-          (json['pending_invoices'] is List) ? json['pending_invoices'] : [],
+      pendingInvoices: (json['pending_invoices'] is List)
+          ? (json['pending_invoices'] as List)
+              .whereType<Map>()
+              .map((i) => PgCustomerInvoiceItem.fromJson(Map<String, dynamic>.from(i)))
+              .toList()
+          : [],
       recentAttendance:
           (json['recent_attendance'] is List) ? json['recent_attendance'] : [],
       recentVisits: (json['recent_visits'] is List)
@@ -199,8 +206,12 @@ class PgDashboardSections {
               .map((v) => PgCustomerVisitItem.fromJson(Map<String, dynamic>.from(v)))
               .toList()
           : [],
-      savedListings:
-          (json['saved_listings'] is List) ? json['saved_listings'] : [],
+      savedListings: (json['saved_listings'] is List)
+          ? (json['saved_listings'] as List)
+              .whereType<Map>()
+              .map((l) => PgSavedListingItem.fromJson(Map<String, dynamic>.from(l)))
+              .toList()
+          : [],
       recentReviews:
           (json['recent_reviews'] is List) ? json['recent_reviews'] : [],
       notifications:
@@ -646,6 +657,111 @@ class PgCustomerSubscriptionItem {
       website: json['website'] is Map
           ? Map<String, dynamic>.from(json['website'])
           : null,
+    );
+  }
+}
+
+class PgSavedListingItem {
+  final String? favoriteId;
+  final String? listingId;
+  final String? title;
+  final String? address;
+  final String? city;
+  final String? phone;
+  final num? startingPrice;
+  final String? formattedPrice;
+  final num? securityDeposit;
+  final String? image;
+  final String? savedAt;
+  final bool isFavorite;
+  final bool hasVisit;
+  final String? visitStatus;
+  final String? source;
+  final Map<String, dynamic>? website;
+
+  PgSavedListingItem({
+    this.favoriteId,
+    this.listingId,
+    this.title,
+    this.address,
+    this.city,
+    this.phone,
+    this.startingPrice,
+    this.formattedPrice,
+    this.securityDeposit,
+    this.image,
+    this.savedAt,
+    this.isFavorite = true,
+    this.hasVisit = false,
+    this.visitStatus,
+    this.source,
+    this.website,
+  });
+
+  factory PgSavedListingItem.fromJson(Map<String, dynamic> json) {
+    return PgSavedListingItem(
+      favoriteId: json['favorite_id']?.toString() ?? json['id']?.toString(),
+      listingId: json['listing_id']?.toString(),
+      title: json['title']?.toString(),
+      address: json['address']?.toString(),
+      city: json['city']?.toString(),
+      phone: json['phone']?.toString(),
+      startingPrice: json['starting_price'] is num
+          ? (json['starting_price'] as num)
+          : num.tryParse(json['starting_price']?.toString() ?? ''),
+      formattedPrice: json['formatted_price']?.toString() ??
+          (json['starting_price'] != null ? "₹${json['starting_price']}/mo" : null),
+      securityDeposit: json['security_deposit'] is num
+          ? (json['security_deposit'] as num)
+          : num.tryParse(json['security_deposit']?.toString() ?? ''),
+      image: json['image']?.toString(),
+      savedAt: json['saved_at']?.toString(),
+      isFavorite: json['is_favorite'] == true || json['is_favorite'] == 1,
+      hasVisit: json['has_visit'] == true || json['has_visit'] == 1,
+      visitStatus: json['visit_status']?.toString(),
+      source: json['source']?.toString(),
+      website: json['website'] is Map ? Map<String, dynamic>.from(json['website']) : null,
+    );
+  }
+}
+
+class PgPaymentItem {
+  final String? id;
+  final String? bookingId;
+  final String? gateway;
+  final String? gatewayRef;
+  final num? amount;
+  final String? formattedAmount;
+  final String? status;
+  final String? paidAt;
+  final String? formattedDate;
+
+  PgPaymentItem({
+    this.id,
+    this.bookingId,
+    this.gateway,
+    this.gatewayRef,
+    this.amount,
+    this.formattedAmount,
+    this.status,
+    this.paidAt,
+    this.formattedDate,
+  });
+
+  factory PgPaymentItem.fromJson(Map<String, dynamic> json) {
+    return PgPaymentItem(
+      id: json['id']?.toString(),
+      bookingId: json['booking_id']?.toString(),
+      gateway: json['gateway']?.toString(),
+      gatewayRef: json['gateway_ref']?.toString(),
+      amount: json['amount'] is num
+          ? (json['amount'] as num)
+          : num.tryParse(json['amount']?.toString() ?? ''),
+      formattedAmount: json['formatted_amount']?.toString() ??
+          (json['amount'] != null ? "₹${json['amount']}" : null),
+      status: json['status']?.toString() ?? "paid",
+      paidAt: json['paid_at']?.toString(),
+      formattedDate: json['formatted_date']?.toString(),
     );
   }
 }

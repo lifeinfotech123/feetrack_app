@@ -2,12 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:vlr/controllers/attendance_controller.dart';
+import 'package:vlr/controllers/auth_controller.dart';
 import 'package:vlr/controllers/permission_controller.dart';
 import 'package:vlr/data/models/attendance_model.dart';
 import 'package:vlr/data/models/booking_model.dart';
+import 'package:vlr/data/models/gym_attendance_model.dart';
 import 'package:vlr/services/constants.dart';
+import 'package:vlr/views/screens/auth_screens/login/login_screen.dart';
 
 import 'attendance_history_screen.dart';
+import 'gym_invoice_list_screen.dart';
+import '../gym_reviews/gym_reviews_screen.dart';
 
 class AttendanceCheckinCheckoutScreen extends StatefulWidget {
   const AttendanceCheckinCheckoutScreen({super.key});
@@ -30,11 +35,20 @@ class _AttendanceCheckinCheckoutScreenState
   }
 
   Future<void> _loadData() async {
+    final authController = Get.isRegistered<AuthController>()
+        ? Get.find<AuthController>()
+        : null;
+    if (authController == null || !authController.isLoggedIn()) {
+      if (Get.isRegistered<AttendanceController>()) {
+        Get.find<AttendanceController>().clearGymAttendanceData();
+      }
+      return;
+    }
     final controller = Get.find<AttendanceController>();
     await Future.wait([
+      controller.fetchGymAttendanceStatus(),
+      controller.fetchGymAttendanceHistory(),
       controller.getBookings(),
-      controller.getTodayAttendance(),
-      controller.getAttendanceHistory(),
     ]);
   }
 
@@ -70,13 +84,134 @@ class _AttendanceCheckinCheckoutScreenState
     }
   }
 
+  Widget _buildGuestView(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: const Color(0xFF002060).withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.lock_outline_rounded,
+                size: 40,
+                color: Color(0xFF002060),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              "You are browsing as Guest",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1A1A2E),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              "Please log in to track your gym attendance, view active memberships, and punch in/out.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: Color(0xFF64748B),
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                );
+                if (mounted &&
+                    Get.isRegistered<AuthController>() &&
+                    Get.find<AuthController>().isLoggedIn()) {
+                  _loadData();
+                  setState(() {});
+                }
+              },
+              icon: const Icon(Icons.login_rounded, color: Colors.white, size: 18),
+              label: const Text(
+                "Log In Now",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF002060),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        title: const Text(
-          "Gym Attendance & Check-in",
+    return GetBuilder<AuthController>(
+      builder: (authController) {
+        final bool isLoggedIn = authController.isLoggedIn();
+
+        if (!isLoggedIn) {
+          return Scaffold(
+            backgroundColor: const Color(0xFFF8FAFC),
+            appBar: AppBar(
+              title: const Text(
+                "Gym Attendance & Check-in",
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+              centerTitle: true,
+              backgroundColor: Colors.white,
+              elevation: 0,
+              surfaceTintColor: Colors.transparent,
+              leading: IconButton(
+                icon: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  size: 18,
+                  color: Color(0xFF002060),
+                ),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+            body: _buildGuestView(context),
+          );
+        }
+
+        // If logged in, ensure data is loaded if empty
+        final attendanceCtrl = Get.find<AttendanceController>();
+        if (!attendanceCtrl.isStatusLoading &&
+            attendanceCtrl.attendanceStatusData == null &&
+            attendanceCtrl.bookingList.isEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _loadData();
+          });
+        }
+
+        return Scaffold(
+          backgroundColor: const Color(0xFFF8FAFC),
+          appBar: AppBar(
+            title: const Text(
+              "Gym Attendance & Check-in",
           style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w800,
@@ -88,11 +223,30 @@ class _AttendanceCheckinCheckoutScreenState
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              size: 18, color: Color(0xFF002060)),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: 18,
+            color: Color(0xFF002060),
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const GymInvoiceListScreen(),
+                ),
+              );
+            },
+            icon: const Icon(
+              Icons.receipt_long_rounded,
+              color: Color(0xFF002060),
+              size: 22,
+            ),
+            tooltip: "Invoices & Billing",
+          ),
           GetBuilder<AttendanceController>(
             builder: (controller) {
               final activeBooking = controller.bookingList.isNotEmpty &&
@@ -102,19 +256,51 @@ class _AttendanceCheckinCheckoutScreenState
                       ? controller.bookingList.first
                       : null);
 
-              return IconButton(
-                onPressed: () {
-                  navigate(
-                    context: context,
-                    page: AttendanceHistoryScreen(
-                      listingId: activeBooking?.listing?.id,
-                      gymTitle: activeBooking?.listing?.title,
+              final gymTitle = controller.attendanceStatusData?.gym?.title ??
+                  activeBooking?.listing?.title;
+              final listingId = activeBooking?.listing?.id ??
+                  controller.attendanceStatusData?.gym?.id;
+
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => GymReviewsScreen(
+                            gymId: listingId,
+                            gymTitle: gymTitle,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(
+                      Icons.star_outline_rounded,
+                      color: Color(0xFF002060),
+                      size: 22,
                     ),
-                  );
-                },
-                icon: const Icon(Icons.history_rounded,
-                    color: Color(0xFF002060), size: 22),
-                tooltip: "Attendance History",
+                    tooltip: "Reviews & Ratings",
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      navigate(
+                        context: context,
+                        page: AttendanceHistoryScreen(
+                          listingId: listingId,
+                          gymTitle: gymTitle,
+                        ),
+                      );
+                    },
+                    icon: const Icon(
+                      Icons.history_rounded,
+                      color: Color(0xFF002060),
+                      size: 22,
+                    ),
+                    tooltip: "Attendance History",
+                  ),
+                ],
               );
             },
           ),
@@ -122,7 +308,12 @@ class _AttendanceCheckinCheckoutScreenState
       ),
       body: GetBuilder<AttendanceController>(
         builder: (controller) {
-          if (controller.isLoading && controller.bookingList.isEmpty) {
+          final statusData = controller.attendanceStatusData;
+          final isInitialLoading = controller.isStatusLoading &&
+              statusData == null &&
+              controller.isLoading;
+
+          if (isInitialLoading) {
             return const Center(
               child: CircularProgressIndicator(
                 color: Color(0xFF002060),
@@ -130,84 +321,79 @@ class _AttendanceCheckinCheckoutScreenState
             );
           }
 
-          if (controller.bookingList.isEmpty) {
-            return RefreshIndicator(
-              color: const Color(0xFF002060),
-              onRefresh: _loadData,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(16, 20, 16, 30),
-                child: Column(
-                  children: [
-                    _buildTodayBanner("Active Gym Membership"),
-                    const SizedBox(height: 30),
-                    _buildEmptyState("No active gym bookings found"),
-                  ],
-                ),
-              ),
-            );
+          // Booking fallback
+          BookingModel? selectedBooking;
+          if (controller.bookingList.isNotEmpty) {
+            if (_selectedBookingIndex >= controller.bookingList.length) {
+              _selectedBookingIndex = 0;
+            }
+            selectedBooking = controller.bookingList[_selectedBookingIndex];
           }
 
-          if (_selectedBookingIndex >= controller.bookingList.length) {
-            _selectedBookingIndex = 0;
-          }
+          // Gym Title & Details
+          final gymTitle = statusData?.gym?.title ??
+              selectedBooking?.listing?.title ??
+              "Fitness Center";
 
-          final selectedBooking = controller.bookingList[_selectedBookingIndex];
-          final gymTitle =
-              selectedBooking.listing?.title ?? "Fitness Center";
+          final gymSubtitle = statusData?.gym?.city != null
+              ? "${statusData!.gym!.city}${statusData.gym?.address != null ? ' • ${statusData.gym!.address}' : ''}"
+              : (selectedBooking?.plan?.name != null
+                  ? "${selectedBooking!.plan!.name}${selectedBooking.shift != null ? ' • ${selectedBooking.shift}' : ''}"
+                  : "Daily Workout Attendance");
 
-          // Lookup today's attendance for the selected booking
-          final todayAttendance = controller.todayAttendanceList.firstWhereOrNull(
-            (a) => a.listingId == selectedBooking.listing?.id,
-          );
+          // Status & Punch Capability
+          final canPunchIn = statusData?.canPunchIn ?? true;
+          final canPunchOut = statusData?.canPunchOut ?? false;
+          final isCompleted = statusData != null
+              ? (statusData.status == 'punched_out' &&
+                  !canPunchIn &&
+                  !canPunchOut)
+              : false;
+          final isPunchedIn = statusData != null
+              ? (statusData.status == 'punched_in' || canPunchOut)
+              : false;
 
-          final isPunchedIn = todayAttendance != null &&
-              (todayAttendance.status == 'open' ||
-                  (todayAttendance.punchInAt != null &&
-                      todayAttendance.punchInAt!.isNotEmpty &&
-                      (todayAttendance.punchOutAt == null ||
-                          todayAttendance.punchOutAt!.isEmpty)));
+          final statusLabel = statusData?.statusLabel ??
+              (isCompleted
+                  ? "Workout Completed"
+                  : isPunchedIn
+                      ? "Active Session"
+                      : "Not Marked");
 
-          final isCompleted = todayAttendance != null &&
-              (todayAttendance.status == 'completed' ||
-                  (todayAttendance.punchOutAt != null &&
-                      todayAttendance.punchOutAt!.isNotEmpty));
+          // Session punch times
+          final currentSession = statusData?.currentSession;
+          final lastSession = statusData?.todaySessions.isNotEmpty == true
+              ? statusData!.todaySessions.last
+              : null;
 
-          final punchInTime = todayAttendance?.punchInAt;
-          final punchOutTime = todayAttendance?.punchOutAt;
+          final String checkInDisplay = currentSession?.punchInTime ??
+              lastSession?.punchInTime ??
+              (statusData?.todaySessions.isNotEmpty == true
+                  ? (statusData!.todaySessions.first.punchInTime ?? "--:--")
+                  : "--:--");
 
-          // Compute Monthly KPI Stats from attendance history
-          final now = DateTime.now();
-          final thisMonthLogs = controller.attendanceHistoryList.where((item) {
-            if (item.date == null && item.punchInAt == null) return false;
-            try {
-              final d = DateTime.tryParse(item.date ?? item.punchInAt ?? "");
-              if (d != null) {
-                return d.month == now.month && d.year == now.year;
-              }
-            } catch (_) {}
-            return true;
-          }).toList();
+          final String checkOutDisplay = currentSession?.punchOutTime ??
+              lastSession?.punchOutTime ??
+              "--:--";
 
-          final presentDaySet = <String>{};
-          for (var l in thisMonthLogs) {
-            final dateKey = l.date ?? l.punchInAt?.split(' ').first;
-            if (dateKey != null) presentDaySet.add(dateKey);
-          }
-          if (isPunchedIn || isCompleted) {
-            presentDaySet.add(DateFormat('yyyy-MM-dd').format(now));
-          }
+          final totalWorkoutMinutes = statusData?.totalTodayMinutes ?? 0;
 
-          final presentCount = presentDaySet.length;
-          final dayOfMonth = now.day;
-          final totalDaysInMonth = DateTime(now.year, now.month + 1, 0).day;
-          final absentCount =
-              (dayOfMonth - presentCount).clamp(0, totalDaysInMonth);
-          final rate = dayOfMonth > 0
-              ? ((presentCount / dayOfMonth) * 100).round().clamp(0, 100)
-              : 100;
+          // KPI stats (use API summary if available, else compute)
+          final historySummary = controller.historySummary;
+          final workoutsCount = historySummary?.totalDaysAttended ??
+              controller.attendanceHistoryList.length;
+          final totalTimeFormatted =
+              historySummary?.totalWorkoutHoursFormatted ??
+                  (historySummary != null
+                      ? "${historySummary.totalWorkoutMinutes}m"
+                      : "${totalWorkoutMinutes}m");
+          final avgSessionFormatted = historySummary != null
+              ? "${historySummary.avgSessionMinutes}m"
+              : "--";
+          final streakDays = historySummary?.currentStreakDays ?? 1;
 
-          final recentLogs = controller.attendanceHistoryList;
+          final recentGymLogs = controller.gymLogs;
+          final todaySessions = statusData?.todaySessions ?? [];
 
           return RefreshIndicator(
             color: const Color(0xFF002060),
@@ -219,7 +405,10 @@ class _AttendanceCheckinCheckoutScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // 1. Today Date & Gym Banner
-                  _buildTodayBanner(gymTitle),
+                  _buildTodayBanner(
+                    gymTitle: gymTitle,
+                    statusData: statusData,
+                  ),
 
                   // If user has multiple gym bookings, show membership switcher
                   if (controller.bookingList.length > 1) ...[
@@ -266,9 +455,7 @@ class _AttendanceCheckinCheckoutScreenState
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    selectedBooking.plan?.name != null
-                                        ? "${selectedBooking.plan!.name}${selectedBooking.shift != null ? ' • ${selectedBooking.shift}' : ''}"
-                                        : "Daily Workout Attendance",
+                                    gymSubtitle,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
@@ -294,11 +481,7 @@ class _AttendanceCheckinCheckoutScreenState
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                isCompleted
-                                    ? "COMPLETED"
-                                    : isPunchedIn
-                                        ? "ACTIVE"
-                                        : "NOT MARKED",
+                                statusLabel.toUpperCase(),
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w800,
@@ -313,20 +496,30 @@ class _AttendanceCheckinCheckoutScreenState
                           ],
                         ),
 
-                        const Divider(height: 32, color: Color(0xFFF1F5F9)),
+                        // Membership Pill if available
+                        if (statusData?.membership != null) ...[
+                          const SizedBox(height: 10),
+                          _buildMembershipPill(statusData!.membership!),
+                        ],
+
+                        const Divider(height: 30, color: Color(0xFFF1F5F9)),
 
                         // Circular Punch Hub (Main Feature)
                         _buildCircularPunchButton(
+                          canPunchIn: canPunchIn,
+                          canPunchOut: canPunchOut,
                           isPunchedIn: isPunchedIn,
                           isCompleted: isCompleted,
-                          isPunching: controller.isLoading,
-                          punchInTimeStr: punchInTime,
+                          isPunching:
+                              controller.isPunching || controller.isLoading,
+                          punchInTimeStr:
+                              checkInDisplay != "--:--" ? checkInDisplay : null,
                           onTap: () => _handlePunchTap(
                             context: context,
-                            attendanceCtrl: controller,
-                            booking: selectedBooking,
-                            isPunchedIn: isPunchedIn,
-                            isCompleted: isCompleted,
+                            controller: controller,
+                            canPunchIn: canPunchIn,
+                            canPunchOut: canPunchOut,
+                            statusData: statusData,
                           ),
                         ),
 
@@ -334,41 +527,61 @@ class _AttendanceCheckinCheckoutScreenState
 
                         // Status hint text
                         _buildStatusHint(
+                          canPunchIn: canPunchIn,
+                          canPunchOut: canPunchOut,
                           isPunchedIn: isPunchedIn,
                           isCompleted: isCompleted,
+                          statusLabel: statusLabel,
                         ),
 
                         const SizedBox(height: 22),
 
-                        // Check-in & Check-out Time Cards
+                        // Check-in, Check-out & Today Total Time Cards
                         Row(
                           children: [
                             Expanded(
                               child: _buildTimeInfo(
                                 label: "CHECK IN",
-                                time: _formatTimeOnly(punchInTime),
+                                time: checkInDisplay,
                                 icon: Icons.login_rounded,
                                 color: const Color(0xFF2563EB),
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 10),
                             Expanded(
                               child: _buildTimeInfo(
                                 label: "CHECK OUT",
-                                time: _formatTimeOnly(punchOutTime),
+                                time: checkOutDisplay,
                                 icon: Icons.logout_rounded,
                                 color: const Color(0xFFEA580C),
                               ),
                             ),
+                            if (totalWorkoutMinutes > 0) ...[
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: _buildTimeInfo(
+                                  label: "TOTAL DURATION",
+                                  time: "$totalWorkoutMinutes m",
+                                  icon: Icons.timer_outlined,
+                                  color: const Color(0xFF16A34A),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ],
                     ),
                   ),
 
+                  // 3. Today's Sessions Section (if sessions recorded)
+                  if (todaySessions.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    _buildTodaySessionsSection(todaySessions),
+                  ],
+
                   const SizedBox(height: 20),
 
-                  // 3. Monthly Attendance Stats (4 KPI Cards)
+                  // 4. Monthly Attendance Stats (4 KPI Cards)
                   const Text(
                     "This Month's Summary",
                     style: TextStyle(
@@ -383,8 +596,8 @@ class _AttendanceCheckinCheckoutScreenState
                       Expanded(
                         child: _buildStatTile(
                           title: "Workouts",
-                          value: "$presentCount Days",
-                          icon: Icons.check_circle_rounded,
+                          value: "$workoutsCount Days",
+                          icon: Icons.fitness_center_rounded,
                           color: const Color(0xFF16A34A),
                           bgColor: const Color(0xFFF0FDF4),
                         ),
@@ -392,11 +605,11 @@ class _AttendanceCheckinCheckoutScreenState
                       const SizedBox(width: 10),
                       Expanded(
                         child: _buildStatTile(
-                          title: "Missed",
-                          value: "$absentCount Days",
-                          icon: Icons.cancel_rounded,
-                          color: const Color(0xFFDC2626),
-                          bgColor: const Color(0xFFFEF2F2),
+                          title: "Total Time",
+                          value: totalTimeFormatted,
+                          icon: Icons.access_time_rounded,
+                          color: const Color(0xFF2563EB),
+                          bgColor: const Color(0xFFEFF6FF),
                         ),
                       ),
                     ],
@@ -406,28 +619,29 @@ class _AttendanceCheckinCheckoutScreenState
                     children: [
                       Expanded(
                         child: _buildStatTile(
-                          title: "Attendance Rate",
-                          value: "$rate%",
-                          icon: Icons.pie_chart_rounded,
-                          color: const Color(0xFF2563EB),
-                          bgColor: const Color(0xFFEFF6FF),
+                          title: "Avg Session",
+                          value: avgSessionFormatted,
+                          icon: Icons.speed_rounded,
+                          color: const Color(0xFF7C3AED),
+                          bgColor: const Color(0xFFFAF5FF),
                         ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: _buildStatTile(
-                          title: "Days Elapsed",
-                          value: "$dayOfMonth Days",
-                          icon: Icons.calendar_month_rounded,
-                          color: const Color(0xFF7C3AED),
-                          bgColor: const Color(0xFFFAF5FF),
+                          title: "Current Streak",
+                          value: "$streakDays Days",
+                          icon: Icons.local_fire_department_rounded,
+                          color: const Color(0xFFEA580C),
+                          bgColor: const Color(0xFFFFF7ED),
                         ),
                       ),
                     ],
                   ),
+
                   const SizedBox(height: 24),
 
-                  // 4. Recent Workout Attendance Logs
+                  // 5. Recent Workout Attendance Logs
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -444,8 +658,9 @@ class _AttendanceCheckinCheckoutScreenState
                           navigate(
                             context: context,
                             page: AttendanceHistoryScreen(
-                              listingId: selectedBooking.listing?.id,
-                              gymTitle: selectedBooking.listing?.title,
+                              listingId: statusData?.gym?.id ??
+                                  selectedBooking?.listing?.id,
+                              gymTitle: gymTitle,
                             ),
                           );
                         },
@@ -462,17 +677,32 @@ class _AttendanceCheckinCheckoutScreenState
                   ),
                   const SizedBox(height: 8),
 
-                  if (recentLogs.isEmpty)
+                  if (recentGymLogs.isEmpty &&
+                      controller.attendanceHistoryList.isEmpty)
                     _buildEmptyLogsCard()
+                  else if (recentGymLogs.isNotEmpty)
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount:
+                          recentGymLogs.length > 5 ? 5 : recentGymLogs.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final logItem = recentGymLogs[index];
+                        return _buildGymLogCard(logItem, gymTitle);
+                      },
+                    )
                   else
                     ListView.separated(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      itemCount: recentLogs.length > 5 ? 5 : recentLogs.length,
+                      itemCount: controller.attendanceHistoryList.length > 5
+                          ? 5
+                          : controller.attendanceHistoryList.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 10),
                       itemBuilder: (context, index) {
-                        final logItem = recentLogs[index];
-                        return _buildLogCard(logItem, gymTitle);
+                        final logItem = controller.attendanceHistoryList[index];
+                        return _buildLegacyLogCard(logItem, gymTitle);
                       },
                     ),
                 ],
@@ -481,6 +711,161 @@ class _AttendanceCheckinCheckoutScreenState
           );
         },
       ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMembershipPill(GymAttendanceMembership membership) {
+    final status = (membership.status ?? "active").toUpperCase();
+    final expires = membership.expiresAt ?? "";
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF002060).withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: const Color(0xFF002060).withValues(alpha: 0.12),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.card_membership_rounded,
+            size: 16,
+            color: Color(0xFF002060),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            "Membership: $status",
+            style: const TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF002060),
+            ),
+          ),
+          if (expires.isNotEmpty) ...[
+            const Spacer(),
+            Text(
+              "Expires: $expires",
+              style: const TextStyle(
+                fontSize: 11,
+                color: Color(0xFF64748B),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTodaySessionsSection(List<GymAttendanceSessionItem> sessions) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Today's Workout Sessions",
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF0F172A),
+          ),
+        ),
+        const SizedBox(height: 10),
+        ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: sessions.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 8),
+          itemBuilder: (context, index) {
+            final s = sessions[index];
+            final isIn = s.punchInTime ?? "--:--";
+            final isOut = s.punchOutTime ?? "In Progress";
+            final duration = s.durationFormatted ??
+                (s.durationMinutes != null && s.durationMinutes! > 0
+                    ? "${s.durationMinutes} mins"
+                    : "--");
+
+            return Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF002060).withValues(alpha: 0.08),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        "#${index + 1}",
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF002060),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "$isIn → $isOut",
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          "Duration: $duration",
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: s.isCompleted
+                          ? const Color(0xFFDCFCE7)
+                          : const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      s.isCompleted ? "Completed" : "Active",
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        color: s.isCompleted
+                            ? const Color(0xFF16A34A)
+                            : const Color(0xFFD97706),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 
@@ -539,9 +924,14 @@ class _AttendanceCheckinCheckoutScreenState
     );
   }
 
-  Widget _buildTodayBanner(String propertyTitle) {
+  Widget _buildTodayBanner({
+    required String gymTitle,
+    GymAttendanceStatusData? statusData,
+  }) {
     final now = DateTime.now();
-    final formattedDate = DateFormat("EEEE, dd MMMM yyyy").format(now);
+    final formattedDate = statusData?.todayFormatted ??
+        DateFormat("EEEE, dd MMMM yyyy").format(now);
+    final customerName = statusData?.customer?.name;
 
     return Container(
       width: double.infinity,
@@ -566,7 +956,7 @@ class _AttendanceCheckinCheckoutScreenState
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
-              Icons.fingerprint_rounded,
+              Icons.fitness_center_rounded,
               color: Colors.white,
               size: 24,
             ),
@@ -576,9 +966,11 @@ class _AttendanceCheckinCheckoutScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "Daily Gym Attendance",
-                  style: TextStyle(
+                Text(
+                  customerName != null && customerName.isNotEmpty
+                      ? "Hi, $customerName 👋"
+                      : "Daily Gym Attendance",
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 14.5,
                     fontWeight: FontWeight.w800,
@@ -602,10 +994,12 @@ class _AttendanceCheckinCheckoutScreenState
   }
 
   /// Circular Punch Button with 3 states:
-  /// 1. PUNCH IN (Blue / Navy gradient) -> 1st tap
-  /// 2. PUNCH OUT (Orange gradient) -> 2nd tap
+  /// 1. PUNCH IN (Blue / Navy gradient) -> can_punch_in == true
+  /// 2. PUNCH OUT (Orange gradient) -> can_punch_out == true
   /// 3. TODAY COMPLETE (Green gradient) -> Finished
   Widget _buildCircularPunchButton({
+    required bool canPunchIn,
+    required bool canPunchOut,
     required bool isPunchedIn,
     required bool isCompleted,
     required bool isPunching,
@@ -618,16 +1012,7 @@ class _AttendanceCheckinCheckoutScreenState
     String title;
     String subtitle;
 
-    if (isCompleted) {
-      primaryColor = const Color(0xFF16A34A);
-      gradientColors = [
-        const Color(0xFF22C55E),
-        const Color(0xFF15803D),
-      ];
-      icon = Icons.check_circle_rounded;
-      title = "TODAY COMPLETE";
-      subtitle = "Workout Done";
-    } else if (isPunchedIn) {
+    if (canPunchOut) {
       primaryColor = const Color(0xFFEA580C);
       gradientColors = [
         const Color(0xFFF97316),
@@ -638,15 +1023,24 @@ class _AttendanceCheckinCheckoutScreenState
       subtitle = punchInTimeStr != null
           ? "In: ${_formatTimeOnly(punchInTimeStr)}"
           : "Tap to Exit";
-    } else {
+    } else if (canPunchIn) {
       primaryColor = const Color(0xFF002060);
       gradientColors = [
         const Color(0xFF003399),
         const Color(0xFF001744),
       ];
       icon = Icons.fingerprint_rounded;
-      title = "PUNCH IN";
-      subtitle = "Tap to Check In";
+      title = isCompleted ? "RE-OPEN" : "PUNCH IN";
+      subtitle = isCompleted ? "Tap to Workout Again" : "Tap to Check In";
+    } else {
+      primaryColor = const Color(0xFF16A34A);
+      gradientColors = [
+        const Color(0xFF22C55E),
+        const Color(0xFF15803D),
+      ];
+      icon = Icons.check_circle_rounded;
+      title = "TODAY COMPLETE";
+      subtitle = "Workout Done";
     }
 
     return Center(
@@ -751,34 +1145,13 @@ class _AttendanceCheckinCheckoutScreenState
   }
 
   Widget _buildStatusHint({
+    required bool canPunchIn,
+    required bool canPunchOut,
     required bool isPunchedIn,
     required bool isCompleted,
+    required String statusLabel,
   }) {
-    if (isCompleted) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-        decoration: BoxDecoration(
-          color: const Color(0xFF16A34A).withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.check_circle_rounded,
-                size: 13, color: Color(0xFF16A34A)),
-            SizedBox(width: 5),
-            Text(
-              "Today's workout session completed successfully",
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF16A34A),
-              ),
-            ),
-          ],
-        ),
-      );
-    } else if (isPunchedIn) {
+    if (canPunchOut) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
         decoration: BoxDecoration(
@@ -801,24 +1174,51 @@ class _AttendanceCheckinCheckoutScreenState
           ],
         ),
       );
-    } else {
+    } else if (canPunchIn) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
         decoration: BoxDecoration(
           color: const Color(0xFF002060).withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.touch_app_rounded, size: 13, color: Color(0xFF002060)),
-            SizedBox(width: 5),
+            const Icon(Icons.touch_app_rounded,
+                size: 13, color: Color(0xFF002060)),
+            const SizedBox(width: 5),
             Text(
-              "Tap circle to Punch In (Entry)",
-              style: TextStyle(
+              isCompleted
+                  ? "Re-open session • Tap circle to Punch In"
+                  : "Tap circle to Punch In (Entry)",
+              style: const TextStyle(
                 fontSize: 11.5,
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF002060),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        decoration: BoxDecoration(
+          color: const Color(0xFF16A34A).withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.check_circle_rounded,
+                size: 13, color: Color(0xFF16A34A)),
+            const SizedBox(width: 5),
+            Text(
+              statusLabel,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF16A34A),
               ),
             ),
           ],
@@ -925,7 +1325,110 @@ class _AttendanceCheckinCheckoutScreenState
     );
   }
 
-  Widget _buildLogCard(AttendanceModel item, String fallbackTitle) {
+  Widget _buildGymLogCard(GymAttendanceLogItem item, String fallbackTitle) {
+    final title = item.gym?.title ?? fallbackTitle;
+    final city = item.gym?.city;
+    final subtitle =
+        [title, city].where((s) => s != null && s.isNotEmpty).join(" • ");
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 40,
+            decoration: BoxDecoration(
+              color: item.isCompleted
+                  ? const Color(0xFF16A34A)
+                  : const Color(0xFFEA580C),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.formattedDate ?? item.date ?? "Workout Session",
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+                if (item.note != null && item.note!.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    item.note!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 10.5,
+                      fontStyle: FontStyle.italic,
+                      color: Color(0xFF94A3B8),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                "${item.punchInTime ?? '--:--'} - ${item.punchOutTime ?? '--:--'}",
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                item.durationFormatted ??
+                    (item.durationMinutes != null && item.durationMinutes! > 0
+                        ? "${item.durationMinutes} mins"
+                        : (item.isCompleted ? "Completed" : "Active")),
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: item.isCompleted
+                      ? const Color(0xFF002060)
+                      : const Color(0xFFEA580C),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLegacyLogCard(AttendanceModel item, String fallbackTitle) {
     final hasOut = item.punchOutAt != null && item.punchOutAt!.isNotEmpty;
 
     return Container(
@@ -997,7 +1500,9 @@ class _AttendanceCheckinCheckoutScreenState
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: hasOut ? const Color(0xFF002060) : const Color(0xFFEA580C),
+                  color: hasOut
+                      ? const Color(0xFF002060)
+                      : const Color(0xFFEA580C),
                 ),
               ),
             ],
@@ -1033,71 +1538,18 @@ class _AttendanceCheckinCheckoutScreenState
     );
   }
 
-  Widget _buildEmptyState(String message) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: const Color(0xFF002060).withValues(alpha: 0.06),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.fitness_center_rounded,
-              size: 48,
-              color: Color(0xFF94A3B8),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            message,
-            style: const TextStyle(
-              fontSize: 15.5,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF334155),
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            "Book an active gym membership to start tracking your daily workout attendance.",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12.5,
-              color: Color(0xFF64748B),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _handlePunchTap({
     required BuildContext context,
-    required AttendanceController attendanceCtrl,
-    required BookingModel? booking,
-    required bool isPunchedIn,
-    required bool isCompleted,
+    required AttendanceController controller,
+    required bool canPunchIn,
+    required bool canPunchOut,
+    GymAttendanceStatusData? statusData,
   }) async {
-    if (booking == null) {
-      showToast(
-        message: "No active gym booking found",
-        toastType: ToastType.error,
-      );
-      return;
-    }
+    if (controller.isPunching) return;
 
-    if (isCompleted) {
+    if (!canPunchIn && !canPunchOut) {
       showToast(
-        message: "Today's workout attendance has already been completed!",
+        message: "Today's workout session has already been completed!",
         toastType: ToastType.success,
       );
       return;
@@ -1106,48 +1558,40 @@ class _AttendanceCheckinCheckoutScreenState
     try {
       final permissionController = Get.find<PermissionController>();
 
-      // Fetch location
+      // Optional location verification
       bool locationSuccess =
           await permissionController.requestLocationPermissionAndFetch(context);
-      if (!locationSuccess ||
-          permissionController.latitude == null ||
-          permissionController.longitude == null) {
-        showToast(
-          message: "Location is required for Gym attendance verification",
-          toastType: ToastType.error,
-        );
-        return;
+
+      String locationName = "gym";
+      if (locationSuccess &&
+          permissionController.latitude != null &&
+          permissionController.longitude != null) {
+        locationName =
+            "${permissionController.latitude},${permissionController.longitude}";
       }
 
-      final listingId = booking.listing?.id ?? "";
-
-      if (isPunchedIn) {
+      if (canPunchOut) {
         // Punch Out
-        final result = await attendanceCtrl.punchOut(
-          listingId,
-          permissionController.latitude!,
-          permissionController.longitude!,
-        );
+        final result = await controller.punchOutGym();
         showToast(
           message: result.message,
           toastType: result.isSuccess ? ToastType.success : ToastType.error,
         );
         if (result.isSuccess) {
-          await attendanceCtrl.getAttendanceHistory(listingId: listingId);
+          await controller.fetchGymAttendanceHistory();
         }
-      } else {
+      } else if (canPunchIn) {
         // Punch In
-        final result = await attendanceCtrl.punchIn(
-          listingId,
-          permissionController.latitude!,
-          permissionController.longitude!,
+        final result = await controller.punchInGym(
+          location: locationName,
+          note: "Workout session",
         );
         showToast(
           message: result.message,
           toastType: result.isSuccess ? ToastType.success : ToastType.error,
         );
         if (result.isSuccess) {
-          await attendanceCtrl.getAttendanceHistory(listingId: listingId);
+          await controller.fetchGymAttendanceHistory();
         }
       }
     } catch (e) {

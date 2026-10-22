@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/colors.dart';
 import '../../data/model/appointment_model.dart';
 import '../../logics/appointment_controller.dart';
@@ -64,6 +65,35 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
     );
   }
 
+  Future<void> _openHospitalDirections(Map<String, dynamic>? hospital) async {
+    if (hospital == null) return;
+    final location = hospital['location'];
+    final lat = hospital['latitude'] ??
+        hospital['lat'] ??
+        (location is Map ? location['lat'] ?? location['latitude'] : null);
+    final lng = hospital['longitude'] ??
+        hospital['lng'] ??
+        (location is Map ? location['lng'] ?? location['longitude'] : null);
+    final address = (hospital['full_address'] ?? hospital['address'] ?? '')
+        .toString()
+        .trim();
+    final name = hospital['name']?.toString().trim() ?? '';
+    final destination = lat != null && lng != null
+        ? '${lat.toString().trim()},${lng.toString().trim()}'
+        : (address.isNotEmpty ? address : name);
+    if (destination.isEmpty) return;
+    final uri = Uri.https('www.google.com', '/maps/dir/', {
+      'api': '1',
+      'destination': destination,
+    });
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication) &&
+        mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to open hospital directions.')),
+      );
+    }
+  }
+
   Color _getStatusBgColor(String status) {
     final lower = status.toLowerCase();
     if (lower.contains('cancel')) {
@@ -101,7 +131,8 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
         app?.designation ??
         'MBBS Specialist';
     final doctorPhone = app?.doctor?['phone']?.toString() ?? '6655223311';
-    final doctorEmail = app?.doctor?['email']?.toString() ?? 'doctor@hospital.com';
+    final doctorEmail =
+        app?.doctor?['email']?.toString() ?? 'doctor@hospital.com';
 
     final formattedDate = app?.formattedDate;
     final date = (formattedDate != null && formattedDate.isNotEmpty)
@@ -115,20 +146,17 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
     final paymentStatus = app?.paymentStatus ?? 'Pending';
     final isPaid = paymentStatus.toLowerCase() == 'paid';
 
-    final hospitalName = app?.hospital?['name']?.toString() ?? 'Hospital Care';
-    final hospitalDomain = app?.hospital?['domain']?.toString();
-    final address = app?.address ?? 'Main Medical Campus';
+    final hospital = app?.hospital;
+    final hospitalName = hospital?['name']?.toString() ?? 'Hospital';
+    final address =
+        (hospital?['full_address'] ?? hospital?['address'])?.toString() ??
+            'Address unavailable';
     final priority = app?.appointmentPriority ?? 'Normal';
     final message = app?.message;
     final createdAt = app?.createdAt;
 
-    final liveConsultation =
-        app?.liveConsultation?.toLowerCase() == 'yes' ||
-            app?.zoomJoinUrl != null;
-
-    final patientName = app?.patient?['name']?.toString() ?? 'Self';
-    final patientPhone = app?.patient?['phone']?.toString();
-    final patientEmail = app?.patient?['email']?.toString();
+    final liveConsultation = app?.liveConsultation?.toLowerCase() == 'yes' ||
+        app?.zoomJoinUrl != null;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -244,7 +272,9 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
                                     child: Row(
                                       children: [
                                         Icon(
-                                          status.toLowerCase().contains('cancel')
+                                          status
+                                                  .toLowerCase()
+                                                  .contains('cancel')
                                               ? Icons.cancel
                                               : Icons.check_circle_rounded,
                                           size: 13,
@@ -268,7 +298,8 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.12),
+                                      color:
+                                          Colors.white.withValues(alpha: 0.12),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(
@@ -293,9 +324,7 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
                               ),
                             ],
                           ),
-
                           const SizedBox(height: 18),
-
                           Row(
                             children: [
                               const Icon(Icons.calendar_month_rounded,
@@ -313,9 +342,7 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
                               ),
                             ],
                           ),
-
                           const SizedBox(height: 8),
-
                           Row(
                             children: [
                               const Icon(Icons.schedule_rounded,
@@ -332,18 +359,18 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
                               ),
                             ],
                           ),
-
                           const SizedBox(height: 16),
                           const Divider(color: Colors.white12, height: 1),
                           const SizedBox(height: 12),
-
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.account_balance_wallet_outlined,
-                                      size: 15, color: Colors.white60),
+                                  const Icon(
+                                      Icons.account_balance_wallet_outlined,
+                                      size: 15,
+                                      color: Colors.white60),
                                   const SizedBox(width: 6),
                                   Text(
                                     'Payment: $paymentMode',
@@ -464,13 +491,14 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
                                 child: ElevatedButton.icon(
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: primaryColor,
-                                    padding: const EdgeInsets.symmetric(vertical: 10),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 10),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                   ),
-                                  onPressed: () =>
-                                      _copyToClipboard(doctorPhone, 'Phone number'),
+                                  onPressed: () => _copyToClipboard(
+                                      doctorPhone, 'Phone number'),
                                   icon: const Icon(Icons.phone_rounded,
                                       size: 16, color: colorWhite),
                                   label: const Text(
@@ -487,13 +515,14 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
                                 child: OutlinedButton.icon(
                                   style: OutlinedButton.styleFrom(
                                     side: const BorderSide(color: borderGrey),
-                                    padding: const EdgeInsets.symmetric(vertical: 10),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 10),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                   ),
-                                  onPressed: () =>
-                                      _copyToClipboard(doctorEmail, 'Doctor email'),
+                                  onPressed: () => _copyToClipboard(
+                                      doctorEmail, 'Doctor email'),
                                   icon: const Icon(Icons.email_outlined,
                                       size: 16, color: textDark),
                                   label: const Text(
@@ -526,7 +555,8 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
                           borderRadius: BorderRadius.circular(18),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF2563EB).withValues(alpha: 0.3),
+                              color: const Color(0xFF2563EB)
+                                  .withValues(alpha: 0.3),
                               blurRadius: 12,
                               offset: const Offset(0, 4),
                             ),
@@ -553,7 +583,8 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
                             const SizedBox(height: 8),
                             const Text(
                               'Join your high-definition video call with the specialist at the scheduled slot time.',
-                              style: TextStyle(color: Colors.white70, fontSize: 12),
+                              style: TextStyle(
+                                  color: Colors.white70, fontSize: 12),
                             ),
                             const SizedBox(height: 14),
                             SizedBox(
@@ -562,7 +593,8 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: colorWhite,
                                   foregroundColor: const Color(0xFF1E3A8A),
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 12),
                                   shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12)),
                                 ),
@@ -611,20 +643,22 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          if (hospitalDomain != null &&
-                              hospitalDomain.isNotEmpty) ...[
-                            const Divider(height: 20, color: borderGrey),
-                            _buildDetailRow(
-                              icon: Icons.domain_rounded,
-                              label: 'Hospital Domain',
-                              value: hospitalDomain,
-                            ),
-                          ],
                           const Divider(height: 20, color: borderGrey),
                           _buildDetailRow(
                             icon: Icons.location_on_outlined,
                             label: 'Campus Address',
                             value: address,
+                          ),
+                          const SizedBox(height: 10),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton.icon(
+                              onPressed: () =>
+                                  _openHospitalDirections(hospital),
+                              icon: const Icon(Icons.directions_rounded,
+                                  size: 16),
+                              label: const Text('Get Directions'),
+                            ),
                           ),
                           if (createdAt != null && createdAt.isNotEmpty) ...[
                             const Divider(height: 20, color: borderGrey),
@@ -640,43 +674,33 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
 
                     const SizedBox(height: 16),
 
-                    // 5. Patient Information Card
+                    // 5. Hospital Information Card
                     _buildSectionCard(
-                      title: 'Patient Profile',
-                      icon: Icons.badge_outlined,
+                      title: 'Hospital Information',
+                      icon: Icons.local_hospital_outlined,
                       child: Column(
                         children: [
                           _buildDetailRow(
-                            icon: Icons.person_outline_rounded,
-                            label: 'Patient ID',
-                            value: '#${app?.patientId ?? 'N/A'}',
+                            icon: Icons.apartment_rounded,
+                            label: 'Hospital Name',
+                            value: hospitalName,
                           ),
-                          if (patientName.isNotEmpty && patientName != 'Self') ...[
-                            const Divider(height: 20, color: borderGrey),
-                            _buildDetailRow(
-                              icon: Icons.account_circle_outlined,
-                              label: 'Patient Name',
-                              value: patientName,
+                          const Divider(height: 20, color: borderGrey),
+                          _buildDetailRow(
+                            icon: Icons.location_on_outlined,
+                            label: 'Hospital Address',
+                            value: address,
+                          ),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton.icon(
+                              onPressed: () =>
+                                  _openHospitalDirections(hospital),
+                              icon: const Icon(Icons.directions_rounded,
+                                  size: 16),
+                              label: const Text('Get Directions'),
                             ),
-                          ],
-                          if (patientPhone != null &&
-                              patientPhone.isNotEmpty) ...[
-                            const Divider(height: 20, color: borderGrey),
-                            _buildDetailRow(
-                              icon: Icons.phone_android_rounded,
-                              label: 'Registered Mobile',
-                              value: patientPhone,
-                            ),
-                          ],
-                          if (patientEmail != null &&
-                              patientEmail.isNotEmpty) ...[
-                            const Divider(height: 20, color: borderGrey),
-                            _buildDetailRow(
-                              icon: Icons.email_outlined,
-                              label: 'Email ID',
-                              value: patientEmail,
-                            ),
-                          ],
+                          ),
                         ],
                       ),
                     ),
@@ -744,7 +768,8 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
                             child: OutlinedButton.icon(
                               style: OutlinedButton.styleFrom(
                                 side: const BorderSide(color: primaryColor),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -752,7 +777,8 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
                               onPressed: () {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content: Text('Downloading digital receipt...'),
+                                    content:
+                                        Text('Downloading digital receipt...'),
                                     behavior: SnackBarBehavior.floating,
                                   ),
                                 );

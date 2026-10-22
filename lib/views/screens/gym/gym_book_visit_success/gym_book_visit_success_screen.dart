@@ -8,7 +8,7 @@ import 'package:vlr/views/screens/dashboard/dashboard_screen.dart';
 import 'package:vlr/views/screens/gym/gym_book_visit/gym_my_visit_list_screen.dart';
 import 'package:vlr/views/screens/gym/gym_bottom_nav_bar/gym_bottom_nav_bar_screen.dart';
 
-class GymBookVisitSuccessScreen extends StatelessWidget {
+class GymBookVisitSuccessScreen extends StatefulWidget {
   final bool isMembership;
   final String? otp;
   final String? bookingNumber;
@@ -39,14 +39,52 @@ class GymBookVisitSuccessScreen extends StatelessWidget {
   });
 
   @override
+  State<GymBookVisitSuccessScreen> createState() =>
+      _GymBookVisitSuccessScreenState();
+}
+
+class _GymBookVisitSuccessScreenState extends State<GymBookVisitSuccessScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _scaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.elasticOut,
+      ),
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: const Interval(0.3, 1.0, curve: Curves.easeIn),
+      ),
+    );
+    _animationController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final titleText =
-        isMembership ? "Membership Booked!" : "Visit Scheduled!";
-    final defaultMsg = isMembership
-        ? (message ??
-            "Booking placed successfully! Share the activation OTP with gym staff to start.")
-        : (message ??
-            "Gym visit scheduled successfully! The partner team has been notified.");
+    final titleText = "Booking Successfully Completed!";
+    final defaultMsg = widget.isMembership
+        ? (widget.message ??
+            "Your membership booking has been placed successfully! Share the activation OTP with gym staff to start.")
+        : (widget.message ??
+            "Your gym visit has been scheduled successfully! The partner team has been notified.");
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -55,8 +93,9 @@ class GymBookVisitSuccessScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         shadowColor: black.withValues(alpha: 0.05),
         centerTitle: true,
+        automaticallyImplyLeading: false,
         title: Text(
-          isMembership ? "Membership Confirmed" : "Visit Booking Confirmed",
+          widget.isMembership ? "Membership Confirmed" : "Visit Booking Confirmed",
           style: Helper(context).textTheme.bodyMedium?.copyWith(
                 fontSize: 17,
                 fontWeight: FontWeight.w800,
@@ -68,60 +107,70 @@ class GymBookVisitSuccessScreen extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         child: Column(
           children: [
-            // Celebratory Top Icon
-            Center(
-              child: Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: Colors.green.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.green.withValues(alpha: 0.2),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    )
-                  ],
-                ),
-                child: const Center(
-                  child: Icon(
-                    Icons.check_circle_rounded,
-                    size: 64,
-                    color: Colors.green,
+            // Animated Celebratory Top Icon
+            ScaleTransition(
+              scale: _scaleAnimation,
+              child: Center(
+                child: Container(
+                  width: 110,
+                  height: 110,
+                  decoration: BoxDecoration(
+                    color: Colors.green.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.green.withValues(alpha: 0.2),
+                        blurRadius: 24,
+                        offset: const Offset(0, 8),
+                      )
+                    ],
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.check_circle_rounded,
+                      size: 72,
+                      color: Colors.green,
+                    ),
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 22),
 
-            Text(
-              titleText,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF1A1A2E),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                defaultMsg,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: greyText3,
-                  height: 1.4,
-                ),
+            FadeTransition(
+              opacity: _fadeAnimation,
+              child: Column(
+                children: [
+                  Text(
+                    titleText,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF1A1A2E),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(
+                      defaultMsg,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: greyText3,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 24),
 
             // OTP Box (Prominent for membership bookings)
-            if (otp != null && otp!.isNotEmpty) ...[
+            if (widget.otp != null && widget.otp!.isNotEmpty) ...[
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(18),
@@ -164,7 +213,7 @@ class GymBookVisitSuccessScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          otp!,
+                          widget.otp!,
                           style: const TextStyle(
                             fontSize: 34,
                             fontWeight: FontWeight.w900,
@@ -178,9 +227,10 @@ class GymBookVisitSuccessScreen extends StatelessWidget {
                           icon: const Icon(Icons.copy_rounded,
                               color: Colors.white, size: 22),
                           onPressed: () {
-                            Clipboard.setData(ClipboardData(text: otp!));
+                            Clipboard.setData(
+                                ClipboardData(text: widget.otp!));
                             showToast(
-                              message: "OTP copied to clipboard: $otp",
+                              message: "OTP copied to clipboard: ${widget.otp}",
                               toastType: ToastType.success,
                             );
                           },
@@ -234,7 +284,7 @@ class GymBookVisitSuccessScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    isMembership ? "Membership Details" : "Visit Details",
+                    widget.isMembership ? "Membership Details" : "Visit Details",
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
@@ -242,35 +292,35 @@ class GymBookVisitSuccessScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  if (gymTitle != null && gymTitle!.isNotEmpty)
+                  if (widget.gymTitle != null && widget.gymTitle!.isNotEmpty)
                     _buildDetailRow(
-                        Icons.fitness_center_rounded, "Gym", gymTitle!),
-                  if (packageName != null && packageName!.isNotEmpty)
+                        Icons.fitness_center_rounded, "Gym", widget.gymTitle!),
+                  if (widget.packageName != null && widget.packageName!.isNotEmpty)
                     _buildDetailRow(
-                        Icons.card_membership_rounded, "Package", packageName!),
-                  if (finalAmount != null)
+                        Icons.card_membership_rounded, "Package", widget.packageName!),
+                  if (widget.finalAmount != null)
                     _buildDetailRow(Icons.payments_rounded, "Amount",
-                        "₹$finalAmount (Cash on Visit)"),
-                  if (visitDate != null && visitDate!.isNotEmpty)
+                        "₹${widget.finalAmount}"),
+                  if (widget.visitDate != null && widget.visitDate!.isNotEmpty)
                     _buildDetailRow(Icons.calendar_today_rounded, "Visit Date",
-                        visitDate!),
-                  if (visitTime != null && visitTime!.isNotEmpty)
+                        widget.visitDate!),
+                  if (widget.visitTime != null && widget.visitTime!.isNotEmpty)
                     _buildDetailRow(Icons.access_time_rounded,
-                        "Preferred Time", visitTime!),
-                  if (bookingNumber != null && bookingNumber!.isNotEmpty)
+                        "Preferred Time", widget.visitTime!),
+                  if (widget.bookingNumber != null && widget.bookingNumber!.isNotEmpty)
                     _buildDetailRow(Icons.confirmation_number_rounded,
-                        "Booking No.", bookingNumber!),
-                  if (invoiceNumber != null && invoiceNumber!.isNotEmpty)
+                        "Booking No.", widget.bookingNumber!),
+                  if (widget.invoiceNumber != null && widget.invoiceNumber!.isNotEmpty)
                     _buildDetailRow(Icons.receipt_long_rounded, "Invoice No.",
-                        invoiceNumber!),
-                  if (visitId != null && visitId!.isNotEmpty)
+                        widget.invoiceNumber!),
+                  if (widget.visitId != null && widget.visitId!.isNotEmpty)
                     _buildDetailRow(
-                        Icons.tag_rounded, "Visit ID", visitId!),
-                  if (status != null && status!.isNotEmpty)
+                        Icons.tag_rounded, "Booking ID", widget.visitId!),
+                  if (widget.status != null && widget.status!.isNotEmpty)
                     _buildDetailRow(
                       Icons.info_outline_rounded,
                       "Status",
-                      status!.toUpperCase(),
+                      widget.status!.toUpperCase(),
                       isBadge: true,
                     ),
                 ],
@@ -289,13 +339,13 @@ class GymBookVisitSuccessScreen extends StatelessWidget {
                       ));
                 },
                 icon: Icon(
-                  isMembership
+                  widget.isMembership
                       ? Icons.card_membership_rounded
                       : Icons.list_alt_rounded,
                   color: Colors.white,
                 ),
                 label: Text(
-                  isMembership ? "VIEW MY MEMBERSHIPS" : "VIEW MY VISITS",
+                  widget.isMembership ? "VIEW MY MEMBERSHIPS" : "VIEW MY VISITS",
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
@@ -304,7 +354,7 @@ class GymBookVisitSuccessScreen extends StatelessWidget {
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isMembership ? const Color(0xFF002060) : primaryColor,
+                  backgroundColor: widget.isMembership ? const Color(0xFF002060) : primaryColor,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),

@@ -214,6 +214,18 @@ class _PharmacyPlaceOrderScreenState extends State<PharmacyPlaceOrderScreen> {
         }
       } else {
         // Online Payment: Launch Razorpay checkout immediately!
+        if (orderRes.razorpay?.orderId?.trim().isNotEmpty != true) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                    'Payment order details are missing. Please try again.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
         _activeOrder = orderRes;
         _openRazorpay(orderRes);
       }
@@ -355,13 +367,33 @@ class _PharmacyPlaceOrderScreenState extends State<PharmacyPlaceOrderScreen> {
                 ))
             .toList();
 
+    final razorpayOrderId = response.orderId ?? orderRes.razorpay?.orderId;
+    final paymentId = response.paymentId;
+    final signature = response.signature;
+    if (razorpayOrderId?.isNotEmpty != true ||
+        paymentId?.isNotEmpty != true ||
+        signature?.isNotEmpty != true) {
+      if (Get.isDialogOpen == true) Get.back();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Payment details could not be verified. Please contact support before placing another order.',
+            ),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 6),
+          ),
+        );
+      }
+      return;
+    }
+
     VerifyPaymentResponse? verifyRes;
     try {
       verifyRes = await controller.verifyPayment(
-        razorpayOrderId:
-            response.orderId ?? orderRes.razorpay?.orderId ?? 'order_dummy',
-        razorpayPaymentId: response.paymentId ?? 'pay_dummy',
-        razorpaySignature: response.signature ?? 'sig_dummy',
+        razorpayOrderId: razorpayOrderId!,
+        razorpayPaymentId: paymentId!,
+        razorpaySignature: signature!,
         groupOrderNo: orderRes.groupOrderNo ?? orderRes.billNo ?? '',
         billId: orderRes.billId ??
             (orderRes.bills.isNotEmpty ? orderRes.bills.first.billId ?? 0 : 0),
@@ -371,7 +403,26 @@ class _PharmacyPlaceOrderScreenState extends State<PharmacyPlaceOrderScreen> {
       debugPrint('Payment verification exception: $e');
     }
 
-    // Always clear cart and immediately navigate to PaymentVerifedScreen when Razorpay payment succeeds!
+    if (Get.isDialogOpen == true) Get.back();
+    if (!mounted) return;
+
+    if (verifyRes?.success != true) {
+      _activeOrder = null;
+      final message = verifyRes?.message?.trim().isNotEmpty == true
+          ? verifyRes!.message!.trim()
+          : controller.errorMessage.value.isNotEmpty
+              ? controller.errorMessage.value
+              : 'Payment was received, but the order could not be verified. Please contact support before trying again.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red.shade700,
+          duration: const Duration(seconds: 6),
+        ),
+      );
+      return;
+    }
+
     controller.clearCart();
 
     final orderNo = (verifyRes?.bills.isNotEmpty == true
@@ -383,9 +434,10 @@ class _PharmacyPlaceOrderScreenState extends State<PharmacyPlaceOrderScreen> {
         (orderRes.billId != null
             ? 'MED-ORD-${orderRes.billId}'
             : 'MED-${DateTime.now().millisecondsSinceEpoch}');
-    final bId =
-        (verifyRes?.bills.isNotEmpty == true ? verifyRes!.bills.first.billId : null) ??
-            orderRes.billId;
+    final bId = (verifyRes?.bills.isNotEmpty == true
+            ? verifyRes!.bills.first.billId
+            : null) ??
+        orderRes.billId;
 
     if (mounted) {
       Navigator.pushReplacement(
@@ -557,6 +609,25 @@ class _PharmacyPlaceOrderScreenState extends State<PharmacyPlaceOrderScreen> {
                         );
                       } catch (e) {
                         debugPrint('Verification error in test dialog: $e');
+                      }
+
+                      if (verifyRes?.success != true) {
+                        _activeOrder = null;
+                        final message = verifyRes?.message?.trim().isNotEmpty ==
+                                true
+                            ? verifyRes!.message!.trim()
+                            : controller.errorMessage.value.isNotEmpty
+                                ? controller.errorMessage.value
+                                : 'Payment could not be verified. Please try again or contact support.';
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(message),
+                              backgroundColor: Colors.red.shade700,
+                            ),
+                          );
+                        }
+                        return;
                       }
 
                       controller.clearCart();
@@ -771,7 +842,7 @@ class _PharmacyPlaceOrderScreenState extends State<PharmacyPlaceOrderScreen> {
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      'Fulfilling Pharmacy: ${cartItems.first.medicine.hospital!.name ?? "Hospital"} (${cartItems.first.medicine.hospital!.domain ?? ""})',
+                      'Fulfilling Pharmacy: ${cartItems.first.medicine.hospital!.name ?? "Hospital"}',
                       style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,

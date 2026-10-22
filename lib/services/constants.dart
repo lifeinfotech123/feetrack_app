@@ -251,13 +251,23 @@ class AppConstants {
   static const String pgCustomerBookings = 'v1/pg/customer/bookings';
   static String pgCustomerBookingDetails({required dynamic id}) =>
       'v1/pg/customer/bookings/$id';
+  static String pgCustomerBookingVerifyOtp({required dynamic id}) =>
+      'v1/pg/customer/bookings/$id/verify-otp';
   static String pgCustomerBookingPay({required dynamic id}) =>
       'v1/pg/customer/bookings/$id/pay';
+  static String pgCustomerBookingCancel({required dynamic id}) =>
+      'v1/pg/customer/bookings/$id/cancel';
+  static String pgCustomerBookingInvoice({required dynamic id}) =>
+      'v1/pg/customer/bookings/$id/invoice';
   static const String pgCustomerWallet = 'v1/pg/customer/wallet';
+  static const String pgCustomerWalletRecharge = 'v1/pg/customer/wallet/recharge';
   static const String pgCustomerProfile = 'v1/pg/customer/profile';
   static const String pgCustomerInvoices = 'v1/pg/customer/invoices';
   static String pgCustomerInvoiceDetail(dynamic id) =>
       'v1/pg/customer/invoices/$id';
+  static String pgCustomerInvoicePay(dynamic id) =>
+      'v1/pg/customer/invoice/$id/pay';
+  static const String pgCustomerPayment = 'v1/pg/customer/payment';
   static const String pgCustomerSubscriptions = 'v1/pg/customer/subscriptions';
   static String pgCustomerSubscriptionDetail(dynamic id) =>
       'v1/pg/customer/subscriptions/$id';
@@ -266,6 +276,11 @@ class AppConstants {
       'v1/pg/customer/attendance/punch-in';
   static const String pgCustomerAttendancePunchOut =
       'v1/pg/customer/attendance/punch-out';
+  static const String pgCustomerVisitsList = 'v1/pg/customer/visits';
+  static const String pgCustomerCreateVisit = 'v1/pg/customer/visit';
+  static const String pgCustomerSavedListings = 'v1/pg/customer/saved-listings';
+  static String pgCustomerSavedListingRemove(dynamic id) =>
+      'v1/pg/customer/saved-listings/$id';
 
   //* select plan
   static String getProfileDurations({required dynamic id}) =>
@@ -333,6 +348,19 @@ class AppConstants {
   static const String todayAttendanceUri = 'attendance/today';
   static const String attendanceHistoryUri = 'attendance';
 
+  //* Gym Attendance & Invoices
+  static const String gymAttendanceStatus = 'v1/gym/attendance/status';
+  static const String gymAttendancePunchIn = 'v1/gym/attendance/punch-in';
+  static const String gymAttendancePunchOut = 'v1/gym/attendance/punch-out';
+  static const String gymAttendanceHistory = 'v1/gym/attendance/history';
+  static const String gymInvoices = 'v1/gym/invoices';
+  static String gymInvoiceDetails(dynamic id) => 'v1/gym/invoices/$id';
+  static const String gymReviews = 'v1/gym/reviews';
+  static String gymReviewsByGymId({required dynamic gymId, int? page}) =>
+      page != null
+          ? 'v1/gym/reviews?gym_id=$gymId&page=$page'
+          : 'v1/gym/reviews?gym_id=$gymId';
+
   //* Hospital Module Endpoints
   // Websites & Categories
   static const String hospitalWebsitesUri = 'v1/categories/hospital/websites';
@@ -341,6 +369,7 @@ class AppConstants {
   // Doctors & Services
   static const String hospitalDoctorsUri = 'v1/hospital/doctors';
   static const String hospitalServicesUri = 'v1/hospital/services';
+  static const String hospitalDoctorSlotsUri = 'v1/hospital/slots';
 
   // Appointments & Payment
   static const String hospitalAppointmentsUri = 'v1/hospital/appointments';

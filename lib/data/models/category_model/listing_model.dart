@@ -174,11 +174,14 @@ class ListingModel {
                 : null),
         packages: json["packages"] == null
             ? []
-            : List<PackageModel>.from(
-                (json["packages"] as List).map((x) => PackageModel.fromJson(Map<String, dynamic>.from(x)))),
-        category: json["category"] == null
+            : (json["packages"] is List
+                ? List<PackageModel>.from((json["packages"] as List)
+                    .whereType<Map>()
+                    .map((x) => PackageModel.fromJson(Map<String, dynamic>.from(x))))
+                : []),
+        category: json["category"] == null || json["category"] is! Map
             ? null
-            : CategoryModel.fromJson(json["category"]),
+            : CategoryModel.fromJson(Map<String, dynamic>.from(json["category"] as Map)),
         about: (json["about"] ?? json["description"])?.toString(),
         image: (json["cover_image"] ??
                 json["image"] ??
@@ -187,8 +190,11 @@ class ListingModel {
             ?.toString(),
         images: json["images"] == null
             ? []
-            : List<ImageMode>.from(
-                (json["images"] as List).map((x) => ImageMode.fromJson(Map<String, dynamic>.from(x)))),
+            : (json["images"] is List
+                ? List<ImageMode>.from((json["images"] as List)
+                    .whereType<Map>()
+                    .map((x) => ImageMode.fromJson(Map<String, dynamic>.from(x))))
+                : []),
         landmark: json["landmark"]?.toString(),
         openingTime: (json["timings"]?["opening_time"] ?? json["opening_time"])?.toString(),
         closingTime: (json["timings"]?["closing_time"] ?? json["closing_time"])?.toString(),

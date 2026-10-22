@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:developer';
 import 'dart:math' hide log;
 
@@ -24,7 +25,10 @@ class HomeController extends GetxController implements GetxService {
   /// Calculates distance between two coordinates using the Haversine formula.
   /// Returns distance in kilometers.
   double _calculateDistance(
-    double lat1, double lon1, double lat2, double lon2,
+    double lat1,
+    double lon1,
+    double lat2,
+    double lon2,
   ) {
     const double earthRadiusKm = 6371.0;
     final double dLat = _degreesToRadians(lat2 - lat1);
@@ -58,7 +62,10 @@ class HomeController extends GetxController implements GetxService {
 
       if (listingLat != null && listingLng != null) {
         listing.calculatedDistanceKm = _calculateDistance(
-          userLat, userLng, listingLat, listingLng,
+          userLat,
+          userLng,
+          listingLat,
+          listingLng,
         );
       }
     }
@@ -131,6 +138,25 @@ class HomeController extends GetxController implements GetxService {
   List<GymCityModel> gymCityList = [];
   GymCityModel? selectedGymCity;
 
+  /// The gym-home UI must always render from the dedicated gym endpoint.
+  /// `listingModelList` is shared with the other service home screens and can
+  /// be replaced by their requests, so it is intentionally not used here.
+  List<ListingModel> get displayedGymList {
+    final city = selectedGymCity?.city.trim().toLowerCase();
+    if (city == null || city.isEmpty) return gymList;
+
+    return gymList.where((gym) {
+      final gymCity = gym.city?.trim().toLowerCase() ?? '';
+      final address = gym.address?.trim().toLowerCase() ?? '';
+      final fullAddress = gym.fullAddress?.trim().toLowerCase() ?? '';
+      final landmark = gym.landmark?.trim().toLowerCase() ?? '';
+      return gymCity == city ||
+          address.contains(city) ||
+          fullAddress.contains(city) ||
+          landmark.contains(city);
+    }).toList();
+  }
+
   bool isDanceLoading = false;
   List<ListingModel> danceList = [];
 
@@ -157,7 +183,8 @@ class HomeController extends GetxController implements GetxService {
         "search": search,
         "page": "1",
       };
-      final Response response = await homeRepo.fetchCategoriesListing(data: queryParameters);
+      final Response response =
+          await homeRepo.fetchCategoriesListing(data: queryParameters);
       if (response.body['status'] == "success") {
         searchResultList = (response.body['data']['data'] as List)
             .map((e) => ListingModel.fromJson(e))
@@ -170,7 +197,8 @@ class HomeController extends GetxController implements GetxService {
         responseModel = ResponseModel(true, "success");
       } else {
         searchResultList = [];
-        responseModel = ResponseModel(false, response.body['message'] ?? "Error");
+        responseModel =
+            ResponseModel(false, response.body['message'] ?? "Error");
       }
     } catch (e) {
       log('ERROR AT searchListings(): $e');
@@ -190,7 +218,9 @@ class HomeController extends GetxController implements GetxService {
   }) async {
     log('----------- fetchGyms (v1/gym/gyms) ----------');
     ResponseModel responseModel;
-    isLoading = true;
+    // Keep gym loading independent from the shared home loader.  `isLoading`
+    // is also used by categories/listings and can otherwise hide this screen's
+    // already-loaded gym data when another home request is in progress.
     isGymLoading = true;
     update();
 
@@ -207,18 +237,73 @@ class HomeController extends GetxController implements GetxService {
         query: queryParameters.isNotEmpty ? queryParameters : null,
       );
 
-      final body = response.body;
-      log("fetchGyms response: $body");
+      dynamic body = response.body;
+      if (body is String) {
+        try {
+          body = jsonDecode(body);
+        } catch (_) {}
+      }
+      log("fetchGyms response body type: ${body.runtimeType}");
+      log("fetchGyms response status: ${body?['status']} (type: ${body?['status']?.runtimeType})");
+      log("fetchGyms response data type: ${body?['data']?.runtimeType}");
+      if (body?['data'] is List) {
+        log("fetchGyms data is List, length: ${(body['data'] as List).length}");
+      } else if (body?['data'] is Map) {
+        log("fetchGyms data is Map, keys: ${(body['data'] as Map).keys.toList()}");
+      } else {
+        log("fetchGyms data is UNEXPECTED type or null: ${body?['data']}");
+      }
 
-      if (body != null && (body['status'] == true || body['status'] == "success")) {
+      if (body != null &&
+          (body['status'] == true ||
+              body['status'] == 'true' ||
+              body['status'] == "success")) {
+        log("fetchGyms: STATUS CHECK PASSED ✓");
         List items = [];
         if (body['data'] is List) {
           items = body['data'] as List;
         } else if (body['data'] is Map && body['data']['data'] is List) {
           items = body['data']['data'] as List;
         }
+        log("fetchGyms: items count after extraction: ${items.length}");
 
-        gymList = items.map((e) => ListingModel.fromJson(e)).toList();
+        gymList = items
+            .whereType<Map>()
+            .map((e) => ListingModel.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+        log("fetchGyms: gymList count after parsing: ${gymList.length}");
+        if (gymList.isNotEmpty) {
+          log("fetchGyms: First gym title: ${gymList.first.title}, id: ${gymList.first.id}");
+        }
+
+        // If location was passed but returned 0 gyms (outside radius), fallback to all gyms
+        if (gymList.isEmpty && (latitude != null || longitude != null)) {
+          log("No gyms returned with location filter, falling back to all gyms...");
+          final fallbackRes = await homeRepo.fetchGyms(query: null);
+          dynamic fbBody = fallbackRes.body;
+          if (fbBody is String) {
+            try {
+              fbBody = jsonDecode(fbBody);
+            } catch (_) {}
+          }
+          if (fbBody != null &&
+              (fbBody['status'] == true ||
+                  fbBody['status'] == 'true' ||
+                  fbBody['status'] == "success")) {
+            List fbItems = [];
+            if (fbBody['data'] is List) {
+              fbItems = fbBody['data'] as List;
+            } else if (fbBody['data'] is Map &&
+                fbBody['data']['data'] is List) {
+              fbItems = fbBody['data']['data'] as List;
+            }
+            gymList = fbItems
+                .whereType<Map>()
+                .map((e) => ListingModel.fromJson(Map<String, dynamic>.from(e)))
+                .toList();
+          }
+        }
+
         _calculateDistanceForListings(
           listings: gymList,
           userLat: latitude,
@@ -228,18 +313,20 @@ class HomeController extends GetxController implements GetxService {
         if (selectedGymCity != null) {
           filterGymsByCity(selectedGymCity);
         } else {
-          listingModelList = gymList;
+          listingModelList = List.from(gymList);
         }
+        log("fetchGyms: FINAL listingModelList count: ${listingModelList.length}");
+        log("fetchGyms: FINAL gymList count: ${gymList.length}");
         responseModel = ResponseModel(true, body['message'] ?? "success");
       } else {
-        responseModel = ResponseModel(false, body?['message'] ?? "Error fetching gyms");
+        responseModel =
+            ResponseModel(false, body?['message'] ?? "Error fetching gyms");
       }
     } catch (e) {
       log('ERROR AT fetchGyms(): $e');
       responseModel = ResponseModel(false, "Error: $e");
     }
 
-    isLoading = false;
     isGymLoading = false;
     update();
     return responseModel;
@@ -267,7 +354,8 @@ class HomeController extends GetxController implements GetxService {
         final Map<String, GymCityModel> cityMap = {};
         for (var item in items) {
           if (item is Map) {
-            final model = GymCityModel.fromJson(Map<String, dynamic>.from(item));
+            final model =
+                GymCityModel.fromJson(Map<String, dynamic>.from(item));
             final rawCity = model.city.trim();
             final key = rawCity.toLowerCase();
             if (key.isNotEmpty) {
@@ -292,8 +380,8 @@ class HomeController extends GetxController implements GetxService {
         responseModel = ResponseModel(true, body['message'] ?? "success");
       } else {
         gymCityList = [];
-        responseModel =
-            ResponseModel(false, body?['message'] ?? "Error fetching gym cities");
+        responseModel = ResponseModel(
+            false, body?['message'] ?? "Error fetching gym cities");
       }
     } catch (e) {
       log('ERROR AT fetchGymCities(): $e');
@@ -339,10 +427,12 @@ class HomeController extends GetxController implements GetxService {
       final body = response.body;
       log('fetchGymDetails response: $body');
 
-      if (body != null && (body['status'] == true || body['status'] == "success")) {
-        final Map<String, dynamic> gymData = body['data'] is Map<String, dynamic>
-            ? body['data'] as Map<String, dynamic>
-            : Map<String, dynamic>.from(body['data']);
+      if (body != null &&
+          (body['status'] == true || body['status'] == "success")) {
+        final Map<String, dynamic> gymData =
+            body['data'] is Map<String, dynamic>
+                ? body['data'] as Map<String, dynamic>
+                : Map<String, dynamic>.from(body['data']);
 
         selectListingModel = ListingModel.fromJson(gymData);
 
@@ -385,7 +475,8 @@ class HomeController extends GetxController implements GetxService {
       final body = response.body;
       log('fetchPgDetails response: $body');
 
-      if (body != null && (body['status'] == true || body['status'] == "success")) {
+      if (body != null &&
+          (body['status'] == true || body['status'] == "success")) {
         final Map<String, dynamic> pgData = body['data'] is Map<String, dynamic>
             ? body['data'] as Map<String, dynamic>
             : Map<String, dynamic>.from(body['data']);
@@ -437,7 +528,8 @@ class HomeController extends GetxController implements GetxService {
           .join('&');
       log("FULL URL HIT (Dance): ${AppConstants.baseUrl}${AppConstants.getListing}?$queryString");
 
-      final Response response = await homeRepo.fetchCategoriesListing(data: queryParameters);
+      final Response response =
+          await homeRepo.fetchCategoriesListing(data: queryParameters);
       if (response.body['status'] == "success") {
         danceList = (response.body['data']['data'] as List)
             .map((e) => ListingModel.fromJson(e))
@@ -447,9 +539,11 @@ class HomeController extends GetxController implements GetxService {
           userLat: latitude,
           userLng: longitude,
         );
-        responseModel = ResponseModel(true, response.body['message'] ?? "success");
+        responseModel =
+            ResponseModel(true, response.body['message'] ?? "success");
       } else {
-        responseModel = ResponseModel(false, response.body['message'] ?? "error");
+        responseModel =
+            ResponseModel(false, response.body['message'] ?? "error");
       }
     } catch (e) {
       responseModel = ResponseModel(false, "error $e");
@@ -472,11 +566,14 @@ class HomeController extends GetxController implements GetxService {
 
     try {
       final String targetCatId = categoryId ??
-          categoryModelList.firstWhereOrNull((c) =>
-              (c.name ?? '').toLowerCase().contains('room') ||
-              (c.name ?? '').toLowerCase().contains('pg') ||
-              (c.name ?? '').toLowerCase().contains('hostel') ||
-              (c.slug ?? '').toLowerCase().contains('room'))?.id?.toString() ??
+          categoryModelList
+              .firstWhereOrNull((c) =>
+                  (c.name ?? '').toLowerCase().contains('room') ||
+                  (c.name ?? '').toLowerCase().contains('pg') ||
+                  (c.name ?? '').toLowerCase().contains('hostel') ||
+                  (c.slug ?? '').toLowerCase().contains('room'))
+              ?.id
+              ?.toString() ??
           "12";
 
       final Map<String, dynamic> queryParameters = {
@@ -492,7 +589,8 @@ class HomeController extends GetxController implements GetxService {
           .join('&');
       log("FULL URL HIT (PG): ${AppConstants.baseUrl}${AppConstants.getListing}?$queryString");
 
-      final Response response = await homeRepo.fetchCategoriesListing(data: queryParameters);
+      final Response response =
+          await homeRepo.fetchCategoriesListing(data: queryParameters);
 
       if (response.body['status'] == "success") {
         pgHostelList = (response.body['data']['data'] as List)
@@ -514,7 +612,8 @@ class HomeController extends GetxController implements GetxService {
       }
     } catch (e) {
       log('ERROR AT fetchPgHostelListing(): $e');
-      responseModel = ResponseModel(false, "Error while fetchPgHostelListing $e");
+      responseModel =
+          ResponseModel(false, "Error while fetchPgHostelListing $e");
     }
 
     isPgHostelLoading = false;
@@ -559,7 +658,8 @@ class HomeController extends GetxController implements GetxService {
       String queryString = queryParameters.entries
           .map((e) => '${e.key}=${Uri.encodeComponent(e.value.toString())}')
           .join('&');
-      String fullUrl = "${AppConstants.baseUrl}${AppConstants.getListing}?$queryString";
+      String fullUrl =
+          "${AppConstants.baseUrl}${AppConstants.getListing}?$queryString";
       log("FULL URL HIT: $fullUrl");
 
       final Response response =

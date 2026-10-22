@@ -45,7 +45,7 @@ class GymHomeScreenGymWight extends StatelessWidget {
                 CustomImage(
                   path: (listingModel.images?.isNotEmpty ?? false)
                       ? listingModel.images!.first.imagePath ??
-                      Assets.imagesGymBanner
+                          Assets.imagesGymBanner
                       : Assets.imagesGymBanner,
                   width: double.infinity,
                   height: 190,
@@ -174,8 +174,8 @@ class GymHomeScreenGymWight extends StatelessWidget {
                           color: const Color(0xffE8F5E9),
                           borderRadius: BorderRadius.circular(30),
                         ),
-                        child: Row(
-                          children: const [
+                        child: const Row(
+                          children: [
                             Icon(
                               Icons.verified,
                               size: 16,
@@ -193,9 +193,7 @@ class GymHomeScreenGymWight extends StatelessWidget {
                           ],
                         ),
                       ),
-
                       const Spacer(),
-
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [

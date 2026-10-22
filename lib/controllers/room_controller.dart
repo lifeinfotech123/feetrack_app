@@ -54,6 +54,22 @@ class RoomController extends GetxController implements GetxService {
   bool isCustomerSubscriptionDetailLoading = false;
   PgCustomerSubscriptionItem? selectedCustomerSubscription;
 
+  // ── Saved Listings (Favorites) State ─────────────────────────────
+  bool isSavedListingsLoading = false;
+  List<PgSavedListingItem> savedListingsList = [];
+  bool isRemovingSavedListing = false;
+
+  // ── Customer Payments State ──────────────────────────────────────
+  bool isCustomerPaymentsLoading = false;
+  List<PgPaymentItem> customerPaymentsList = [];
+
+  // ── Action Loading States ─────────────────────────────────────────
+  bool isVerifyingOtp = false;
+  bool isCancellingBooking = false;
+  bool isRechargingWallet = false;
+  bool isUpdatingProfile = false;
+  bool isPayingInvoice = false;
+
   // ── Customer Attendance State ────────────────────────────────────
   bool isCustomerAttendanceLoading = false;
   bool isAttendancePunching = false;
@@ -1229,6 +1245,270 @@ class RoomController extends GetxController implements GetxService {
     } finally {
       isAttendancePunching = false;
       update();
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // CUSTOMER SAVED LISTINGS / FAVORITES (/api/v1/pg/customer/saved-listings)
+  // ══════════════════════════════════════════════════════════════════
+
+  /// Fetch Saved Listings
+  Future<void> fetchPgSavedListings() async {
+    log("RoomController: fetchPgSavedListings called");
+    isSavedListingsLoading = true;
+    update();
+
+    try {
+      final Response response = await roomRepo.fetchPgSavedListings();
+      log("fetchPgSavedListings status: ${response.statusCode}");
+      if (response.statusCode == 200 && response.body != null) {
+        final data = response.body['data'];
+        List list = [];
+        if (data is Map && data['saved_listings'] is List) {
+          list = data['saved_listings'];
+        } else if (data is List) {
+          list = data;
+        }
+        savedListingsList = list
+            .whereType<Map>()
+            .map((e) =>
+                PgSavedListingItem.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+      }
+    } catch (e) {
+      log("ERROR in fetchPgSavedListings: $e");
+    } finally {
+      isSavedListingsLoading = false;
+      update();
+    }
+  }
+
+  /// Remove Saved Listing (/api/v1/pg/customer/saved-listings/{id})
+  Future<ResponseModel> removePgSavedListing(String favoriteId) async {
+    isRemovingSavedListing = true;
+    update();
+
+    try {
+      final Response response = await roomRepo.removePgSavedListing(favoriteId);
+      if (response.statusCode == 200 && response.body != null) {
+        final isSuccess = response.body['status'] == true;
+        final msg = response.body['message'] ??
+            "Listing removed from saved listings.";
+        savedListingsList.removeWhere((item) =>
+            item.favoriteId == favoriteId || item.listingId == favoriteId);
+        update();
+        return ResponseModel(isSuccess, msg);
+      } else {
+        return ResponseModel(false,
+            response.body?['message'] ?? "Failed to remove saved listing.");
+      }
+    } catch (e) {
+      return ResponseModel(false, "Error removing: $e");
+    } finally {
+      isRemovingSavedListing = false;
+      update();
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // CUSTOMER PAYMENT TRANSACTIONS (/api/v1/pg/customer/payment)
+  // ══════════════════════════════════════════════════════════════════
+
+  Future<void> fetchPgCustomerPayments() async {
+    log("RoomController: fetchPgCustomerPayments called");
+    isCustomerPaymentsLoading = true;
+    update();
+
+    try {
+      final Response response = await roomRepo.fetchPgCustomerPayments();
+      log("fetchPgCustomerPayments status: ${response.statusCode}");
+      if (response.statusCode == 200 && response.body != null) {
+        final data = response.body['data'];
+        List list = [];
+        if (data is Map && data['payments'] is List) {
+          list = data['payments'];
+        } else if (data is List) {
+          list = data;
+        }
+        customerPaymentsList = list
+            .whereType<Map>()
+            .map((e) => PgPaymentItem.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+      }
+    } catch (e) {
+      log("ERROR in fetchPgCustomerPayments: $e");
+    } finally {
+      isCustomerPaymentsLoading = false;
+      update();
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // BOOKING ACTIONS (VERIFY OTP, CANCEL)
+  // ══════════════════════════════════════════════════════════════════
+
+  /// Verify Check-in OTP (/api/v1/pg/customer/bookings/{id}/verify-otp)
+  Future<ResponseModel> verifyPgBookingOtp({
+    required String bookingId,
+    required String otp,
+  }) async {
+    isVerifyingOtp = true;
+    update();
+
+    try {
+      final Response response =
+          await roomRepo.verifyPgBookingOtp(bookingId, otp);
+      log("verifyPgBookingOtp status: ${response.statusCode}, body: ${response.body}");
+      if (response.statusCode == 200 && response.body != null) {
+        final isSuccess = response.body['status'] == true;
+        final msg = response.body['message'] ??
+            "Check-in OTP verified successfully. Booking is now Confirmed.";
+        // Refresh bookings and dashboard
+        await fetchPgCustomerBookings();
+        await fetchPgCustomerDashboard();
+        return ResponseModel(isSuccess, msg);
+      } else {
+        return ResponseModel(
+            false, response.body?['message'] ?? "Failed to verify OTP.");
+      }
+    } catch (e) {
+      return ResponseModel(false, "OTP verification error: $e");
+    } finally {
+      isVerifyingOtp = false;
+      update();
+    }
+  }
+
+  /// Cancel PG Booking (/api/v1/pg/customer/bookings/{id}/cancel)
+  Future<ResponseModel> cancelPgBooking(String bookingId) async {
+    isCancellingBooking = true;
+    update();
+
+    try {
+      final Response response = await roomRepo.cancelPgBooking(bookingId);
+      log("cancelPgBooking status: ${response.statusCode}, body: ${response.body}");
+      if (response.statusCode == 200 && response.body != null) {
+        final isSuccess = response.body['status'] == true;
+        final msg = response.body['message'] ?? "Booking has been cancelled.";
+        await fetchPgCustomerBookings();
+        await fetchPgCustomerDashboard();
+        return ResponseModel(isSuccess, msg);
+      } else {
+        return ResponseModel(
+            false, response.body?['message'] ?? "Failed to cancel booking.");
+      }
+    } catch (e) {
+      return ResponseModel(false, "Cancellation error: $e");
+    } finally {
+      isCancellingBooking = false;
+      update();
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // INVOICE PAYMENT & WALLET RECHARGE
+  // ══════════════════════════════════════════════════════════════════
+
+  /// Pay PG Customer Invoice (/api/v1/pg/customer/invoice/{id}/pay)
+  Future<ResponseModel> payPgCustomerInvoice(String invoiceId) async {
+    isPayingInvoice = true;
+    update();
+
+    try {
+      final Response response = await roomRepo.payPgCustomerInvoice(invoiceId);
+      log("payPgCustomerInvoice status: ${response.statusCode}, body: ${response.body}");
+      if (response.statusCode == 200 && response.body != null) {
+        final isSuccess = response.body['status'] == true;
+        final msg = response.body['message'] ??
+            "Payment completed successfully. Booking confirmed.";
+        await fetchPgCustomerInvoices();
+        await fetchPgCustomerDashboard();
+        return ResponseModel(isSuccess, msg);
+      } else {
+        return ResponseModel(
+            false, response.body?['message'] ?? "Payment failed.");
+      }
+    } catch (e) {
+      return ResponseModel(false, "Payment error: $e");
+    } finally {
+      isPayingInvoice = false;
+      update();
+    }
+  }
+
+  /// Recharge PG Customer Wallet (/api/v1/pg/customer/wallet/recharge)
+  Future<ResponseModel> rechargePgCustomerWallet(num amount) async {
+    isRechargingWallet = true;
+    update();
+
+    try {
+      final Response response =
+          await roomRepo.rechargePgCustomerWallet(amount);
+      log("rechargePgCustomerWallet status: ${response.statusCode}, body: ${response.body}");
+      if (response.statusCode == 200 && response.body != null) {
+        final isSuccess = response.body['status'] == true;
+        final msg = response.body['message'] ??
+            "Recharge order generated successfully.";
+        await fetchPgCustomerWallet();
+        await fetchPgCustomerDashboard();
+        return ResponseModel(isSuccess, msg, response.body['data']);
+      } else {
+        return ResponseModel(
+            false, response.body?['message'] ?? "Recharge failed.");
+      }
+    } catch (e) {
+      return ResponseModel(false, "Recharge error: $e");
+    } finally {
+      isRechargingWallet = false;
+      update();
+    }
+  }
+
+  /// Update PG Customer Profile (/api/v1/pg/customer/profile)
+  Future<ResponseModel> updatePgCustomerProfile(
+      Map<String, dynamic> data) async {
+    isUpdatingProfile = true;
+    update();
+
+    try {
+      final Response response = await roomRepo.updatePgCustomerProfile(data);
+      log("updatePgCustomerProfile status: ${response.statusCode}, body: ${response.body}");
+      if (response.statusCode == 200 && response.body != null) {
+        final isSuccess = response.body['status'] == true;
+        final msg = response.body['message'] ??
+            "Customer profile updated successfully.";
+        await fetchPgCustomerProfile();
+        await fetchPgCustomerDashboard();
+        return ResponseModel(isSuccess, msg);
+      } else {
+        return ResponseModel(
+            false, response.body?['message'] ?? "Profile update failed.");
+      }
+    } catch (e) {
+      return ResponseModel(false, "Profile update error: $e");
+    } finally {
+      isUpdatingProfile = false;
+      update();
+    }
+  }
+
+  /// Cancel PG Customer Visit (/api/v1/pg/customer/visits/{id}/cancel)
+  Future<ResponseModel> cancelPgCustomerVisit(String visitId) async {
+    try {
+      final Response response = await roomRepo.cancelPgCustomerVisit(visitId);
+      log("cancelPgCustomerVisit status: ${response.statusCode}, body: ${response.body}");
+      if (response.statusCode == 200 && response.body != null) {
+        final isSuccess = response.body['status'] == true;
+        final msg =
+            response.body['message'] ?? "Visit request has been cancelled.";
+        await fetchPgCustomerDashboard();
+        return ResponseModel(isSuccess, msg);
+      } else {
+        return ResponseModel(
+            false, response.body?['message'] ?? "Failed to cancel visit.");
+      }
+    } catch (e) {
+      return ResponseModel(false, "Cancel visit error: $e");
     }
   }
 }

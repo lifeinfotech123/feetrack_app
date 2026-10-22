@@ -45,24 +45,24 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
     super.initState();
     _doctorData = widget.doctorData ?? widget.doctorModel?.rawJson;
     final id = widget.doctorId ?? _doctorData?['id'] ?? widget.doctorModel?.id;
-    if (_doctorData == null && id != null) {
-      _loadDoctorDetails(id);
-    }
+    if (id != null) _loadDoctorDetails(id);
   }
 
   Future<void> _loadDoctorDetails(dynamic id) async {
-    setState(() => _isLoading = true);
+    if (_doctorData == null) setState(() => _isLoading = true);
     try {
       final repo = Get.isRegistered<DoctorRepo>()
           ? Get.find<DoctorRepo>()
           : Get.put(DoctorRepo());
       final res = await repo.fetchDoctorById(id);
       if (mounted && res['status'] == true && res['data'] is Map) {
+        final details = Map<String, dynamic>.from(res['data']);
         setState(() {
-          _doctorData = Map<String, dynamic>.from(res['data']);
+          _doctorData = {...?_doctorData, ...details};
         });
       }
-    } catch (_) {} finally {
+    } catch (_) {
+    } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -111,10 +111,15 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
         (rawExp != null && rawExp.isNotEmpty) ? rawExp : "12 Years";
 
     final displayGender = data?['gender']?.toString() ?? 'Male';
+    final displayAddress = data?['address']?.toString().trim() ?? '';
 
     final displayPhoto = DoctorModel.resolveDoctorPhoto(
-      photo: data?['photo'] ?? data?['image'] ?? data?['profile_photo'] ?? widget.doctorModel?.photo,
-      domain: data?['hospital']?['domain']?.toString() ?? widget.doctorModel?.hospital?.domain,
+      photo: data?['photo'] ??
+          data?['image'] ??
+          data?['profile_photo'] ??
+          widget.doctorModel?.photo,
+      domain: data?['hospital']?['domain']?.toString() ??
+          widget.doctorModel?.hospital?.domain,
       gender: displayGender,
     );
     final displayPhone = data?['phone']?.toString() ?? '';
@@ -256,7 +261,8 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
                                     width: double.infinity,
                                     fit: BoxFit.cover,
                                     errorBuilder: (_, __, ___) => Image.network(
-                                      DoctorModel.resolveDoctorPhoto(photo: null, gender: displayGender),
+                                      DoctorModel.resolveDoctorPhoto(
+                                          photo: null, gender: displayGender),
                                       height: 180,
                                       width: double.infinity,
                                       fit: BoxFit.cover,
@@ -264,7 +270,8 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
                                         height: 180,
                                         decoration: BoxDecoration(
                                           color: Colors.blue.shade100,
-                                          borderRadius: BorderRadius.circular(16),
+                                          borderRadius:
+                                              BorderRadius.circular(16),
                                         ),
                                         child: const Icon(
                                           Icons.person,
@@ -356,6 +363,21 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
                           ],
                         ),
                       ),
+                      if (displayAddress.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        _buildSectionCard(
+                          title: 'Doctor Address',
+                          icon: Icons.location_on_outlined,
+                          child: Text(
+                            displayAddress,
+                            style: const TextStyle(
+                              color: Color(0xFF64748B),
+                              fontSize: 13,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 16),
 
                       // Schedule & Availability Card

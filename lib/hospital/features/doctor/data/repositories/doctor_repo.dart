@@ -129,4 +129,20 @@ class DoctorRepo {
   Future<Map<String, dynamic>> fetchDoctorById(dynamic id) async {
     return _get('${AppConstants.hospitalDoctorsUri}/$id');
   }
+
+  /// Fetches date-specific, currently available slots for a doctor.
+  Future<Map<String, dynamic>> fetchDoctorSlots({
+    required dynamic doctorId,
+    required String hospital,
+    required String date,
+  }) async {
+    return _get(
+      AppConstants.hospitalDoctorSlotsUri,
+      query: {
+        'doctor_id': doctorId.toString(),
+        'hospital': hospital,
+        'date': date,
+      },
+    );
+  }
 }

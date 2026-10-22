@@ -24,16 +24,19 @@ class _GymHomeScreenState extends State<GymHomeScreen> {
     final homeController = Get.find<HomeController>();
     final permissionController = Get.find<PermissionController>();
 
-    await permissionController.requestLocationPermissionAndFetch(context);
-
     Get.find<CommonController>().fetchBanner();
-    homeController.fetchBannerCategoriesListingById();
     homeController.fetchGymCities();
 
-    await homeController.fetchGyms(
-      latitude: permissionController.latitude,
-      longitude: permissionController.longitude,
-    );
+    // The gym directory endpoint is a public, unfiltered list. Keep this
+    // request identical to `GET /v1/gym/gyms` so guests see every gym the API
+    // returns, even when location permission is denied or unavailable.
+    await homeController.fetchGyms();
+
+    // Fetching location is optional for this public directory; it must never
+    // replace the already-rendered guest list with a location-filtered result.
+    if (mounted) {
+      permissionController.requestLocationPermissionAndFetch(context);
+    }
   }
 
   @override
@@ -56,7 +59,7 @@ class _GymHomeScreenState extends State<GymHomeScreen> {
       ),
       body: GetBuilder<HomeController>(
         builder: (homeController) {
-          if (homeController.isLoading) {
+          if (homeController.isGymLoading && homeController.gymList.isEmpty) {
             return const Center(
               child: CircularProgressIndicator(),
             );

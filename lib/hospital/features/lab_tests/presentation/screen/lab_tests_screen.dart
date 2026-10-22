@@ -56,7 +56,9 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
         });
       } else if (controller.diagnosticLabs.isEmpty) {
         controller.fetchLabListing().then((_) {
-          if (mounted && _selectedLab == null && controller.diagnosticLabs.isNotEmpty) {
+          if (mounted &&
+              _selectedLab == null &&
+              controller.diagnosticLabs.isNotEmpty) {
             setState(() {
               _selectedLab = controller.diagnosticLabs.first;
             });
@@ -79,14 +81,19 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
     super.dispose();
   }
 
+  Map<String, dynamic>? _bookingHospitalData(LabBookingResponse booking) {
+    final hospital = booking.hospital ?? _selectedLab?.hospital;
+    return hospital == null ? null : {'hospital': hospital.toJson()};
+  }
+
   void _handlePaymentSuccess(PaymentSuccessResponse response) async {
-    debugPrint('Payment Success: ${response.paymentId}, orderId: ${response.orderId}');
+    debugPrint(
+        'Payment Success: ${response.paymentId}, orderId: ${response.orderId}');
     if (_activeBooking == null) return;
 
     final booking = _activeBooking!;
-    final hospDomain = booking.hospital?.domain ??
-        _selectedLab?.hospital?.domain ??
-        'usha';
+    final hospDomain =
+        booking.hospital?.domain ?? _selectedLab?.hospital?.domain ?? 'usha';
 
     try {
       await controller.verifyPayment(
@@ -106,11 +113,14 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => BookingSuccsessScreen(
-          bookingId: booking.bookingNo ?? 'LAB-${DateTime.now().millisecondsSinceEpoch}',
+          bookingId: booking.bookingNo ??
+              'LAB-${DateTime.now().millisecondsSinceEpoch}',
           title: booking.testName ?? 'Lab Test',
-          doctorName: '${booking.labName ?? _selectedLab?.labName ?? "Diagnostic Lab"} (Paid Online)',
+          doctorName:
+              '${booking.labName ?? _selectedLab?.labName ?? "Diagnostic Lab"} (Paid Online)',
           amount: '₹${booking.netAmount ?? _defaultTestPrice}',
           date: booking.bookingDate ?? DateTime.now().toString().split(' ')[0],
+          bookingData: _bookingHospitalData(booking),
         ),
       ),
     );
@@ -121,7 +131,7 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
     Get.snackbar(
       'Payment Failed',
       response.message ?? 'Payment transaction was not completed.',
-      snackPosition: SnackPosition.BOTTOM,
+      snackPosition: SnackPosition.TOP,
       backgroundColor: errorColor,
       colorText: colorWhite,
     );
@@ -137,7 +147,8 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
 
     final options = {
       'key': rzp.key ?? 'rzp_test_TWIAoYszpcVthe',
-      'amount': rzp.amount ?? (((bookingRes.netAmount ?? _defaultTestPrice)) * 100).toInt(),
+      'amount': rzp.amount ??
+          (((bookingRes.netAmount ?? _defaultTestPrice)) * 100).toInt(),
       'name': rzp.name ?? _selectedLab?.labName ?? 'Hospital Diagnostic Lab',
       'description': rzp.description ??
           'Lab Test: ${bookingRes.testName ?? "Test"} (${bookingRes.bookingNo ?? ""})',
@@ -209,11 +220,13 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
                     doctorName: bookingRes.labName ?? 'Diagnostic Lab',
                     amount: '₹${bookingRes.netAmount ?? _defaultTestPrice}',
                     date: bookingRes.bookingDate,
+                    bookingData: _bookingHospitalData(bookingRes),
                   ),
                 ),
               );
             },
-            child: const Text('Pay Later / Skip', style: TextStyle(color: textMuted)),
+            child: const Text('Pay Later / Skip',
+                style: TextStyle(color: textMuted)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -226,14 +239,16 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
               ));
             },
             style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
-            child: const Text('SIMULATE SUCCESS', style: TextStyle(color: colorWhite)),
+            child: const Text('SIMULATE SUCCESS',
+                style: TextStyle(color: colorWhite)),
           ),
         ],
       ),
     );
   }
 
-  void _showBookingBottomSheet({required String selectedTestName, required num testPrice}) {
+  void _openBookingScreen(
+      {required String selectedTestName, required num testPrice}) {
     final activeLab = _selectedLab ??
         (controller.diagnosticLabs.isNotEmpty
             ? controller.diagnosticLabs.first
@@ -243,7 +258,7 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
       Get.snackbar(
         'Select Lab',
         'Please select a diagnostic lab before booking',
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
         backgroundColor: warningColor,
         colorText: colorWhite,
       );
@@ -272,455 +287,557 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
     DateTime bookingDate = DateTime.now();
     String paymentMode = 'Cash'; // Default: Cash or Online
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Container(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-                top: 20,
-                left: 20,
-                right: 20,
-              ),
-              decoration: const BoxDecoration(
-                color: colorWhite,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Sheet Header
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Book Lab Test',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: textDark,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              activeLab.labName,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: primaryColor,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close_rounded, color: textMuted),
-                          onPressed: () => Navigator.pop(ctx),
-                        ),
-                      ],
-                    ),
-                    const Divider(height: 20),
-
-                    // Test Name Field
-                    const Text('Diagnostic Test to Book',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textDark)),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: testNameController,
-                      decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.biotech_rounded, color: primaryColor, size: 22),
-                        suffixText: '₹$testPrice',
-                        suffixStyle: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: primaryColor,
-                          fontSize: 15,
-                        ),
-                        hintText: 'Enter test name (e.g. Blood Test, CBC)',
-                        filled: true,
-                        fillColor: backgroundColor,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Patient Name
-                    const Text('Patient Name',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textDark)),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: nameController,
-                      decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.person_outline, color: primaryColor, size: 20),
-                        hintText: 'Enter full name',
-                        filled: true,
-                        fillColor: backgroundColor,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Phone Number
-                    const Text('Phone Number',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textDark)),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: phoneController,
-                      keyboardType: TextInputType.phone,
-                      decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.phone_outlined, color: primaryColor, size: 20),
-                        hintText: '10-digit mobile number',
-                        filled: true,
-                        fillColor: backgroundColor,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Address
-                    const Text('Sample Collection Address',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textDark)),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: addressController,
-                      maxLines: 2,
-                      decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.location_on_outlined, color: primaryColor, size: 20),
-                        hintText: 'Complete street address, city, pincode',
-                        filled: true,
-                        fillColor: backgroundColor,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Collection Type: Home vs Lab Center
-                    const Text('Sample Collection Type',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textDark)),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: InkWell(
-                            onTap: () => setModalState(() => collectionType = 'Home'),
-                            borderRadius: BorderRadius.circular(10),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              decoration: BoxDecoration(
-                                color: collectionType == 'Home' ? primaryColor : backgroundColor,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: collectionType == 'Home' ? primaryColor : borderGrey,
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (ctx) => Scaffold(
+          backgroundColor: colorWhite,
+          body: SafeArea(
+            child: StatefulBuilder(
+              builder: (context, setModalState) {
+                return SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(
+                    20,
+                    20,
+                    20,
+                    MediaQuery.of(context).viewInsets.bottom + 20,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Sheet Header
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Book Lab Test',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: textDark,
                                 ),
                               ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.home_rounded,
-                                    size: 16,
-                                    color: collectionType == 'Home' ? colorWhite : textDark,
+                              const SizedBox(height: 2),
+                              Text(
+                                activeLab.labName,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: primaryColor,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded,
+                                color: textMuted),
+                            onPressed: () => Navigator.pop(ctx),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 20),
+
+                      // Test Name Field
+                      const Text('Diagnostic Test to Book',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: textDark)),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: testNameController,
+                        decoration: InputDecoration(
+                          prefixIcon: const Icon(Icons.biotech_rounded,
+                              color: primaryColor, size: 22),
+                          suffixText: '₹$testPrice',
+                          suffixStyle: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: primaryColor,
+                            fontSize: 15,
+                          ),
+                          hintText: 'Enter test name (e.g. Blood Test, CBC)',
+                          filled: true,
+                          fillColor: backgroundColor,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide.none),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Patient Name
+                      const Text('Patient Name',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: textDark)),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: nameController,
+                        decoration: InputDecoration(
+                          prefixIcon: const Icon(Icons.person_outline,
+                              color: primaryColor, size: 20),
+                          hintText: 'Enter full name',
+                          filled: true,
+                          fillColor: backgroundColor,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide.none),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Phone Number
+                      const Text('Phone Number',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: textDark)),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: phoneController,
+                        keyboardType: TextInputType.phone,
+                        decoration: InputDecoration(
+                          prefixIcon: const Icon(Icons.phone_outlined,
+                              color: primaryColor, size: 20),
+                          hintText: '10-digit mobile number',
+                          filled: true,
+                          fillColor: backgroundColor,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide.none),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Address
+                      const Text('Sample Collection Address',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: textDark)),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: addressController,
+                        maxLines: 2,
+                        decoration: InputDecoration(
+                          prefixIcon: const Icon(Icons.location_on_outlined,
+                              color: primaryColor, size: 20),
+                          hintText: 'Complete street address, city, pincode',
+                          filled: true,
+                          fillColor: backgroundColor,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide.none),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Collection Type: Home vs Lab Center
+                      const Text('Sample Collection Type',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: textDark)),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              onTap: () =>
+                                  setModalState(() => collectionType = 'Home'),
+                              borderRadius: BorderRadius.circular(10),
+                              child: Container(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: collectionType == 'Home'
+                                      ? primaryColor
+                                      : backgroundColor,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: collectionType == 'Home'
+                                        ? primaryColor
+                                        : borderGrey,
                                   ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'Home Pickup',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                      color: collectionType == 'Home' ? colorWhite : textDark,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.home_rounded,
+                                      size: 16,
+                                      color: collectionType == 'Home'
+                                          ? colorWhite
+                                          : textDark,
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Home Pickup',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                        color: collectionType == 'Home'
+                                            ? colorWhite
+                                            : textDark,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: InkWell(
-                            onTap: () => setModalState(() => collectionType = 'Center'),
-                            borderRadius: BorderRadius.circular(10),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              decoration: BoxDecoration(
-                                color: collectionType == 'Center' ? primaryColor : backgroundColor,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: collectionType == 'Center' ? primaryColor : borderGrey,
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: InkWell(
+                              onTap: () => setModalState(
+                                  () => collectionType = 'Center'),
+                              borderRadius: BorderRadius.circular(10),
+                              child: Container(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: collectionType == 'Center'
+                                      ? primaryColor
+                                      : backgroundColor,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: collectionType == 'Center'
+                                        ? primaryColor
+                                        : borderGrey,
+                                  ),
                                 ),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.store_mall_directory_rounded,
-                                    size: 16,
-                                    color: collectionType == 'Center' ? colorWhite : textDark,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'Lab Visit',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                      color: collectionType == 'Center' ? colorWhite : textDark,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.store_mall_directory_rounded,
+                                      size: 16,
+                                      color: collectionType == 'Center'
+                                          ? colorWhite
+                                          : textDark,
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Lab Visit',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                        color: collectionType == 'Center'
+                                            ? colorWhite
+                                            : textDark,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
 
-                    // Date Selection
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Booking Date',
-                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textDark)),
-                            const SizedBox(height: 2),
-                            Text(
-                              bookingDate.toString().split(' ')[0],
-                              style: const TextStyle(fontSize: 13, color: primaryColor, fontWeight: FontWeight.bold),
-                            ),
-                          ],
+                      // Date Selection
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Booking Date',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: textDark)),
+                              const SizedBox(height: 2),
+                              Text(
+                                bookingDate.toString().split(' ')[0],
+                                style: const TextStyle(
+                                    fontSize: 13,
+                                    color: primaryColor,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                          TextButton.icon(
+                            onPressed: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: bookingDate,
+                                firstDate: DateTime.now(),
+                                lastDate: DateTime.now()
+                                    .add(const Duration(days: 30)),
+                              );
+                              if (picked != null) {
+                                setModalState(() => bookingDate = picked);
+                              }
+                            },
+                            icon: const Icon(Icons.calendar_today_rounded,
+                                size: 16, color: primaryColor),
+                            label: const Text('Change Date',
+                                style: TextStyle(color: primaryColor)),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 20),
+
+                      // Payment Mode (Cash vs Online)
+                      const Text('Choose Payment Option',
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: textDark)),
+                      const SizedBox(height: 8),
+
+                      // Cash Option
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        decoration: BoxDecoration(
+                          color: paymentMode == 'Cash'
+                              ? fillColor
+                              : backgroundColor,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: paymentMode == 'Cash'
+                                ? primaryColor
+                                : borderGrey,
+                            width: paymentMode == 'Cash' ? 1.5 : 1,
+                          ),
                         ),
-                        TextButton.icon(
-                          onPressed: () async {
-                            final picked = await showDatePicker(
-                              context: context,
-                              initialDate: bookingDate,
-                              firstDate: DateTime.now(),
-                              lastDate: DateTime.now().add(const Duration(days: 30)),
-                            );
-                            if (picked != null) {
-                              setModalState(() => bookingDate = picked);
-                            }
+                        child: RadioListTile<String>(
+                          value: 'Cash',
+                          groupValue: paymentMode,
+                          activeColor: primaryColor,
+                          title: const Text(
+                            'Cash on Sample Collection',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                          subtitle: const Text(
+                            'Pay cash directly when sample is collected or at the lab center',
+                            style: TextStyle(fontSize: 11, color: textMuted),
+                          ),
+                          secondary: const Icon(Icons.payments_outlined,
+                              color: successColor),
+                          onChanged: (val) {
+                            if (val != null)
+                              setModalState(() => paymentMode = val);
                           },
-                          icon: const Icon(Icons.calendar_today_rounded, size: 16, color: primaryColor),
-                          label: const Text('Change Date', style: TextStyle(color: primaryColor)),
-                        ),
-                      ],
-                    ),
-                    const Divider(height: 20),
-
-                    // Payment Mode (Cash vs Online)
-                    const Text('Choose Payment Option',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textDark)),
-                    const SizedBox(height: 8),
-
-                    // Cash Option
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      decoration: BoxDecoration(
-                        color: paymentMode == 'Cash' ? fillColor : backgroundColor,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: paymentMode == 'Cash' ? primaryColor : borderGrey,
-                          width: paymentMode == 'Cash' ? 1.5 : 1,
                         ),
                       ),
-                      child: RadioListTile<String>(
-                        value: 'Cash',
-                        groupValue: paymentMode,
-                        activeColor: primaryColor,
-                        title: const Text(
-                          'Cash on Sample Collection',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+
+                      // Online Option
+                      Container(
+                        decoration: BoxDecoration(
+                          color: paymentMode == 'Online'
+                              ? fillColor
+                              : backgroundColor,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: paymentMode == 'Online'
+                                ? primaryColor
+                                : borderGrey,
+                            width: paymentMode == 'Online' ? 1.5 : 1,
+                          ),
                         ),
-                        subtitle: const Text(
-                          'Pay cash directly when sample is collected or at the lab center',
-                          style: TextStyle(fontSize: 11, color: textMuted),
+                        child: RadioListTile<String>(
+                          value: 'Online',
+                          groupValue: paymentMode,
+                          activeColor: primaryColor,
+                          title: const Text(
+                            'Online Payment (UPI / Cards)',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                          subtitle: const Text(
+                            'Pay instantly and securely via Razorpay gateway',
+                            style: TextStyle(fontSize: 11, color: textMuted),
+                          ),
+                          secondary: const Icon(Icons.credit_card_rounded,
+                              color: primaryColor),
+                          onChanged: (val) {
+                            if (val != null)
+                              setModalState(() => paymentMode = val);
+                          },
                         ),
-                        secondary: const Icon(Icons.payments_outlined, color: successColor),
-                        onChanged: (val) {
-                          if (val != null) setModalState(() => paymentMode = val);
-                        },
                       ),
-                    ),
+                      const SizedBox(height: 20),
 
-                    // Online Option
-                    Container(
-                      decoration: BoxDecoration(
-                        color: paymentMode == 'Online' ? fillColor : backgroundColor,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: paymentMode == 'Online' ? primaryColor : borderGrey,
-                          width: paymentMode == 'Online' ? 1.5 : 1,
-                        ),
-                      ),
-                      child: RadioListTile<String>(
-                        value: 'Online',
-                        groupValue: paymentMode,
-                        activeColor: primaryColor,
-                        title: const Text(
-                          'Online Payment (Razorpay / UPI / Cards)',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                        ),
-                        subtitle: const Text(
-                          'Pay instantly and securely via Razorpay gateway',
-                          style: TextStyle(fontSize: 11, color: textMuted),
-                        ),
-                        secondary: const Icon(Icons.credit_card_rounded, color: primaryColor),
-                        onChanged: (val) {
-                          if (val != null) setModalState(() => paymentMode = val);
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Submit Button
-                    Obx(() {
-                      final isBooking = controller.isBookingLoading.value;
-                      return SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: isBooking
-                              ? null
-                              : () async {
-                                  final bool isLoggedIn =
-                                      Get.isRegistered<AuthController>() &&
-                                          Get.find<AuthController>()
-                                              .isLoggedIn();
-                                  if (!isLoggedIn) {
-                                    showLoginRequiredDialog(
-                                      context: context,
-                                      title: "Login Required",
-                                      message:
-                                          "Please login to your account first before booking a diagnostic lab test.",
-                                    );
-                                    return;
-                                  }
-
-                                  final pName = nameController.text.trim();
-                                  final pPhone = phoneController.text.trim();
-                                  final pAddr = addressController.text.trim();
-                                  final pTest = testNameController.text.trim();
-
-                                  if (pTest.isEmpty) {
-                                    Get.snackbar('Validation', 'Please enter diagnostic test name',
-                                        backgroundColor: warningColor, colorText: colorWhite);
-                                    return;
-                                  }
-                                  if (pName.isEmpty) {
-                                    Get.snackbar('Validation', 'Please enter patient name',
-                                        backgroundColor: warningColor, colorText: colorWhite);
-                                    return;
-                                  }
-                                  if (pPhone.isEmpty || pPhone.length < 10) {
-                                    Get.snackbar('Validation', 'Please enter a valid 10-digit phone',
-                                        backgroundColor: warningColor, colorText: colorWhite);
-                                    return;
-                                  }
-
-                                  final hosp = activeLab.hospital?.domain ?? 'usha';
-                                  final dateStr = bookingDate.toString().split(' ')[0];
-
-                                  final res = await controller.bookTest(
-                                    patientName: pName,
-                                    patientPhone: pPhone,
-                                    address: pAddr,
-                                    testName: pTest,
-                                    collectionType: collectionType,
-                                    bookingDate: dateStr,
-                                    paymentMode: paymentMode,
-                                    hospital: hosp,
-                                    labId: activeLab.id,
-                                  );
-
-                                  if (res != null && res.success) {
-                                    Navigator.pop(ctx); // Close bottomsheet
-
-                                    if (paymentMode == 'Cash') {
-                                      // Instant booking success for Cash
-                                      if (!mounted) return;
-                                      Navigator.pushReplacement(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => BookingSuccsessScreen(
-                                            bookingId: res.bookingNo ??
-                                                'LAB-${DateTime.now().millisecondsSinceEpoch}',
-                                            title: res.testName ?? pTest,
-                                            doctorName: '${res.labName ?? activeLab.labName} (Cash on Collection)',
-                                            amount: '₹${res.netAmount ?? testPrice}',
-                                            date: res.bookingDate ?? dateStr,
-                                          ),
-                                        ),
+                      // Submit Button
+                      Obx(() {
+                        final isBooking = controller.isBookingLoading.value;
+                        return SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: ElevatedButton(
+                            onPressed: isBooking
+                                ? null
+                                : () async {
+                                    final bool isLoggedIn =
+                                        Get.isRegistered<AuthController>() &&
+                                            Get.find<AuthController>()
+                                                .isLoggedIn();
+                                    if (!isLoggedIn) {
+                                      showLoginRequiredDialog(
+                                        context: context,
+                                        title: "Login Required",
+                                        message:
+                                            "Please login to your account first before booking a diagnostic lab test.",
                                       );
-                                    } else {
-                                      // Online mode: Launch Razorpay
-                                      if (res.razorpay != null) {
-                                        _openRazorpay(res);
-                                      } else {
-                                        // Fallback if razorpay block is omitted
+                                      return;
+                                    }
+
+                                    final pName = nameController.text.trim();
+                                    final pPhone = phoneController.text.trim();
+                                    final pAddr = addressController.text.trim();
+                                    final pTest =
+                                        testNameController.text.trim();
+
+                                    if (pTest.isEmpty) {
+                                      Get.snackbar('Validation',
+                                          'Please enter diagnostic test name',
+                                          backgroundColor: warningColor,
+                                          colorText: colorWhite);
+                                      return;
+                                    }
+                                    if (pName.isEmpty) {
+                                      Get.snackbar('Validation',
+                                          'Please enter patient name',
+                                          backgroundColor: warningColor,
+                                          colorText: colorWhite);
+                                      return;
+                                    }
+                                    if (pPhone.isEmpty || pPhone.length < 10) {
+                                      Get.snackbar('Validation',
+                                          'Please enter a valid 10-digit phone',
+                                          backgroundColor: warningColor,
+                                          colorText: colorWhite);
+                                      return;
+                                    }
+
+                                    final hosp =
+                                        activeLab.hospital?.domain ?? 'usha';
+                                    final dateStr =
+                                        bookingDate.toString().split(' ')[0];
+
+                                    final res = await controller.bookTest(
+                                      patientName: pName,
+                                      patientPhone: pPhone,
+                                      address: pAddr,
+                                      testName: pTest,
+                                      collectionType: collectionType,
+                                      bookingDate: dateStr,
+                                      paymentMode: paymentMode,
+                                      hospital: hosp,
+                                      labId: activeLab.id,
+                                    );
+
+                                    if (res != null && res.success) {
+                                      Navigator.pop(ctx); // Close bottomsheet
+
+                                      if (paymentMode == 'Cash') {
+                                        // Instant booking success for Cash
                                         if (!mounted) return;
                                         Navigator.pushReplacement(
                                           context,
                                           MaterialPageRoute(
-                                            builder: (_) => BookingSuccsessScreen(
+                                            builder: (_) =>
+                                                BookingSuccsessScreen(
                                               bookingId: res.bookingNo ??
                                                   'LAB-${DateTime.now().millisecondsSinceEpoch}',
                                               title: res.testName ?? pTest,
-                                              doctorName: res.labName ?? activeLab.labName,
-                                              amount: '₹${res.netAmount ?? testPrice}',
+                                              doctorName:
+                                                  '${res.labName ?? activeLab.labName} (Cash on Collection)',
+                                              amount:
+                                                  '₹${res.netAmount ?? testPrice}',
                                               date: res.bookingDate ?? dateStr,
+                                              bookingData:
+                                                  _bookingHospitalData(res),
                                             ),
                                           ),
                                         );
+                                      } else {
+                                        // Online mode: Launch Razorpay
+                                        if (res.razorpay != null) {
+                                          _openRazorpay(res);
+                                        } else {
+                                          // Fallback if razorpay block is omitted
+                                          if (!mounted) return;
+                                          Navigator.pushReplacement(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  BookingSuccsessScreen(
+                                                bookingId: res.bookingNo ??
+                                                    'LAB-${DateTime.now().millisecondsSinceEpoch}',
+                                                title: res.testName ?? pTest,
+                                                doctorName: res.labName ??
+                                                    activeLab.labName,
+                                                amount:
+                                                    '₹${res.netAmount ?? testPrice}',
+                                                date:
+                                                    res.bookingDate ?? dateStr,
+                                                bookingData:
+                                                    _bookingHospitalData(res),
+                                              ),
+                                            ),
+                                          );
+                                        }
                                       }
                                     }
-                                  }
-                                },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryColor,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            elevation: 0,
-                          ),
-                          child: isBooking
-                              ? const SizedBox(
-                                  height: 22,
-                                  width: 22,
-                                  child: CircularProgressIndicator(color: colorWhite, strokeWidth: 2.5),
-                                )
-                              : Text(
-                                  paymentMode == 'Cash'
-                                      ? 'CONFIRM BOOKING (CASH)'
-                                      : 'PAY ONLINE & BOOK (RAZORPAY)',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                    color: colorWhite,
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryColor,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                              elevation: 0,
+                            ),
+                            child: isBooking
+                                ? const SizedBox(
+                                    height: 22,
+                                    width: 22,
+                                    child: CircularProgressIndicator(
+                                        color: colorWhite, strokeWidth: 2.5),
+                                  )
+                                : Text(
+                                    paymentMode == 'Cash'
+                                        ? 'CONFIRM BOOKING (CASH)'
+                                        : 'PAY ONLINE & BOOK',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: colorWhite,
+                                    ),
                                   ),
-                                ),
-                        ),
-                      );
-                    }),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    ).whenComplete(() {
+      testNameController.dispose();
+      nameController.dispose();
+      phoneController.dispose();
+      addressController.dispose();
+    });
   }
 
   @override
@@ -770,7 +887,9 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
 
         final currentTestName = selectedApiTest?.testName ?? _customTestName;
         final currentTestPrice = selectedApiTest != null
-            ? (selectedApiTest.basePrice > 0 ? selectedApiTest.basePrice : _defaultTestPrice)
+            ? (selectedApiTest.basePrice > 0
+                ? selectedApiTest.basePrice
+                : _defaultTestPrice)
             : _defaultTestPrice;
 
         return Column(
@@ -799,13 +918,16 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
                             color: fillColor,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            hasApiTests ? '${dynamicTests.length} Tests' : 'Direct Booking',
+                            hasApiTests
+                                ? '${dynamicTests.length} Tests'
+                                : 'Direct Booking',
                             style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
@@ -863,7 +985,8 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
     );
   }
 
-  Widget _buildLabHeader(DiagnosticLabModel activeLab, List<DiagnosticLabModel> allLabs) {
+  Widget _buildLabHeader(
+      DiagnosticLabModel activeLab, List<DiagnosticLabModel> allLabs) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -889,7 +1012,8 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
                   color: fillColor,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.local_hospital_rounded, color: primaryColor, size: 26),
+                child: const Icon(Icons.local_hospital_rounded,
+                    color: primaryColor, size: 26),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -920,7 +1044,8 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
+                    const Icon(Icons.star_rounded,
+                        color: Colors.amber, size: 16),
                     const SizedBox(width: 2),
                     Text(
                       '${activeLab.rating}',
@@ -940,11 +1065,14 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
           const SizedBox(height: 10),
           Row(
             children: [
-              const Icon(Icons.location_on_outlined, size: 14, color: textMuted),
+              const Icon(Icons.location_on_outlined,
+                  size: 14, color: textMuted),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
-                  activeLab.location ?? activeLab.address ?? 'Lucknow, Uttar Pradesh',
+                  activeLab.location ??
+                      activeLab.address ??
+                      'Lucknow, Uttar Pradesh',
                   style: const TextStyle(fontSize: 11, color: textDark),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -1001,14 +1129,19 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text('Select Diagnostic Center',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textDark)),
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: textDark)),
               const SizedBox(height: 12),
               ...allLabs.map((lab) {
                 final isCur = lab.id == _selectedLab?.id;
                 return ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.science_rounded, color: primaryColor),
-                  title: Text(lab.labName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  leading:
+                      const Icon(Icons.science_rounded, color: primaryColor),
+                  title: Text(lab.labName,
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Text('${lab.category ?? ""} • ${lab.city ?? ""}'),
                   trailing: isCur
                       ? const Icon(Icons.check_circle, color: primaryColor)
@@ -1074,7 +1207,9 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(
-                        isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
+                        isSelected
+                            ? Icons.check_circle_rounded
+                            : Icons.radio_button_unchecked,
                         color: isSelected ? primaryColor : textMuted,
                         size: 20,
                       ),
@@ -1094,8 +1229,10 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            test.description ?? '${test.category ?? "Diagnostic"} pathology examination',
-                            style: const TextStyle(fontSize: 11, color: textMuted),
+                            test.description ??
+                                '${test.category ?? "Diagnostic"} pathology examination',
+                            style:
+                                const TextStyle(fontSize: 11, color: textMuted),
                           ),
                         ],
                       ),
@@ -1117,25 +1254,31 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: fillColor,
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         test.subCategory ?? test.category ?? 'Diagnostic Test',
-                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: primaryColor),
+                        style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: primaryColor),
                       ),
                     ),
                     const Spacer(),
-                    const Icon(Icons.timer_outlined, size: 12, color: textMuted),
+                    const Icon(Icons.timer_outlined,
+                        size: 12, color: textMuted),
                     const SizedBox(width: 3),
                     Text(
                       test.reportTime ?? '${test.reportDays * 24} Hours',
                       style: const TextStyle(fontSize: 10, color: textMuted),
                     ),
                     const SizedBox(width: 8),
-                    const Icon(Icons.science_outlined, size: 12, color: textMuted),
+                    const Icon(Icons.science_outlined,
+                        size: 12, color: textMuted),
                     const SizedBox(width: 3),
                     Text(
                       test.sampleType ?? 'Blood Specimen',
@@ -1153,7 +1296,12 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
 
   /// Clean Direct Booking Card (When API returns 0 catalog tests)
   Widget _buildDirectBookingCard(DiagnosticLabModel? activeLab) {
-    final suggestions = ['Blood Test', 'Pathology Screening', 'Biochemistry Test', 'Urine Routine'];
+    final suggestions = [
+      'Blood Test',
+      'Pathology Screening',
+      'Biochemistry Test',
+      'Urine Routine'
+    ];
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1180,7 +1328,8 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
                   color: primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.biotech_rounded, color: primaryColor, size: 22),
+                child: const Icon(Icons.biotech_rounded,
+                    color: primaryColor, size: 22),
               ),
               const SizedBox(width: 10),
               const Expanded(
@@ -1217,7 +1366,8 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
           // Suggested quick selections
           const Text(
             'Select Test Name:',
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textDark),
+            style: TextStyle(
+                fontSize: 11, fontWeight: FontWeight.bold, color: textDark),
           ),
           const SizedBox(height: 8),
           Wrap(
@@ -1229,11 +1379,13 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
                 onTap: () => setState(() => _customTestName = s),
                 borderRadius: BorderRadius.circular(20),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: isSel ? primaryColor : backgroundColor,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: isSel ? primaryColor : borderGrey),
+                    border:
+                        Border.all(color: isSel ? primaryColor : borderGrey),
                   ),
                   child: Text(
                     s,
@@ -1260,9 +1412,13 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
               hintStyle: const TextStyle(fontSize: 12, color: textMuted),
               filled: true,
               fillColor: backgroundColor,
-              prefixIcon: const Icon(Icons.edit_note_rounded, color: primaryColor, size: 20),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+              prefixIcon: const Icon(Icons.edit_note_rounded,
+                  color: primaryColor, size: 20),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none),
             ),
           ),
         ],
@@ -1323,7 +1479,8 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Total Payable', style: TextStyle(fontSize: 11, color: textMuted)),
+              const Text('Total Payable',
+                  style: TextStyle(fontSize: 11, color: textMuted)),
               Text(
                 '₹$testPrice',
                 style: const TextStyle(
@@ -1338,7 +1495,7 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
           Expanded(
             child: ElevatedButton(
               onPressed: () {
-                _showBookingBottomSheet(
+                _openBookingScreen(
                   selectedTestName: testName,
                   testPrice: testPrice,
                 );
@@ -1346,7 +1503,8 @@ class _LabTestsScreenState extends State<LabTestsScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryColor,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
                 elevation: 0,
               ),
               child: const Text(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:vlr/hospital/core/constants/colors.dart';
 
 import '../../data/model/order_model.dart';
@@ -39,13 +40,72 @@ class PaymentVerifedScreen extends StatelessWidget {
     this.paymentId,
   });
 
+  Map<String, dynamic>? get _hospitalDetails {
+    final verifiedHospital = verificationData?.hospital?.toJson();
+    if (verifiedHospital != null && verifiedHospital.isNotEmpty) {
+      return verifiedHospital;
+    }
+    return placeOrderResponse?.hospital?.toJson();
+  }
+
+  String get _hospitalAddress {
+    final hospital = _hospitalDetails;
+    if (hospital == null) return '';
+    final direct = hospital['full_address'] ??
+        hospital['address'] ??
+        hospital['location_address'];
+    if (direct != null && direct.toString().trim().isNotEmpty) {
+      return direct.toString().trim();
+    }
+    return [
+      hospital['landmark'],
+      hospital['city'],
+      hospital['state'],
+      hospital['pincode'] ?? hospital['postal_code'],
+    ]
+        .where((value) => value != null && value.toString().trim().isNotEmpty)
+        .map((value) => value.toString().trim())
+        .join(', ');
+  }
+
+  Future<void> _openHospitalLocation(BuildContext context) async {
+    final hospital = _hospitalDetails;
+    if (hospital == null) return;
+    final location = hospital['location'];
+    final latitude = hospital['latitude'] ??
+        hospital['lat'] ??
+        (location is Map ? location['lat'] ?? location['latitude'] : null);
+    final longitude = hospital['longitude'] ??
+        hospital['lng'] ??
+        (location is Map ? location['lng'] ?? location['longitude'] : null);
+    final destination = latitude != null && longitude != null
+        ? '${latitude.toString().trim()},${longitude.toString().trim()}'
+        : _hospitalAddress.isNotEmpty
+            ? _hospitalAddress
+            : hospital['name']?.toString() ?? hospitalName ?? '';
+    if (destination.trim().isEmpty) return;
+
+    final url = Uri.https('www.google.com', '/maps/search/', {
+      'api': '1',
+      'query': destination,
+    });
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication) &&
+        context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to open hospital location.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isCod = isCashOnDelivery ||
         (paymentMode?.toLowerCase().contains('cash') == true) ||
         (paymentMode?.toLowerCase().contains('cod') == true) ||
-        (placeOrderResponse?.paymentMode?.toLowerCase().contains('cash') == true) ||
-        (placeOrderResponse?.paymentMode?.toLowerCase().contains('cod') == true);
+        (placeOrderResponse?.paymentMode?.toLowerCase().contains('cash') ==
+            true) ||
+        (placeOrderResponse?.paymentMode?.toLowerCase().contains('cod') ==
+            true);
 
     final effectiveBillId = verificationData?.bills.isNotEmpty == true
         ? verificationData!.bills.first.billId
@@ -78,22 +138,24 @@ class PaymentVerifedScreen extends StatelessWidget {
                 ? placeOrderResponse!.bills.first.netAmount
                 : null));
 
-    final effectiveHospitalName = verificationData?.hospital?.name ??
+    final effectiveHospitalName = _hospitalDetails?['name']?.toString() ??
         hospitalName ??
-        placeOrderResponse?.hospital?.name ??
         placeOrderResponse?.labName ??
         placeOrderResponse?.storeName;
 
-    final String generatedOrderNo = (effectiveOrderNo != null && effectiveOrderNo.isNotEmpty)
-        ? effectiveOrderNo
-        : ((effectiveBillNo != null && effectiveBillNo.isNotEmpty)
-            ? effectiveBillNo
-            : (effectiveBillId != null
-                ? 'ORD-$effectiveBillId'
-                : 'ORD-${DateTime.now().millisecondsSinceEpoch}'));
+    final String generatedOrderNo =
+        (effectiveOrderNo != null && effectiveOrderNo.isNotEmpty)
+            ? effectiveOrderNo
+            : ((effectiveBillNo != null && effectiveBillNo.isNotEmpty)
+                ? effectiveBillNo
+                : (effectiveBillId != null
+                    ? 'ORD-$effectiveBillId'
+                    : 'ORD-${DateTime.now().millisecondsSinceEpoch}'));
 
     final effectivePaymentMode = isCod
-        ? (paymentMode ?? placeOrderResponse?.paymentMode ?? 'Cash on Delivery (COD)')
+        ? (paymentMode ??
+            placeOrderResponse?.paymentMode ??
+            'Cash on Delivery (COD)')
         : (verificationData?.paymentMode ?? paymentMode ?? 'Razorpay Online');
 
     final effectiveOrderStatus = verificationData?.orderStatus?.toUpperCase() ??
@@ -147,7 +209,9 @@ class PaymentVerifedScreen extends StatelessWidget {
             const SizedBox(height: 16),
 
             Text(
-              isCod ? 'Order Placed Successfully!' : 'Payment Verified & Confirmed!',
+              isCod
+                  ? 'Order Placed Successfully!'
+                  : 'Payment Verified & Confirmed!',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 21,
@@ -171,16 +235,19 @@ class PaymentVerifedScreen extends StatelessWidget {
                 );
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                 decoration: BoxDecoration(
                   color: pharmacyTealBg,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: pharmacyTeal.withValues(alpha: 0.3)),
+                  border:
+                      Border.all(color: pharmacyTeal.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.tag_rounded, size: 16, color: pharmacyTeal),
+                    const Icon(Icons.tag_rounded,
+                        size: 16, color: pharmacyTeal),
                     const SizedBox(width: 4),
                     Text(
                       'Order No: $generatedOrderNo',
@@ -191,7 +258,8 @@ class PaymentVerifedScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 6),
-                    const Icon(Icons.copy_rounded, size: 14, color: pharmacyTeal),
+                    const Icon(Icons.copy_rounded,
+                        size: 14, color: pharmacyTeal),
                   ],
                 ),
               ),
@@ -231,7 +299,8 @@ class PaymentVerifedScreen extends StatelessWidget {
                 children: [
                   const Row(
                     children: [
-                      Icon(Icons.receipt_long_rounded, color: pharmacyTeal, size: 18),
+                      Icon(Icons.receipt_long_rounded,
+                          color: pharmacyTeal, size: 18),
                       SizedBox(width: 8),
                       Text(
                         'Order & Payment Summary',
@@ -246,7 +315,8 @@ class PaymentVerifedScreen extends StatelessWidget {
                   const Divider(height: 20, color: borderGrey),
                   _buildDetailRow('Order Number', generatedOrderNo,
                       isBold: true, color: pharmacyTeal),
-                  if (effectiveBillNo != null && effectiveBillNo != generatedOrderNo)
+                  if (effectiveBillNo != null &&
+                      effectiveBillNo != generatedOrderNo)
                     _buildDetailRow('Bill No', effectiveBillNo),
                   if (effectiveBillId != null)
                     _buildDetailRow('Bill ID', '#$effectiveBillId'),
@@ -271,10 +341,86 @@ class PaymentVerifedScreen extends StatelessWidget {
                     color: isCod ? Colors.orange.shade800 : Colors.green,
                   ),
                   if (effectiveHospitalName != null)
-                    _buildDetailRow('Hospital / Pharmacy', effectiveHospitalName),
+                    _buildDetailRow(
+                        'Hospital / Pharmacy', effectiveHospitalName),
                 ],
               ),
             ),
+
+            if (effectiveHospitalName != null ||
+                _hospitalAddress.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              InkWell(
+                onTap: () => _openHospitalLocation(context),
+                borderRadius: BorderRadius.circular(14),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: colorWhite,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: borderGrey),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.local_hospital_rounded,
+                          color: pharmacyTeal),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Hospital Information',
+                              style: TextStyle(fontSize: 11, color: textMuted),
+                            ),
+                            if (effectiveHospitalName != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                effectiveHospitalName,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: textDark,
+                                ),
+                              ),
+                            ],
+                            if (_hospitalAddress.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                _hospitalAddress,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  height: 1.4,
+                                  color: textMuted,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 8),
+                            const Row(
+                              children: [
+                                Icon(Icons.map_outlined,
+                                    size: 15, color: pharmacyTeal),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Open Location',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: pharmacyTeal,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
 
             // Ordered Medicines / Items Card ("jo maine order kiya h")
             if (cartItems != null && cartItems!.isNotEmpty) ...[
@@ -301,7 +447,8 @@ class PaymentVerifedScreen extends StatelessWidget {
                       children: [
                         const Row(
                           children: [
-                            Icon(Icons.medication_rounded, color: pharmacyTeal, size: 18),
+                            Icon(Icons.medication_rounded,
+                                color: pharmacyTeal, size: 18),
                             SizedBox(width: 8),
                             Text(
                               'Ordered Medicines',
@@ -314,7 +461,8 @@ class PaymentVerifedScreen extends StatelessWidget {
                           ],
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
                             color: pharmacyTealBg,
                             borderRadius: BorderRadius.circular(10),
@@ -363,13 +511,15 @@ class PaymentVerifedScreen extends StatelessWidget {
                                     ),
                                   ),
                                   if (item.medicine.categoryName != null ||
-                                      item.medicine.medicineCompany != null) ...[
+                                      item.medicine.medicineCompany !=
+                                          null) ...[
                                     const SizedBox(height: 2),
                                     Text(
                                       [
                                         if (item.medicine.categoryName != null)
                                           item.medicine.categoryName!,
-                                        if (item.medicine.medicineCompany != null)
+                                        if (item.medicine.medicineCompany !=
+                                            null)
                                           item.medicine.medicineCompany!,
                                       ].join(' • '),
                                       style: const TextStyle(
@@ -451,7 +601,8 @@ class PaymentVerifedScreen extends StatelessWidget {
                   children: [
                     const Row(
                       children: [
-                        Icon(Icons.local_shipping_outlined, color: pharmacyTeal, size: 18),
+                        Icon(Icons.local_shipping_outlined,
+                            color: pharmacyTeal, size: 18),
                         SizedBox(width: 8),
                         Text(
                           'Delivery Details',
@@ -476,11 +627,14 @@ class PaymentVerifedScreen extends StatelessWidget {
             ],
 
             // API Response Message Note if available
-            if ((placeOrderResponse?.message != null && placeOrderResponse!.message!.isNotEmpty) ||
-                (verificationData?.message != null && verificationData!.message!.isNotEmpty)) ...[
+            if ((placeOrderResponse?.message != null &&
+                    placeOrderResponse!.message!.isNotEmpty) ||
+                (verificationData?.message != null &&
+                    verificationData!.message!.isNotEmpty)) ...[
               const SizedBox(height: 16),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
                   color: const Color(0xFFE8F5E9),
                   borderRadius: BorderRadius.circular(12),
@@ -488,11 +642,14 @@ class PaymentVerifedScreen extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.info_outline_rounded, size: 18, color: Color(0xFF2E7D32)),
+                    const Icon(Icons.info_outline_rounded,
+                        size: 18, color: Color(0xFF2E7D32)),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        placeOrderResponse?.message ?? verificationData?.message ?? '',
+                        placeOrderResponse?.message ??
+                            verificationData?.message ??
+                            '',
                         style: const TextStyle(
                           fontSize: 12,
                           color: Color(0xFF1B5E20),
@@ -517,25 +674,31 @@ class PaymentVerifedScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => PharmacyInvoiceDetailScreen(billId: effectiveBillId),
+                        builder: (_) => PharmacyInvoiceDetailScreen(
+                            billId: effectiveBillId),
                       ),
                     );
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Invoice ID is processing. Please view orders in My Bookings.'),
+                        content: Text(
+                            'Invoice ID is processing. Please view orders in My Bookings.'),
                       ),
                     );
                   }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: pharmacyTeal,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
                 icon: const Icon(Icons.receipt_long_rounded, color: colorWhite),
                 label: const Text(
                   'VIEW INVOICE DETAILS',
-                  style: TextStyle(color: colorWhite, fontWeight: FontWeight.bold, fontSize: 14),
+                  style: TextStyle(
+                      color: colorWhite,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14),
                 ),
               ),
             ),
@@ -549,17 +712,22 @@ class PaymentVerifedScreen extends StatelessWidget {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const PharmacyBookingsScreen()),
+                    MaterialPageRoute(
+                        builder: (_) => const PharmacyBookingsScreen()),
                   );
                 },
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: pharmacyTeal, width: 1.5),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
                 icon: const Icon(Icons.history_rounded, color: pharmacyTeal),
                 label: const Text(
                   'VIEW MY ORDERS',
-                  style: TextStyle(color: pharmacyTeal, fontWeight: FontWeight.bold, fontSize: 14),
+                  style: TextStyle(
+                      color: pharmacyTeal,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14),
                 ),
               ),
             ),
@@ -580,7 +748,10 @@ class PaymentVerifedScreen extends StatelessWidget {
                 icon: const Icon(Icons.storefront_rounded, color: textMuted),
                 label: const Text(
                   'Return to Pharmacy',
-                  style: TextStyle(color: textMuted, fontWeight: FontWeight.w600, fontSize: 13),
+                  style: TextStyle(
+                      color: textMuted,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13),
                 ),
               ),
             ),
@@ -590,7 +761,8 @@ class PaymentVerifedScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailRow(String label, String value, {bool isBold = false, Color? color}) {
+  Widget _buildDetailRow(String label, String value,
+      {bool isBold = false, Color? color}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
@@ -618,4 +790,3 @@ class PaymentVerifedScreen extends StatelessWidget {
     );
   }
 }
-

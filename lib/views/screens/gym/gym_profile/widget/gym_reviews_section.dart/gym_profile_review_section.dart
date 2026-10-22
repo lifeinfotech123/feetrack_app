@@ -1,11 +1,7 @@
-import 'dart:convert';
-
 import 'package:easy_stars/easy_stars.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:get/get.dart';
-import 'package:get/state_manager.dart';
-import 'package:vlr/controllers/auth_controller.dart';
 import 'package:vlr/controllers/basic_controller.dart';
 import 'package:vlr/controllers/home_controller.dart';
 import 'package:vlr/services/constants.dart';
@@ -13,6 +9,7 @@ import 'package:vlr/services/theme.dart';
 import 'package:vlr/views/base/common_button.dart';
 import 'package:vlr/views/screens/gym/gym_profile/widget/gym_reviews_section.dart/gym_profile_reviews_list.dart';
 import 'package:vlr/views/screens/gym/gym_profile/widget/gym_reviews_section.dart/row_reviews_progress_bar_widget.dart';
+import 'package:vlr/views/screens/gym/gym_reviews/gym_reviews_screen.dart';
 import 'package:vlr/views/widget/text_box/app_text_box.dart';
 
 class GYMProfileReviewSection extends StatefulWidget {
@@ -44,13 +41,42 @@ class _GYMProfileReviewSectionState extends State<GYMProfileReviewSection> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           sizedBoxHeight(height: 40),
-          Text(
-            "Customer Reviews",
-            style: Helper(context).textTheme.bodyMedium?.copyWith(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: blackText1,
-                ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Customer Reviews",
+                style: Helper(context).textTheme.bodyMedium?.copyWith(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: blackText1,
+                    ),
+              ),
+              GetBuilder<HomeController>(builder: (homeController) {
+                return TextButton(
+                  onPressed: () {
+                    final gymId = homeController.selectListingModel?.id;
+                    final gymTitle = homeController.selectListingModel?.title;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => GymReviewsScreen(
+                          gymId: gymId,
+                          gymTitle: gymTitle,
+                        ),
+                      ),
+                    );
+                  },
+                  child: const Text(
+                    "See All",
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF002060),
+                    ),
+                  ),
+                );
+              }),
+            ],
           ),
           sizedBoxHeight(height: 16),
           Container(

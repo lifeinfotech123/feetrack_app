@@ -21,12 +21,18 @@ class HomeRepo {
         query: data,
       );
 
-  Future<Response> fetchGyms({Map<String, dynamic>? query}) async =>
-      await apiClient.getData(
-        AppConstants.getGyms,
-        "fetchGyms",
-        query: query,
-      );
+  Future<Response> fetchGyms({Map<String, dynamic>? query}) async {
+    // The gym directory is public for both guests and signed-in users. Keep
+    // this request unauthenticated consistently: some backend deployments
+    // return an empty/filtered directory when an app-user bearer token is
+    // included, while the public request returns the gym catalogue.
+    return apiClient.getData(
+      AppConstants.getGyms,
+      "fetchGyms",
+      query: query,
+      headers: const {'Accept': 'application/json'},
+    );
+  }
 
   Future<Response> fetchGymDetails({
     required String id,
@@ -44,8 +50,7 @@ class HomeRepo {
         "fetchPgDetails",
       );
 
-  Future<Response> fetchGymCities() async =>
-      await apiClient.getData(
+  Future<Response> fetchGymCities() async => await apiClient.getData(
         AppConstants.gymCities,
         "fetchGymCities",
       );

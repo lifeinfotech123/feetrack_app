@@ -149,6 +149,18 @@ class DoctorController extends GetxController implements GetxService {
     return null;
   }
 
+  Future<Map<String, dynamic>> fetchDoctorSlots({
+    required dynamic doctorId,
+    required String hospital,
+    required String date,
+  }) {
+    return doctorRepo.fetchDoctorSlots(
+      doctorId: doctorId,
+      hospital: hospital,
+      date: date,
+    );
+  }
+
   // Setters
   void setSelectedSpecialty(String specialty) {
     selectedSpecialty.value = specialty;

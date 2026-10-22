@@ -62,6 +62,7 @@ class HospitalInfo {
   final String? domain;
   final String? portalUrl;
   final String? logo;
+  final Map<String, dynamic> rawJson;
 
   HospitalInfo({
     this.id,
@@ -69,6 +70,7 @@ class HospitalInfo {
     this.domain,
     this.portalUrl,
     this.logo,
+    this.rawJson = const {},
   });
 
   factory HospitalInfo.fromJson(Map<String, dynamic> json) {
@@ -80,11 +82,13 @@ class HospitalInfo {
       domain: json['domain']?.toString(),
       portalUrl: json['portal_url']?.toString(),
       logo: json['logo']?.toString(),
+      rawJson: Map<String, dynamic>.from(json),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
+      ...rawJson,
       'id': id,
       'name': name,
       'domain': domain,

@@ -7,7 +7,6 @@ import 'package:vlr/controllers/permission_controller.dart';
 import 'package:vlr/data/models/category_model/category_model.dart';
 import 'package:vlr/services/constants.dart';
 import 'package:vlr/views/base/shimmer.dart';
-import 'package:vlr/views/screens/dashboard/home_screen/All_home/gym_home/gym_home_screen.dart';
 import 'package:vlr/views/screens/gym/gym_bottom_nav_bar/gym_bottom_nav_bar_screen.dart';
 import 'package:vlr/views/screens/room_section/room_bottom_nav_bar/room_bottom_nav_bar_screen.dart';
 import 'package:vlr/views/screens/dashboard/job/job_screen.dart';
@@ -108,7 +107,24 @@ class _AllCategoryScreenState extends State<AllCategoryScreen> {
                               final String catId =
                                   categoryModel.id?.toString() ?? '';
 
-                              // 1. Hospital Category
+                              // 1. Gym / Fitness Category
+                              final bool isGymCategory = catId == "11" ||
+                                  catId == "1" ||
+                                  name.contains("gym") ||
+                                  slug.contains("gym") ||
+                                  name.contains("fitness") ||
+                                  slug.contains("fitness") ||
+                                  name.contains("workout") ||
+                                  slug.contains("workout");
+                              if (isGymCategory) {
+                                navigate(
+                                  context: context,
+                                  page: const GymBottomNavBarScreen(),
+                                );
+                                return;
+                              }
+
+                              // 2. Hospital Category
                               if (catId == "2" ||
                                   name.contains("hospital") ||
                                   slug.contains("hospital") ||
@@ -124,23 +140,6 @@ class _AllCategoryScreenState extends State<AllCategoryScreen> {
                                   context: context,
                                   page:
                                       const hospital.HospitalDashboardScreen(),
-                                );
-                                return;
-                              }
-
-                              // 2. Gym / Fitness Category
-                              final bool isGymCategory = catId == "11" ||
-                                  catId == "1" ||
-                                  name.contains("gym") ||
-                                  slug.contains("gym") ||
-                                  name.contains("fitness") ||
-                                  slug.contains("fitness") ||
-                                  name.contains("workout") ||
-                                  slug.contains("workout");
-                              if (isGymCategory) {
-                                navigate(
-                                  context: context,
-                                  page: const GymBottomNavBarScreen(),
                                 );
                                 return;
                               }

@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:get/get.dart';
+import 'package:vlr/controllers/auth_controller.dart';
 import 'package:vlr/data/models/response/response_model.dart';
 import 'package:vlr/data/models/visit_model.dart';
 import 'package:vlr/data/repositories/visit_repo.dart';
@@ -125,6 +126,15 @@ class VisitController extends GetxController implements GetxService {
 
   Future<ResponseModel> fetchVisits({bool isLoadMore = false}) async {
     log('-----------  fetchVisits ----------');
+
+    if (Get.isRegistered<AuthController>() &&
+        !Get.find<AuthController>().isLoggedIn()) {
+      visitList.clear();
+      isLoading = false;
+      isPaginating = false;
+      update();
+      return ResponseModel(false, "User not logged in");
+    }
 
     if (isLoadMore) {
       if (currentPage >= lastPage) {

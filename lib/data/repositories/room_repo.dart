@@ -295,4 +295,107 @@ class RoomRepo {
       data ?? {},
     );
   }
+
+  /// 25. Verify PG Booking Check-in OTP (/api/v1/pg/customer/bookings/{id}/verify-otp)
+  Future<Response> verifyPgBookingOtp(String bookingId, String otp) async {
+    return await apiClient.postData(
+      AppConstants.pgCustomerBookingVerifyOtp(id: bookingId),
+      "verifyPgBookingOtp",
+      {"otp": otp},
+    );
+  }
+
+  /// 26. Cancel PG Booking (/api/v1/pg/customer/bookings/{id}/cancel)
+  Future<Response> cancelPgBooking(String bookingId) async {
+    return await apiClient.postData(
+      AppConstants.pgCustomerBookingCancel(id: bookingId),
+      "cancelPgBooking",
+      {},
+    );
+  }
+
+  /// 27. Fetch PG Booking Invoice (/api/v1/pg/customer/bookings/{id}/invoice)
+  Future<Response> fetchPgBookingInvoice(String bookingId) async {
+    return await apiClient.getData(
+      AppConstants.pgCustomerBookingInvoice(id: bookingId),
+      "fetchPgBookingInvoice",
+    );
+  }
+
+  /// 28. Pay PG Customer Invoice (/api/v1/pg/customer/invoice/{id}/pay)
+  Future<Response> payPgCustomerInvoice(String invoiceId) async {
+    return await apiClient.postData(
+      AppConstants.pgCustomerInvoicePay(invoiceId),
+      "payPgCustomerInvoice",
+      {},
+    );
+  }
+
+  /// 29. Fetch PG Customer Payment Transactions (/api/v1/pg/customer/payment)
+  Future<Response> fetchPgCustomerPayments() async {
+    return await apiClient.getData(
+      AppConstants.pgCustomerPayment,
+      "fetchPgCustomerPayments",
+    );
+  }
+
+  /// 30. Recharge PG Customer Wallet (/api/v1/pg/customer/wallet/recharge)
+  Future<Response> rechargePgCustomerWallet(num amount) async {
+    return await apiClient.postData(
+      AppConstants.pgCustomerWalletRecharge,
+      "rechargePgCustomerWallet",
+      {"amount": amount},
+    );
+  }
+
+  /// 31. Fetch PG Customer Scheduled Visits (/api/v1/pg/customer/visits)
+  Future<Response> fetchPgCustomerVisits() async {
+    return await apiClient.getData(
+      AppConstants.pgCustomerVisitsList,
+      "fetchPgCustomerVisits",
+    );
+  }
+
+  /// 32. Create PG Customer Visit (/api/v1/pg/customer/visit)
+  Future<Response> createPgCustomerVisit(Map<String, dynamic> data) async {
+    return await apiClient.postData(
+      AppConstants.pgCustomerCreateVisit,
+      "createPgCustomerVisit",
+      data,
+    );
+  }
+
+  /// 33. Cancel PG Customer Visit (/api/v1/pg/customer/visits/{id}/cancel)
+  Future<Response> cancelPgCustomerVisit(String visitId) async {
+    return await apiClient.postData(
+      AppConstants.pgCustomerVisitCancel(id: visitId),
+      "cancelPgCustomerVisit",
+      {},
+    );
+  }
+
+  /// 34. Fetch PG Customer Saved Listings / Favorites (/api/v1/pg/customer/saved-listings)
+  Future<Response> fetchPgSavedListings() async {
+    return await apiClient.getData(
+      AppConstants.pgCustomerSavedListings,
+      "fetchPgSavedListings",
+    );
+  }
+
+  /// 35. Remove PG Customer Saved Listing (/api/v1/pg/customer/saved-listings/{id})
+  Future<Response> removePgSavedListing(String favoriteId) async {
+    return await apiClient.deleteData(
+      AppConstants.pgCustomerSavedListingRemove(favoriteId),
+      "removePgSavedListing",
+    );
+  }
+
+  /// 36. Update PG Customer Profile (/api/v1/pg/customer/profile)
+  Future<Response> updatePgCustomerProfile(Map<String, dynamic> data) async {
+    return await apiClient.postData(
+      AppConstants.pgCustomerProfile,
+      "updatePgCustomerProfile",
+      data,
+    );
+  }
 }

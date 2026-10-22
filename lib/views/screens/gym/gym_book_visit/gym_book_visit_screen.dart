@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:vlr/controllers/auth_controller.dart';
 import 'package:vlr/controllers/book_appoint_controller.dart';
 import 'package:vlr/controllers/gym_controller.dart';
@@ -32,22 +31,17 @@ class GymBookVisitScreen extends StatefulWidget {
 }
 
 class _GymBookVisitScreenState extends State<GymBookVisitScreen> {
-  late final Razorpay _razorpay;
-  String _selectedPaymentMethod = "razorpay"; // "razorpay" or "cash"
-
   final TextEditingController _noteController = TextEditingController();
   late final TextEditingController _nameController;
   late final TextEditingController _phoneController;
   late final TextEditingController _emailController;
 
+  /// Flag to prevent duplicate booking submissions
+  bool _isBooking = false;
+
   @override
   void initState() {
     super.initState();
-
-    _razorpay = Razorpay();
-    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handleRazorpayPaymentSuccess);
-    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handleRazorpayPaymentError);
-    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleRazorpayExternalWallet);
 
     final authController = Get.find<AuthController>();
     final user = authController.userModel;
@@ -57,7 +51,7 @@ class _GymBookVisitScreenState extends State<GymBookVisitScreen> {
           ? user!.name!
           : (authController.fullNameController.text.isNotEmpty
               ? authController.fullNameController.text
-              : "Rahul Sharma"),
+              : ""),
     );
 
     _phoneController = TextEditingController(
@@ -65,7 +59,7 @@ class _GymBookVisitScreenState extends State<GymBookVisitScreen> {
           ? user!.mobile!
           : (authController.mobileNoController.text.isNotEmpty
               ? authController.mobileNoController.text
-              : "9876543210"),
+              : ""),
     );
 
     _emailController = TextEditingController(
@@ -73,7 +67,7 @@ class _GymBookVisitScreenState extends State<GymBookVisitScreen> {
           ? user!.email!
           : (authController.emailController.text.isNotEmpty
               ? authController.emailController.text
-              : "rahul@example.com"),
+              : ""),
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -107,7 +101,6 @@ class _GymBookVisitScreenState extends State<GymBookVisitScreen> {
 
   @override
   void dispose() {
-    _razorpay.clear();
     _noteController.dispose();
     _nameController.dispose();
     _phoneController.dispose();
@@ -115,259 +108,51 @@ class _GymBookVisitScreenState extends State<GymBookVisitScreen> {
     super.dispose();
   }
 
-  int _getVisitFee(ListingModel? gym) {
-    if (gym?.startingPrice != null && gym!.startingPrice! > 0) {
-      return gym.startingPrice!;
+  /// Validates that the selected date and time are in the future.
+  /// Returns true if valid, false otherwise (and shows appropriate error toast).
+  bool _validateDateTimeSelection(BookAppointController bookController) {
+    final now = DateTime.now();
+    final selectedDate = bookController.selectedDate;
+
+    // Check if selected date is in the past
+    final todayStart = DateTime(now.year, now.month, now.day);
+    final selectedDayStart = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+
+    if (selectedDayStart.isBefore(todayStart)) {
+      showToast(
+        message: "Past date selected. Please select today or a future date.",
+        toastType: ToastType.error,
+      );
+      return false;
     }
-    return 199;
-  }
 
-  void _handleRazorpayPaymentSuccess(PaymentSuccessResponse response) {
-    final homeController = Get.find<HomeController>();
-    final visitController = Get.find<VisitController>();
-    final bookController = Get.find<BookAppointController>();
+    // Check if a time slot has been selected
+    if (bookController.selectedTime.isEmpty) {
+      showToast(
+        message: "Please choose a time slot to continue",
+        toastType: ToastType.error,
+      );
+      return false;
+    }
 
-    final gym = widget.listingModel ?? homeController.selectListingModel;
-    final listingId = widget.listingId ??
-        gym?.id ??
-        homeController.selectListingModel?.id ??
-        "";
-    final gymTitle = gym?.title ?? "Gym Sanctuary";
-    final visitFee = _getVisitFee(gym);
-
-    final String apiDate =
-        "${bookController.selectedDate.year}-${bookController.selectedDate.month.toString().padLeft(2, '0')}-${bookController.selectedDate.day.toString().padLeft(2, '0')}";
-
-    final authController = Get.find<AuthController>();
-    final user = authController.userModel;
-    final appUserId = int.tryParse(user?.id ?? "") ?? 5;
-
-    showToast(
-      message: "Payment received! Scheduling gym visit...",
-      toastType: ToastType.success,
-    );
-
-    visitController
-        .bookGymVisit(
-      listingId: listingId,
-      visitDate: apiDate,
-      preferredTime: bookController.selectedTime,
-      note: _noteController.text.trim(),
-      appUserId: appUserId,
-      customerName: _nameController.text.trim(),
-      customerPhone: _phoneController.text.trim(),
-      customerEmail: _emailController.text.trim(),
-    )
-        .then((value) {
-      if (value.isSuccess) {
-        final data = value.data is Map ? value.data : null;
-        final visitId = data?['visit_id']?.toString() ?? "";
-
-        // Verify payment booking if GymController is registered
-        try {
-          if (Get.isRegistered<GymController>() && visitId.isNotEmpty) {
-            Get.find<GymController>().verifyPaymentBooking(
-              bookingId: visitId,
-              invoiceId: "INV-${DateTime.now().millisecondsSinceEpoch}",
-              razorpayOrderId: response.orderId ?? "",
-              razorpayPaymentId: response.paymentId ?? "",
-              razorpaySignature: response.signature ?? "",
-            );
-          }
-        } catch (_) {}
-
-        Get.off(() => GymBookVisitSuccessScreen(
-              isMembership: false,
-              gymTitle: data?['gym_title'] ?? gymTitle,
-              visitId: visitId.isNotEmpty ? visitId : null,
-              visitDate: data?['visit_date'] ?? apiDate,
-              visitTime: data?['slot_label'] ??
-                  data?['visit_time'] ??
-                  bookController.selectedTime,
-              status: "completed",
-              finalAmount: visitFee,
-              message:
-                  "🎉 Payment of ₹$visitFee via Razorpay successful (ID: ${response.paymentId})! Visit scheduled.",
-            ));
-      } else {
+    // For today's date, validate that the selected time is in the future
+    if (selectedDayStart.isAtSameMomentAs(todayStart)) {
+      // Try to parse the selected time to check if it's already past
+      if (!bookController.canSelectTime(bookController.selectedTime)) {
         showToast(
-          message: value.message,
+          message: "Selected time has already passed. Please choose a future time slot.",
           toastType: ToastType.error,
         );
+        return false;
       }
-    });
-  }
-
-  void _handleRazorpayPaymentError(PaymentFailureResponse response) {
-    showToast(
-      message: response.message != null && response.message!.isNotEmpty
-          ? "Payment Failed: ${response.message}"
-          : "Payment was cancelled.",
-      toastType: ToastType.error,
-    );
-  }
-
-  void _handleRazorpayExternalWallet(ExternalWalletResponse response) {
-    showToast(
-      message: "External Wallet: ${response.walletName}",
-      toastType: ToastType.info,
-    );
-  }
-
-  void _openRazorpayCheckout({
-    required String gymTitle,
-    required dynamic visitFee,
-  }) {
-    final num feeNum = num.tryParse(visitFee.toString()) ?? 199;
-    final int amountInPaise = (feeNum * 100).toInt();
-
-    final options = {
-      'key': 'rzp_test_TWIAoYszpcVthe',
-      'amount': amountInPaise > 0 ? amountInPaise : 19900,
-      'name': gymTitle.isNotEmpty ? gymTitle : 'Feetrack Gym',
-      'description': 'Gym Visit Pass Booking',
-      'prefill': {
-        'name': _nameController.text.trim().isNotEmpty
-            ? _nameController.text.trim()
-            : 'Visitor',
-        'contact': _phoneController.text.trim().isNotEmpty
-            ? _phoneController.text.trim()
-            : '9876543210',
-        'email': _emailController.text.trim().isNotEmpty
-            ? _emailController.text.trim()
-            : 'visitor@feetrack.com',
-      },
-      'theme': {
-        'color': '#002060',
-      },
-    };
-
-    try {
-      debugPrint('Opening Razorpay options: $options');
-      _razorpay.open(options);
-    } catch (e) {
-      debugPrint(
-          'Razorpay native open failed (unsupported environment/desktop): $e');
-      _showRazorpaySimulatedDialog(
-        gymTitle: gymTitle,
-        visitFee: visitFee,
-      );
     }
-  }
 
-  void _showRazorpaySimulatedDialog({
-    required String gymTitle,
-    required dynamic visitFee,
-  }) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF002060).withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.payment_rounded,
-                  color: Color(0xFF002060), size: 22),
-            ),
-            const SizedBox(width: 12),
-            const Text(
-              'Razorpay Gateway',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              gymTitle,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Type: Gym Visit Day Pass',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Total Amount:',
-                      style: TextStyle(fontWeight: FontWeight.w600)),
-                  Text(
-                    '₹$visitFee',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        color: Colors.green),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Simulate Razorpay payment on this platform / test environment:',
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _handleRazorpayPaymentError(
-                PaymentFailureResponse(
-                    Razorpay.PAYMENT_CANCELLED, 'Payment cancelled', null),
-              );
-            },
-            child: const Text('Cancel', style: TextStyle(color: Colors.red)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF002060),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-            ),
-            onPressed: () {
-              Navigator.pop(ctx);
-              final simPayId = 'pay_${DateTime.now().millisecondsSinceEpoch}';
-              final simOrderId =
-                  'order_${DateTime.now().millisecondsSinceEpoch}';
-              _handleRazorpayPaymentSuccess(
-                PaymentSuccessResponse(
-                    simPayId, simOrderId, 'sig_simulated', null),
-              );
-            },
-            child: const Text('Pay Success',
-                style: TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
+    return true;
   }
 
   @override
   Widget build(BuildContext context) {
     return GetBuilder<HomeController>(builder: (homeController) {
-      final currentGym =
-          homeController.selectListingModel ?? widget.listingModel;
-      final visitFee = _getVisitFee(currentGym);
-
       return Scaffold(
         backgroundColor: const Color(0xFFF8F9FA),
         appBar: AppBar(
@@ -409,10 +194,6 @@ class _GymBookVisitScreenState extends State<GymBookVisitScreen> {
               _buildCustomerInfoSection(),
               sizedBoxHeight(height: 18),
 
-              // Payment Method Selection Section (Razorpay vs Cash)
-              _buildPaymentMethodSection(visitFee),
-              sizedBoxHeight(height: 18),
-
               // Optional Visit Note
               _buildVisitNoteSection(),
               sizedBoxHeight(height: 30),
@@ -420,8 +201,7 @@ class _GymBookVisitScreenState extends State<GymBookVisitScreen> {
           ),
         ),
         bottomNavigationBar: _buildBottomBar(
-          gym: currentGym,
-          visitFee: visitFee,
+          gym: widget.listingModel ?? homeController.selectListingModel,
         ),
       );
     });
@@ -517,221 +297,6 @@ class _GymBookVisitScreenState extends State<GymBookVisitScreen> {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: primaryColor, width: 1.2),
         ),
-      ),
-    );
-  }
-
-  Widget _buildPaymentMethodSection(int visitFee) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            offset: const Offset(0, 4),
-            blurRadius: 16,
-            color: Colors.black.withValues(alpha: 0.05),
-          )
-        ],
-        border: Border.all(
-          color: Colors.grey.withValues(alpha: 0.12),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.payment_rounded, size: 18, color: primaryColor),
-              SizedBox(width: 8),
-              Text(
-                "Payment Method",
-                style: TextStyle(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF1A1A2E),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-
-          // Option 1: Razorpay Online
-          InkWell(
-            onTap: () => setState(() => _selectedPaymentMethod = "razorpay"),
-            borderRadius: BorderRadius.circular(14),
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: _selectedPaymentMethod == "razorpay"
-                    ? const Color(0xFF002060).withValues(alpha: 0.08)
-                    : const Color(0xFFF9FAFB),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: _selectedPaymentMethod == "razorpay"
-                      ? const Color(0xFF002060)
-                      : Colors.grey.shade200,
-                  width: _selectedPaymentMethod == "razorpay" ? 1.5 : 1,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: _selectedPaymentMethod == "razorpay"
-                          ? const Color(0xFF002060)
-                          : Colors.grey.shade100,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.bolt_rounded,
-                      size: 18,
-                      color: _selectedPaymentMethod == "razorpay"
-                          ? Colors.white
-                          : greyText3,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Text(
-                              "Pay Online",
-                              style: TextStyle(
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF1A1A2E),
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF059669)
-                                    .withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: const Text(
-                                "Instant",
-                                style: TextStyle(
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF059669),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          "UPI, Credit/Debit Cards, NetBanking, Wallets",
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: greyText3,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(
-                    _selectedPaymentMethod == "razorpay"
-                        ? Icons.check_circle_rounded
-                        : Icons.radio_button_unchecked_rounded,
-                    color: _selectedPaymentMethod == "razorpay"
-                        ? const Color(0xFF002060)
-                        : Colors.grey.shade300,
-                    size: 20,
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 10),
-
-          // Option 2: Cash on Visit
-          InkWell(
-            onTap: () => setState(() => _selectedPaymentMethod = "cash"),
-            borderRadius: BorderRadius.circular(14),
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: _selectedPaymentMethod == "cash"
-                    ? const Color(0xFF00897B).withValues(alpha: 0.08)
-                    : const Color(0xFFF9FAFB),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: _selectedPaymentMethod == "cash"
-                      ? const Color(0xFF00897B)
-                      : Colors.grey.shade200,
-                  width: _selectedPaymentMethod == "cash" ? 1.5 : 1,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: _selectedPaymentMethod == "cash"
-                          ? const Color(0xFF00897B)
-                          : Colors.grey.shade100,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.payments_rounded,
-                      size: 18,
-                      color: _selectedPaymentMethod == "cash"
-                          ? Colors.white
-                          : greyText3,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Pay Cash on Visit",
-                          style: TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF1A1A2E),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          "Pay directly at gym reception counter",
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: greyText3,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(
-                    _selectedPaymentMethod == "cash"
-                        ? Icons.check_circle_rounded
-                        : Icons.radio_button_unchecked_rounded,
-                    color: _selectedPaymentMethod == "cash"
-                        ? const Color(0xFF00897B)
-                        : Colors.grey.shade300,
-                    size: 20,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -878,12 +443,10 @@ class _GymBookVisitScreenState extends State<GymBookVisitScreen> {
 
   Widget _buildBottomBar({
     required ListingModel? gym,
-    required int visitFee,
   }) {
     return GetBuilder<VisitController>(builder: (visitController) {
       return GetBuilder<BookAppointController>(builder: (bookController) {
         final hasSelectedTime = bookController.selectedTime.isNotEmpty;
-        final isRazorpay = _selectedPaymentMethod == "razorpay";
         final homeController = Get.find<HomeController>();
         final gymTitle = gym?.title ??
             homeController.selectListingModel?.title ??
@@ -911,7 +474,7 @@ class _GymBookVisitScreenState extends State<GymBookVisitScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Schedule Preview & Amount Row
+                  // Schedule Preview Row
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -919,9 +482,7 @@ class _GymBookVisitScreenState extends State<GymBookVisitScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            isRazorpay
-                                ? "Total Payable (Razorpay)"
-                                : "Total Payable (Pay on Visit)",
+                            "Schedule Gym Visit",
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -929,10 +490,10 @@ class _GymBookVisitScreenState extends State<GymBookVisitScreen> {
                             ),
                           ),
                           Text(
-                            "₹$visitFee",
+                            gymTitle,
                             style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
                               color: Color(0xFF002060),
                             ),
                           ),
@@ -974,21 +535,19 @@ class _GymBookVisitScreenState extends State<GymBookVisitScreen> {
                   ),
                   const SizedBox(height: 10),
 
-                  // Confirm & Pay Button
+                  // Confirm & Book Visit Button (No Payment)
                   CustomButton(
                     height: 52,
                     radius: 14,
-                    isLoading: visitController.isLoading,
+                    isLoading: visitController.isLoading || _isBooking,
                     color: const Color(0xFF002060),
                     borderColor: const Color(0xFF002060),
                     onTap: () {
-                      if (bookController.selectedTime.isEmpty) {
-                        showToast(
-                          message: "Please choose a time slot to continue",
-                          toastType: ToastType.error,
-                        );
-                        return;
-                      }
+                      // Prevent duplicate clicks
+                      if (_isBooking || visitController.isLoading) return;
+
+                      // Validate date and time
+                      if (!_validateDateTimeSelection(bookController)) return;
 
                       final listingId = widget.listingId ??
                           gym?.id ??
@@ -1003,17 +562,6 @@ class _GymBookVisitScreenState extends State<GymBookVisitScreen> {
                         return;
                       }
 
-                      if (isRazorpay) {
-                        _openRazorpayCheckout(
-                          gymTitle: gymTitle,
-                          visitFee: visitFee,
-                        );
-                        return;
-                      }
-
-                      final String apiDate =
-                          "${bookController.selectedDate.year}-${bookController.selectedDate.month.toString().padLeft(2, '0')}-${bookController.selectedDate.day.toString().padLeft(2, '0')}";
-
                       final authController = Get.find<AuthController>();
                       if (!authController.isLoggedIn()) {
                         showLoginRequiredDialog(
@@ -1024,8 +572,14 @@ class _GymBookVisitScreenState extends State<GymBookVisitScreen> {
                         );
                         return;
                       }
+
+                      final String apiDate =
+                          "${bookController.selectedDate.year}-${bookController.selectedDate.month.toString().padLeft(2, '0')}-${bookController.selectedDate.day.toString().padLeft(2, '0')}";
+
                       final user = authController.userModel;
-                      final appUserId = int.tryParse(user?.id ?? "") ?? 5;
+                      final appUserId = int.tryParse(user?.id ?? "");
+
+                      setState(() => _isBooking = true);
 
                       visitController
                           .bookGymVisit(
@@ -1039,6 +593,9 @@ class _GymBookVisitScreenState extends State<GymBookVisitScreen> {
                         customerEmail: _emailController.text.trim(),
                       )
                           .then((value) {
+                        if (!mounted) return;
+                        setState(() => _isBooking = false);
+
                         if (value.isSuccess) {
                           showToast(
                             message: value.message,
@@ -1054,7 +611,6 @@ class _GymBookVisitScreenState extends State<GymBookVisitScreen> {
                                     data?['visit_time'] ??
                                     bookController.selectedTime,
                                 status: data?['status'] ?? "pending",
-                                finalAmount: visitFee,
                                 message: data?['message'] ?? value.message,
                               ));
                         } else {
@@ -1063,15 +619,20 @@ class _GymBookVisitScreenState extends State<GymBookVisitScreen> {
                             toastType: ToastType.error,
                           );
                         }
+                      }).catchError((error) {
+                        if (!mounted) return;
+                        setState(() => _isBooking = false);
+                        showToast(
+                          message: "Something went wrong. Please try again.",
+                          toastType: ToastType.error,
+                        );
                       });
                     },
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          isRazorpay
-                              ? "PAY VIA RAZORPAY & CONFIRM"
-                              : "CONFIRM & BOOK VISIT (CASH)",
+                          "CONFIRM & BOOK VISIT",
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w800,

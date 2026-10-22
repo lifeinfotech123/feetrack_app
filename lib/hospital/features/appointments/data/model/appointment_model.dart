@@ -193,6 +193,8 @@ class AppointmentModel {
 
 class CreateAppointmentPayload {
   final String hospital;
+  final String? hospitalDomain;
+  final String? domain;
   final int doctorId;
   final String doctorName;
   final String appointmentDate;
@@ -211,6 +213,8 @@ class CreateAppointmentPayload {
 
   CreateAppointmentPayload({
     required this.hospital,
+    this.hospitalDomain,
+    this.domain,
     required this.doctorId,
     required this.doctorName,
     required this.appointmentDate,
@@ -230,6 +234,8 @@ class CreateAppointmentPayload {
 
   Map<String, dynamic> toJson() => {
         'hospital': hospital,
+        'hospital_domain': hospitalDomain ?? hospital,
+        'domain': domain ?? hospitalDomain ?? hospital,
         'doctor_id': doctorId,
         'doctor_name': doctorName,
         'appointment_date': appointmentDate,

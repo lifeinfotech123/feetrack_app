@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:vlr/controllers/auth_controller.dart';
 import 'package:vlr/controllers/gym_controller.dart';
 import 'package:vlr/controllers/visit_controller.dart';
 import 'package:vlr/services/constants.dart';
 import 'package:vlr/services/lanch_helper.dart';
 import 'package:vlr/services/theme.dart';
+import 'package:vlr/views/screens/auth_screens/login/login_screen.dart';
 import 'package:vlr/views/screens/gym/gym_book_visit/gym_my_visit_detail_screen.dart';
 
 class GymMyVisitListScreen extends StatefulWidget {
@@ -29,13 +31,23 @@ class _GymMyVisitListScreenState extends State<GymMyVisitListScreen>
       initialIndex: widget.initialIndex.clamp(0, 1),
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadData();
+      if (Get.isRegistered<AuthController>() &&
+          Get.find<AuthController>().isLoggedIn()) {
+        _loadData();
+      }
     });
   }
 
   void _loadData() {
-    Get.find<GymController>().fetchMyGymBookings();
-    Get.find<VisitController>().fetchVisits();
+    if (Get.isRegistered<AuthController>() &&
+        Get.find<AuthController>().isLoggedIn()) {
+      Get.find<GymController>().fetchMyGymBookings();
+      Get.find<VisitController>().fetchVisits();
+    } else {
+      if (Get.isRegistered<GymController>()) {
+        Get.find<GymController>().clearMyGymBookings();
+      }
+    }
   }
 
   @override
@@ -44,86 +56,200 @@ class _GymMyVisitListScreenState extends State<GymMyVisitListScreen>
     super.dispose();
   }
 
+  Widget _buildGuestView(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: const Color(0xFF002060).withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.lock_outline_rounded,
+                size: 40,
+                color: Color(0xFF002060),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              "You are browsing as Guest",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1A1A2E),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "Please log in to view your gym memberships, scheduled visits, and active workout bookings.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: greyText3,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                );
+                if (mounted &&
+                    Get.isRegistered<AuthController>() &&
+                    Get.find<AuthController>().isLoggedIn()) {
+                  _loadData();
+                  setState(() {});
+                }
+              },
+              icon: const Icon(Icons.login_rounded, color: Colors.white, size: 18),
+              label: const Text(
+                "Log In Now",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF002060),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
-        shadowColor: black.withValues(alpha: 0.05),
-        centerTitle: false,
-        title: Text(
-          "My Gym",
-          style: Helper(context).textTheme.bodyMedium?.copyWith(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: blackText1,
+    return GetBuilder<AuthController>(
+      builder: (authController) {
+        final bool isLoggedIn = authController.isLoggedIn();
+
+        if (!isLoggedIn) {
+          return Scaffold(
+            backgroundColor: const Color(0xFFF8F9FA),
+            appBar: AppBar(
+              elevation: 0,
+              backgroundColor: Colors.white,
+              shadowColor: black.withValues(alpha: 0.05),
+              centerTitle: false,
+              title: Text(
+                "My Gym",
+                style: Helper(context).textTheme.bodyMedium?.copyWith(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: blackText1,
+                    ),
               ),
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(48),
-          child: Container(
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: TabBar(
-              controller: _tabController,
-              labelColor: const Color(0xFF002060),
-              unselectedLabelColor: greyText3,
-              indicatorColor: const Color(0xFF002060),
-              indicatorWeight: 3,
-              labelStyle: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-              ),
-              unselectedLabelStyle: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-              tabs: [
-                GetBuilder<GymController>(
-                  builder: (gymCtrl) {
-                    final count = gymCtrl.myGymMembershipsList.length;
-                    return Tab(
-                      child: Text(
-                        "Memberships ${count > 0 ? '($count)' : ''}",
-                        style: TextStyle(fontSize: 15),
-                      ),
-                    );
-                  },
-                ),
-                GetBuilder<GymController>(
-                  builder: (gymCtrl) {
-                    final count = gymCtrl.myGymVisitsList.isNotEmpty
-                        ? gymCtrl.myGymVisitsList.length
-                        : Get.find<VisitController>().visitList.length;
-                    return Tab(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.tour_rounded, size: 16),
-                          const SizedBox(width: 6),
-                          Text(
-                            "Visits ${count > 0 ? '($count)' : ''}",
-                            style: TextStyle(fontSize: 15),
+            ),
+            body: _buildGuestView(context),
+          );
+        }
+
+        // If logged in, ensure data is loaded if empty
+        final gymCtrl = Get.find<GymController>();
+        if (!gymCtrl.isMyGymBookingsLoading &&
+            gymCtrl.myGymBookingsData == null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _loadData();
+          });
+        }
+
+        return Scaffold(
+          backgroundColor: const Color(0xFFF8F9FA),
+          appBar: AppBar(
+            elevation: 0,
+            backgroundColor: Colors.white,
+            shadowColor: black.withValues(alpha: 0.05),
+            centerTitle: false,
+            title: Text(
+              "My Gym",
+              style: Helper(context).textTheme.bodyMedium?.copyWith(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: blackText1,
+                  ),
+            ),
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(48),
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: TabBar(
+                  controller: _tabController,
+                  labelColor: const Color(0xFF002060),
+                  unselectedLabelColor: greyText3,
+                  indicatorColor: const Color(0xFF002060),
+                  indicatorWeight: 3,
+                  labelStyle: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                  unselectedLabelStyle: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  tabs: [
+                    GetBuilder<GymController>(
+                      builder: (gymCtrl) {
+                        final count = gymCtrl.myGymMembershipsList.length;
+                        return Tab(
+                          child: Text(
+                            "Memberships ${count > 0 ? '($count)' : ''}",
+                            style: const TextStyle(fontSize: 15),
                           ),
-                        ],
-                      ),
-                    );
-                  },
+                        );
+                      },
+                    ),
+                    GetBuilder<GymController>(
+                      builder: (gymCtrl) {
+                        final count = gymCtrl.myGymVisitsList.isNotEmpty
+                            ? gymCtrl.myGymVisitsList.length
+                            : Get.find<VisitController>().visitList.length;
+                        return Tab(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.tour_rounded, size: 16),
+                              const SizedBox(width: 6),
+                              Text(
+                                "Visits ${count > 0 ? '($count)' : ''}",
+                                style: const TextStyle(fontSize: 15),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildMembershipsTab(),
-          _buildVisitsTab(),
-        ],
-      ),
+          body: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildMembershipsTab(),
+              _buildVisitsTab(),
+            ],
+          ),
+        );
+      },
     );
   }
 

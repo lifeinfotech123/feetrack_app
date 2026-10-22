@@ -76,4 +76,66 @@ class GymRepo {
         AppConstants.gymShiftDetails(id: id),
         "fetchGymShiftDetails",
       );
+
+  // ── Gym Attendance & Invoices ──────────────────────────────────────
+  Future<Response> fetchGymAttendanceStatus() async =>
+      await apiClient.getData(
+        AppConstants.gymAttendanceStatus,
+        "fetchGymAttendanceStatus",
+      );
+
+  Future<Response> punchInGym({required Map<String, dynamic> data}) async =>
+      await apiClient.postData(
+        AppConstants.gymAttendancePunchIn,
+        "punchInGym",
+        data,
+      );
+
+  Future<Response> punchOutGym({required Map<String, dynamic> data}) async =>
+      await apiClient.postData(
+        AppConstants.gymAttendancePunchOut,
+        "punchOutGym",
+        data,
+      );
+
+  Future<Response> fetchGymAttendanceHistory({
+    required String mobile,
+    int? page,
+    String? month,
+  }) async {
+    String url = "${AppConstants.gymAttendanceHistory}?mobile=$mobile";
+    if (page != null) url = "$url&page=$page";
+    if (month != null && month.isNotEmpty) url = "$url&month=$month";
+    return await apiClient.getData(url, "fetchGymAttendanceHistory");
+  }
+
+  Future<Response> fetchGymInvoices({int? page}) async {
+    String url = AppConstants.gymInvoices;
+    if (page != null) url = "$url?page=$page";
+    return await apiClient.getData(url, "fetchGymInvoices");
+  }
+
+  Future<Response> fetchGymInvoiceDetails(String invoiceId) async =>
+      await apiClient.getData(
+        AppConstants.gymInvoiceDetails(invoiceId),
+        "fetchGymInvoiceDetails",
+      );
+
+  Future<Response> fetchGymReviews({
+    required String gymId,
+    int? page,
+  }) async =>
+      await apiClient.getData(
+        AppConstants.gymReviewsByGymId(gymId: gymId, page: page),
+        "fetchGymReviews",
+      );
+
+  Future<Response> submitGymReview({
+    required Map<String, dynamic> data,
+  }) async =>
+      await apiClient.postData(
+        AppConstants.gymReviews,
+        "submitGymReview",
+        data,
+      );
 }

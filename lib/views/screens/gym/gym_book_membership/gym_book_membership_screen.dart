@@ -47,6 +47,9 @@ class _GymBookMembershipScreenState extends State<GymBookMembershipScreen> {
 
   final List<Map<String, dynamic>> _preferredSlots = [];
 
+  /// Flag to prevent duplicate booking submissions
+  bool _isBooking = false;
+
   @override
   void initState() {
     super.initState();
@@ -63,7 +66,7 @@ class _GymBookMembershipScreenState extends State<GymBookMembershipScreen> {
           ? user!.name!
           : (authController.fullNameController.text.isNotEmpty
               ? authController.fullNameController.text
-              : "Rahul Sharma"),
+              : ""),
     );
 
     _phoneController = TextEditingController(
@@ -71,7 +74,7 @@ class _GymBookMembershipScreenState extends State<GymBookMembershipScreen> {
           ? user!.mobile!
           : (authController.mobileNoController.text.isNotEmpty
               ? authController.mobileNoController.text
-              : "9876543210"),
+              : ""),
     );
 
     _emailController = TextEditingController(
@@ -79,7 +82,7 @@ class _GymBookMembershipScreenState extends State<GymBookMembershipScreen> {
           ? user!.email!
           : (authController.emailController.text.isNotEmpty
               ? authController.emailController.text
-              : "rahul@example.com"),
+              : ""),
     );
 
     _noteController = TextEditingController();
@@ -218,7 +221,7 @@ class _GymBookMembershipScreenState extends State<GymBookMembershipScreen> {
 
     final authController = Get.find<AuthController>();
     final user = authController.userModel;
-    final appUserId = int.tryParse(user?.id ?? "") ?? 5;
+    final appUserId = int.tryParse(user?.id ?? "");
 
     showToast(
       message: "Payment received! Confirming membership...",
@@ -240,47 +243,65 @@ class _GymBookMembershipScreenState extends State<GymBookMembershipScreen> {
       paymentId: response.paymentId,
     )
         .then((value) {
-      final data = value.data is Map ? value.data : null;
-      final bookingId = data?['booking_id']?.toString() ?? "";
-      final invoiceId = data?['invoice_id']?.toString() ?? "";
+      if (!mounted) return;
+      setState(() => _isBooking = false);
 
-      // Also trigger payment verification if signature / IDs available
-      if (bookingId.isNotEmpty &&
-          invoiceId.isNotEmpty &&
-          (response.signature != null && response.signature!.isNotEmpty)) {
-        gymController.verifyPaymentBooking(
-          bookingId: bookingId,
-          invoiceId: invoiceId,
-          razorpayOrderId: response.orderId ?? "",
-          razorpayPaymentId: response.paymentId ?? "",
-          razorpaySignature: response.signature ?? "",
+      if (value.isSuccess) {
+        final data = value.data is Map ? value.data : null;
+        final bookingId = data?['booking_id']?.toString() ?? "";
+        final invoiceId = data?['invoice_id']?.toString() ?? "";
+
+        // Also trigger payment verification if signature / IDs available
+        if (bookingId.isNotEmpty &&
+            invoiceId.isNotEmpty &&
+            (response.signature != null && response.signature!.isNotEmpty)) {
+          gymController.verifyPaymentBooking(
+            bookingId: bookingId,
+            invoiceId: invoiceId,
+            razorpayOrderId: response.orderId ?? "",
+            razorpayPaymentId: response.paymentId ?? "",
+            razorpaySignature: response.signature ?? "",
+          );
+        }
+
+        Get.off(() => GymBookVisitSuccessScreen(
+              isMembership: true,
+              otp: data?['otp']?.toString(),
+              bookingNumber: data?['booking_number']?.toString(),
+              invoiceNumber: data?['invoice_number']?.toString(),
+              visitId: data?['visit_id']?.toString(),
+              gymTitle:
+                  data?['gym_title']?.toString() ?? gym?.title ?? "Gym",
+              packageName: data?['package_name']?.toString() ??
+                  plan?.name ??
+                  "Membership Package",
+              finalAmount: data?['final_amount'] ?? planPrice,
+              visitDate: formattedDate,
+              visitTime: _selectedTime,
+              status: "completed",
+              message: value.message,
+            ));
+      } else {
+        // API failure after payment — show error, do NOT navigate to success
+        showToast(
+          message: value.message.isNotEmpty
+              ? value.message
+              : "Membership booking failed. Please contact support.",
+          toastType: ToastType.error,
         );
       }
-
-      Get.off(() => GymBookVisitSuccessScreen(
-            isMembership: true,
-            otp: data?['otp']?.toString() ?? "ONLINE",
-            bookingNumber: data?['booking_number']?.toString() ??
-                "BKG-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}",
-            invoiceNumber: data?['invoice_number']?.toString() ??
-                "INV-${DateTime.now().millisecondsSinceEpoch.toString().substring(6)}",
-            visitId: data?['visit_id']?.toString(),
-            gymTitle:
-                data?['gym_title']?.toString() ?? gym?.title ?? "Gym Sanctuary",
-            packageName: data?['package_name']?.toString() ??
-                plan?.name ??
-                "Membership Package",
-            finalAmount: data?['final_amount'] ?? planPrice,
-            visitDate: formattedDate,
-            visitTime: _selectedTime,
-            status: "completed",
-            message:
-                "🎉 Payment of ₹$planPrice via Razorpay successful (ID: ${response.paymentId})! Membership booked.",
-          ));
+    }).catchError((error) {
+      if (!mounted) return;
+      setState(() => _isBooking = false);
+      showToast(
+        message: "Something went wrong. Please try again.",
+        toastType: ToastType.error,
+      );
     });
   }
 
   void _handleRazorpayPaymentError(PaymentFailureResponse response) {
+    if (mounted) setState(() => _isBooking = false);
     showToast(
       message: response.message != null && response.message!.isNotEmpty
           ? "Payment Failed: ${response.message}"
@@ -443,6 +464,22 @@ class _GymBookMembershipScreenState extends State<GymBookMembershipScreen> {
         ],
       ),
     );
+  }
+
+  /// Validates that the selected date is today or future.
+  bool _validateDateSelection() {
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day);
+    final selectedDayStart = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+
+    if (selectedDayStart.isBefore(todayStart)) {
+      showToast(
+        message: "Past date selected. Please select today or a future date.",
+        toastType: ToastType.error,
+      );
+      return false;
+    }
+    return true;
   }
 
   @override
@@ -1367,10 +1404,13 @@ class _GymBookMembershipScreenState extends State<GymBookMembershipScreen> {
                 CustomButton(
                   height: 52,
                   radius: 14,
-                  isLoading: gymController.isLoading,
+                  isLoading: gymController.isLoading || _isBooking,
                   color: const Color(0xFF002060),
                   borderColor: const Color(0xFF002060),
                   onTap: () {
+                    // Prevent duplicate clicks
+                    if (_isBooking || gymController.isLoading) return;
+
                     final authController = Get.find<AuthController>();
                     if (!authController.isLoggedIn()) {
                       showLoginRequiredDialog(
@@ -1381,6 +1421,9 @@ class _GymBookMembershipScreenState extends State<GymBookMembershipScreen> {
                       );
                       return;
                     }
+
+                    // Validate date
+                    if (!_validateDateSelection()) return;
 
                     if (listingId.isEmpty) {
                       showToast(
@@ -1397,6 +1440,8 @@ class _GymBookMembershipScreenState extends State<GymBookMembershipScreen> {
                       return;
                     }
 
+                    setState(() => _isBooking = true);
+
                     if (isRazorpay) {
                       _openRazorpayCheckout(
                         gymTitle: gymTitle,
@@ -1407,7 +1452,7 @@ class _GymBookMembershipScreenState extends State<GymBookMembershipScreen> {
                     }
 
                     final user = authController.userModel;
-                    final appUserId = int.tryParse(user?.id ?? "") ?? 5;
+                    final appUserId = int.tryParse(user?.id ?? "");
 
                     gymController
                         .bookGymMembership(
@@ -1423,6 +1468,9 @@ class _GymBookMembershipScreenState extends State<GymBookMembershipScreen> {
                       paymentMethod: "cash",
                     )
                         .then((value) {
+                      if (!mounted) return;
+                      setState(() => _isBooking = false);
+
                       if (value.isSuccess) {
                         showToast(
                           message: value.message,
@@ -1431,7 +1479,7 @@ class _GymBookMembershipScreenState extends State<GymBookMembershipScreen> {
                         final data = value.data is Map ? value.data : null;
                         Get.off(() => GymBookVisitSuccessScreen(
                               isMembership: true,
-                              otp: data?['otp']?.toString() ?? "538899",
+                              otp: data?['otp']?.toString(),
                               bookingNumber:
                                   data?['booking_number']?.toString(),
                               invoiceNumber:
@@ -1453,6 +1501,13 @@ class _GymBookMembershipScreenState extends State<GymBookMembershipScreen> {
                           toastType: ToastType.error,
                         );
                       }
+                    }).catchError((error) {
+                      if (!mounted) return;
+                      setState(() => _isBooking = false);
+                      showToast(
+                        message: "Something went wrong. Please try again.",
+                        toastType: ToastType.error,
+                      );
                     });
                   },
                   child: Row(

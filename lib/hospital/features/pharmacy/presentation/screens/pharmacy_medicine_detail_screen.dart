@@ -438,11 +438,6 @@ class _PharmacyMedicineDetailScreenState extends State<PharmacyMedicineDetailScr
                     color: textDark,
                   ),
                 ),
-                if (hosp.domain != null)
-                  Text(
-                    'Domain: ${hosp.domain!}',
-                    style: const TextStyle(fontSize: 11, color: textMuted),
-                  ),
               ],
             ),
           ),

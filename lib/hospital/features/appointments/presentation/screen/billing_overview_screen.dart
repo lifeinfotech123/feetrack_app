@@ -41,7 +41,8 @@ class _BillingOverviewScreenState extends State<BillingOverviewScreen> {
     }
 
     // 2. Appointment payload fee
-    final apptFee = appt?['consultation_fees'] ??
+    final apptFee =
+        appt?['consultation_fees'] ??
         appt?['fees'] ??
         appt?['fee'] ??
         appt?['amount'];
@@ -89,28 +90,48 @@ class _BillingOverviewScreenState extends State<BillingOverviewScreen> {
 
   void _handlePaymentSuccess(PaymentSuccessResponse response) async {
     debugPrint(
-        'Razorpay Success: paymentId=${response.paymentId}, orderId=${response.orderId}, signature=${response.signature}');
+      'Razorpay Success: paymentId=${response.paymentId}, orderId=${response.orderId}, signature=${response.signature}',
+    );
 
     final appt = widget.appointmentData;
     final rzp = widget.razorpayData;
 
-    final String apptId = appt?['id']?.toString() ??
+    final String apptId =
+        appt?['id']?.toString() ??
         appt?['appointment_id']?.toString() ??
         appt?['data']?['id']?.toString() ??
         '';
 
-    final String hospitalDomain = appt?['hospital'] is Map
-        ? ((appt!['hospital'] as Map)['domain']?.toString() ??
-            (appt['hospital'] as Map)['name']?.toString() ??
-            '')
-        : (appt?['hospital']?.toString() ?? '');
+    final hosp = appt?['hospital'];
+    String hospitalDomain = '';
+    if (hosp is Map) {
+      hospitalDomain = hosp['domain']?.toString() ??
+          hosp['hospital_domain']?.toString() ??
+          hosp['name']?.toString() ??
+          '';
+    } else if (hosp is String && hosp.isNotEmpty) {
+      hospitalDomain = hosp;
+    }
+    if (hospitalDomain.isEmpty) {
+      hospitalDomain = appt?['hospital_domain']?.toString() ??
+          appt?['domain']?.toString() ??
+          (widget.doctorData?['hospital'] is Map
+              ? (widget.doctorData!['hospital']['domain']?.toString() ??
+                  widget.doctorData!['hospital']['name']?.toString() ??
+                  '')
+              : widget.doctorData?['hospital_domain']?.toString() ??
+                  widget.doctorData?['domain']?.toString() ??
+                  '');
+    }
 
-    final String apptNo = appt?['appointment_no']?.toString() ??
+    final String apptNo =
+        appt?['appointment_no']?.toString() ??
         rzp?['order_id']?.toString() ??
         response.orderId ??
         '';
 
-    final String docName = appt?['doctor_name']?.toString() ??
+    final String docName =
+        appt?['doctor_name']?.toString() ??
         widget.doctorData?['name']?.toString() ??
         '';
     final String dateStr = appt?['appointment_date']?.toString() ?? '';
@@ -216,8 +237,9 @@ class _BillingOverviewScreenState extends State<BillingOverviewScreen> {
 
       if (decoded['status'] == true) {
         final data = decoded['data'] ?? {};
-        final gatewaysList =
-            (data['gateways'] is List) ? (data['gateways'] as List) : [];
+        final gatewaysList = (data['gateways'] is List)
+            ? (data['gateways'] as List)
+            : [];
         Map<String, dynamic>? rzp;
         for (var g in gatewaysList) {
           if (g is Map<String, dynamic> && g['slug'] == 'razorpay') {
@@ -271,7 +293,8 @@ class _BillingOverviewScreenState extends State<BillingOverviewScreen> {
       final isSuccess = decoded['status'] == true || decoded['success'] == true;
       return {
         'success': isSuccess,
-        'message': decoded['message'] ??
+        'message':
+            decoded['message'] ??
             (isSuccess
                 ? 'Payment verified successfully.'
                 : 'Payment verification failed.'),
@@ -279,10 +302,7 @@ class _BillingOverviewScreenState extends State<BillingOverviewScreen> {
       };
     } catch (e) {
       debugPrint('Exception in verifyPayment: $e');
-      return {
-        'success': false,
-        'message': 'Error verifying payment: $e',
-      };
+      return {'success': false, 'message': 'Error verifying payment: $e'};
     }
   }
 
@@ -294,7 +314,8 @@ class _BillingOverviewScreenState extends State<BillingOverviewScreen> {
 
     // 1. If Online Gateway (Razorpay) is selected
     if (_selectedMethod == 'Razorpay') {
-      final keyId = (_razorpayGateway?['credentials'] is Map
+      final keyId =
+          (_razorpayGateway?['credentials'] is Map
               ? _razorpayGateway!['credentials']['key_id']
               : null) ??
           rzp?['key_id'] ??
@@ -303,11 +324,13 @@ class _BillingOverviewScreenState extends State<BillingOverviewScreen> {
       final num feesNum = _feesNum;
       final int amountInPaise = (feesNum * 100).toInt();
 
-      final String hospName = appt?['hospital'] is Map
-          ? ((appt!['hospital'] as Map)['name']?.toString() ?? 'Hospital')
-          : (appt?['hospital']?.toString() ?? 'Hospital');
+      final hosp = appt?['hospital'];
+      final String hospName = hosp is Map
+          ? (hosp['name']?.toString() ?? 'Hospital')
+          : (hosp?.toString() ?? 'Hospital');
 
-      final String docName = appt?['doctor_name']?.toString() ??
+      final String docName =
+          appt?['doctor_name']?.toString() ??
           widget.doctorData?['name']?.toString() ??
           '';
 
@@ -318,7 +341,8 @@ class _BillingOverviewScreenState extends State<BillingOverviewScreen> {
         rzpObj = rzp;
       }
 
-      final String rzpOrderId = rzpObj?['order_id']?.toString() ??
+      final String rzpOrderId =
+          rzpObj?['order_id']?.toString() ??
           rzpObj?['razorpay_order_id']?.toString() ??
           appt?['razorpay_order_id']?.toString() ??
           '';
@@ -332,7 +356,7 @@ class _BillingOverviewScreenState extends State<BillingOverviewScreen> {
             : 'Appointment Fee Payment',
         if (rzpOrderId.isNotEmpty &&
             !rzpOrderId.startsWith('order_17') &&
-            (rzpObj?['amount'] == null || rzpObj!['amount'] == amountInPaise))
+            (rzpObj?['amount'] == null || rzpObj?['amount'] == amountInPaise))
           'order_id': rzpOrderId,
         'prefill': {
           'contact': appt?['phone']?.toString() ?? '',
@@ -372,7 +396,8 @@ class _BillingOverviewScreenState extends State<BillingOverviewScreen> {
         _isVerifying = false;
       });
 
-      final String apptNo = appt?['appointment_no']?.toString() ??
+      final String apptNo =
+          appt?['appointment_no']?.toString() ??
           'APT-${DateTime.now().millisecondsSinceEpoch % 10000}';
       final String docName = appt?['doctor_name']?.toString() ?? 'Doctor';
       final String dateStr = appt?['appointment_date']?.toString() ?? '';
@@ -380,8 +405,8 @@ class _BillingOverviewScreenState extends State<BillingOverviewScreen> {
       final String feesStr = appt?['fees'] != null
           ? '₹${appt!['fees']}'
           : (rzp?['amount'] != null
-              ? '₹${(rzp!['amount'] as num) / 100}'
-              : '₹500');
+                ? '₹${(rzp!['amount'] as num) / 100}'
+                : '₹500');
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -416,7 +441,9 @@ class _BillingOverviewScreenState extends State<BillingOverviewScreen> {
         final shouldExit = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             title: const Text('Cancel Appointment?'),
             content: const Text(
               'Your appointment has not been booked yet. If you exit now, payment will not be completed and the slot will not be reserved.',
@@ -452,7 +479,10 @@ class _BillingOverviewScreenState extends State<BillingOverviewScreen> {
           title: const Text(
             'Payment Gateway',
             style: TextStyle(
-                fontWeight: FontWeight.bold, fontSize: 16, color: colorWhite),
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: colorWhite,
+            ),
           ),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios, color: colorWhite, size: 20),
@@ -460,54 +490,54 @@ class _BillingOverviewScreenState extends State<BillingOverviewScreen> {
           ),
           centerTitle: true,
         ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildHeaderCard(),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionTitle('Select Payment Gateway'),
-                  const SizedBox(height: 12),
-                  if (_isLoadingGateways)
-                    const Padding(
-                      padding: EdgeInsets.all(24.0),
-                      child: Center(
-                        child: CircularProgressIndicator(color: primaryColor),
-                      ),
-                    )
-                  else ...[
-                    // Razorpay Option
-                    if (_razorpayGateway != null)
-                      _buildGatewayTile(
-                        title: 'Online Gateway',
-                        subtitle: 'Pay securely via UPI, Cards & NetBanking',
-                        icon: Icons.account_balance_wallet,
-                        value: 'Razorpay',
-                        badgeText: 'Active',
-                      ),
+        body: SingleChildScrollView(
+          child: Column(
+            children: [
+              _buildHeaderCard(),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionTitle('Select Payment Gateway'),
+                    const SizedBox(height: 12),
+                    if (_isLoadingGateways)
+                      const Padding(
+                        padding: EdgeInsets.all(24.0),
+                        child: Center(
+                          child: CircularProgressIndicator(color: primaryColor),
+                        ),
+                      )
+                    else ...[
+                      // Razorpay Option
+                      if (_razorpayGateway != null)
+                        _buildGatewayTile(
+                          title: 'Online Gateway',
+                          subtitle: 'Pay securely via UPI, Cards & NetBanking',
+                          icon: Icons.account_balance_wallet,
+                          value: 'Razorpay',
+                          badgeText: 'Active',
+                        ),
 
-                    // Cash Option
-                    _buildGatewayTile(
-                      title: 'Pay at Hospital Counter',
-                      subtitle: 'Pay cash directly upon arrival at clinic',
-                      icon: Icons.money,
-                      value: 'Cash',
-                    ),
+                      // Cash Option
+                      _buildGatewayTile(
+                        title: 'Pay at Hospital Counter',
+                        subtitle: 'Pay cash directly upon arrival at clinic',
+                        icon: Icons.money,
+                        value: 'Cash',
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    _buildSectionTitle('Appointment Information'),
+                    const SizedBox(height: 12),
+                    _buildSummaryBox(),
                   ],
-                  const SizedBox(height: 24),
-                  _buildSectionTitle('Appointment Information'),
-                  const SizedBox(height: 12),
-                  _buildSummaryBox(),
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-      bottomNavigationBar: _buildBottomPayButton(),
+        bottomNavigationBar: _buildBottomPayButton(),
       ),
     );
   }
@@ -516,9 +546,17 @@ class _BillingOverviewScreenState extends State<BillingOverviewScreen> {
     final appt = widget.appointmentData;
     final String feesStr = _displayFees;
 
-    final String hospName = appt?['hospital'] is Map
-        ? ((appt!['hospital'] as Map)['name']?.toString() ?? 'Hospital')
-        : (appt?['hospital']?.toString() ?? 'Hospital');
+    final hosp = appt?['hospital'];
+    String hospName = 'Hospital';
+    if (hosp is Map && hosp['name'] != null && hosp['name'].toString().isNotEmpty) {
+      hospName = hosp['name'].toString();
+    } else if (widget.doctorData?['hospital'] is Map &&
+        widget.doctorData!['hospital']['name'] != null &&
+        widget.doctorData!['hospital']['name'].toString().isNotEmpty) {
+      hospName = widget.doctorData!['hospital']['name'].toString();
+    } else if (widget.doctorData?['hospital_name'] != null) {
+      hospName = widget.doctorData!['hospital_name'].toString();
+    }
 
     return Container(
       width: double.infinity,
@@ -533,7 +571,9 @@ class _BillingOverviewScreenState extends State<BillingOverviewScreen> {
       child: Column(
         children: [
           Text(
-            'Appointment Payment ($hospName)',
+            hospName != 'Hospital'
+                ? 'Appointment Payment ($hospName)'
+                : 'Appointment Payment',
             style: const TextStyle(color: Colors.white70, fontSize: 13),
           ),
           const SizedBox(height: 6),
@@ -678,8 +718,9 @@ class _BillingOverviewScreenState extends State<BillingOverviewScreen> {
                       Text(
                         title,
                         style: TextStyle(
-                          fontWeight:
-                              isSelected ? FontWeight.bold : FontWeight.w600,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.w600,
                           fontSize: 14,
                           color: isSelected ? primaryColor : textDark,
                         ),
@@ -688,7 +729,9 @@ class _BillingOverviewScreenState extends State<BillingOverviewScreen> {
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.green.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(4),
@@ -738,7 +781,8 @@ class _BillingOverviewScreenState extends State<BillingOverviewScreen> {
   Widget _buildSummaryBox() {
     final appt = widget.appointmentData;
     final doc = widget.doctorData;
-    final String docName = appt?['doctor_name']?.toString() ??
+    final String docName =
+        appt?['doctor_name']?.toString() ??
         doc?['name']?.toString() ??
         'Doctor';
     final String dateStr = appt?['appointment_date']?.toString() ?? '';
@@ -777,7 +821,10 @@ class _BillingOverviewScreenState extends State<BillingOverviewScreen> {
         Text(
           value,
           style: const TextStyle(
-              color: textDark, fontWeight: FontWeight.bold, fontSize: 13),
+            color: textDark,
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+          ),
         ),
       ],
     );
@@ -792,7 +839,10 @@ class _BillingOverviewScreenState extends State<BillingOverviewScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-              color: Colors.black12, blurRadius: 10, offset: Offset(0, -2)),
+            color: Colors.black12,
+            blurRadius: 10,
+            offset: Offset(0, -2),
+          ),
         ],
       ),
       child: SafeArea(
@@ -821,7 +871,9 @@ class _BillingOverviewScreenState extends State<BillingOverviewScreen> {
                       ? 'Confirm Booking (Pay at Hospital Counter)'
                       : 'Pay $feesStr via $_selectedMethod',
                   style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 14),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
                 ),
         ),
       ),

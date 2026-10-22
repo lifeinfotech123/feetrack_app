@@ -485,6 +485,9 @@ class _CustomerBookingCard extends StatelessWidget {
     final canPay = actions['can_pay'] == true;
     final canView = actions['can_view'] != false;
     final canInvoice = actions['can_invoice'] == true;
+    final canCancel = actions['can_cancel'] == true;
+    final canVerifyOtp = actions['can_verify_otp'] == true ||
+        (booking.status ?? "").toLowerCase() == 'pending_otp';
 
     return Container(
       decoration: BoxDecoration(
@@ -745,6 +748,30 @@ class _CustomerBookingCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                     ],
+                    if (canVerifyOtp) ...[
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFD97706),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          onPressed: () {
+                            _showVerifyOtpDialog(context, booking);
+                          },
+                          child: const Text(
+                            "Verify OTP",
+                            style: TextStyle(
+                                fontSize: 12, fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
                     if (canPay) ...[
                       Expanded(
                         child: ElevatedButton(
@@ -791,6 +818,16 @@ class _CustomerBookingCard extends StatelessWidget {
                           ),
                         ),
                       ),
+                    if (canCancel) ...[
+                      const SizedBox(width: 6),
+                      IconButton(
+                        tooltip: "Cancel Booking",
+                        icon: const Icon(Icons.cancel_outlined,
+                            color: Color(0xFFDC2626), size: 22),
+                        onPressed: () =>
+                            _showCancelBookingDialog(context, booking),
+                      ),
+                    ],
                   ],
                 ),
               ],
@@ -828,6 +865,227 @@ class _CustomerBookingCard extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  void _showVerifyOtpDialog(
+      BuildContext context, PgCustomerBookingItem booking) {
+    final otpController = TextEditingController(text: booking.otp ?? "");
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) {
+        return AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          title: const Row(
+            children: [
+              Icon(Icons.mark_email_read_rounded,
+                  color: Color(0xFFD97706), size: 22),
+              SizedBox(width: 8),
+              Text(
+                "Verify Check-in OTP",
+                style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w800),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Enter the 6-digit OTP to confirm your check-in for ${booking.property?.title ?? 'this property'}.",
+                style:
+                    const TextStyle(fontSize: 12.5, color: Color(0xFF64748B)),
+              ),
+              if (booking.otp != null && booking.otp!.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF3C7),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFFDE68A)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline_rounded,
+                          size: 16, color: Color(0xFFD97706)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          "Your assigned OTP is ${booking.otp}",
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF92400E),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
+              TextField(
+                controller: otpController,
+                keyboardType: TextInputType.number,
+                maxLength: 6,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 22,
+                  letterSpacing: 6,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF002060),
+                ),
+                decoration: InputDecoration(
+                  counterText: "",
+                  hintText: "••••••",
+                  filled: true,
+                  fillColor: const Color(0xFFF8FAFC),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        const BorderSide(color: Color(0xFF002060), width: 1.8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text(
+                "Cancel",
+                style: TextStyle(
+                    color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+              ),
+            ),
+            GetBuilder<RoomController>(
+              builder: (ctrl) {
+                return ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF002060),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onPressed: ctrl.isVerifyingOtp
+                      ? null
+                      : () async {
+                          final otp = otpController.text.trim();
+                          if (otp.isEmpty) {
+                            showToast(
+                              message: "Please enter the OTP",
+                              toastType: ToastType.error,
+                            );
+                            return;
+                          }
+                          final res = await ctrl.verifyPgBookingOtp(
+                            bookingId: booking.id ?? "",
+                            otp: otp,
+                          );
+                          if (res.isSuccess) {
+                            if (dialogCtx.mounted) {
+                              Navigator.pop(dialogCtx);
+                            }
+                          }
+                        },
+                  child: ctrl.isVerifyingOtp
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          "Verify OTP",
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showCancelBookingDialog(
+      BuildContext context, PgCustomerBookingItem booking) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded,
+                color: Color(0xFFDC2626), size: 22),
+            SizedBox(width: 8),
+            Text(
+              "Cancel Booking?",
+              style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w800),
+            ),
+          ],
+        ),
+        content: Text(
+          "Are you sure you want to cancel booking ${booking.shortId ?? booking.bookingNumber ?? ''}? This action cannot be undone.",
+          style: const TextStyle(fontSize: 13, color: Color(0xFF475569)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text(
+              "Keep Booking",
+              style: TextStyle(
+                  color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+            ),
+          ),
+          GetBuilder<RoomController>(
+            builder: (ctrl) {
+              return ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFDC2626),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: ctrl.isCancellingBooking
+                    ? null
+                    : () async {
+                        final res =
+                            await ctrl.cancelPgBooking(booking.id ?? "");
+                        if (res.isSuccess) {
+                          if (dialogCtx.mounted) {
+                            Navigator.pop(dialogCtx);
+                          }
+                        }
+                      },
+                child: ctrl.isCancellingBooking
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        "Yes, Cancel",
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -1540,6 +1798,59 @@ class _CustomerBookingCard extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 14.5,
                           fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+                  if (booking.actions?['can_verify_otp'] == true ||
+                      (booking.status ?? "").toLowerCase() == 'pending_otp') ...[
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFD97706),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        elevation: 1,
+                      ),
+                      onPressed: () {
+                        Navigator.pop(sheetCtx);
+                        _showVerifyOtpDialog(context, booking);
+                      },
+                      icon: const Icon(Icons.verified_user_rounded, size: 18),
+                      label: const Text(
+                        "Verify Check-in OTP",
+                        style: TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+
+                  if (booking.actions?['can_cancel'] == true) ...[
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFDC2626),
+                        side: const BorderSide(color: Color(0xFFDC2626)),
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(sheetCtx);
+                        _showCancelBookingDialog(context, booking);
+                      },
+                      icon: const Icon(Icons.cancel_outlined, size: 18),
+                      label: const Text(
+                        "Cancel This Booking",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),

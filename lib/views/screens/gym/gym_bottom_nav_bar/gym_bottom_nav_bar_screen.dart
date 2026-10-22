@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:vlr/data/models/category_model/listing_model.dart';
 import 'package:vlr/views/screens/dashboard/home_screen/All_home/gym_home/gym_home_screen.dart';
 import 'package:vlr/views/screens/gym/attendance/attendance_checkin_checkout_screen.dart';
-import 'package:vlr/views/screens/gym/gym_book_membership/gym_book_membership_screen.dart';
 import 'package:vlr/views/screens/gym/gym_book_visit/gym_my_visit_list_screen.dart';
-import 'package:vlr/views/screens/dashboard/home_screen/All_home/gym_home/widget/gym_home_details_screen.dart';
 import 'package:vlr/views/screens/gym/my_gym_book_screen.dart/my_gym_book_screen.dart';
-import 'package:vlr/views/screens/room_section/room/room_profile_screen/room_profile_screen.dart';
 
 class GymBottomNavBarScreen extends StatefulWidget {
   final int initialIndex;

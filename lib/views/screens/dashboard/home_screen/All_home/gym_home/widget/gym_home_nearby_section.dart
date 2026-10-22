@@ -20,7 +20,8 @@ class GymHomeNearbySection extends StatelessWidget {
       children: [
         sizedBoxHeight(height: 24),
         GetBuilder<HomeController>(builder: (homeController) {
-          final count = homeController.listingModelList.length;
+          final gyms = homeController.displayedGymList;
+          final count = gyms.length;
           final categoryName =
               homeController.selectCategoryModel?.name ?? "Gym";
 
@@ -78,7 +79,7 @@ class GymHomeNearbySection extends StatelessWidget {
                   ],
                 ),
               ),
-              if (!homeController.isLoading && count > 0)
+              if (!homeController.isGymLoading && count > 0)
                 Container(
                   padding:
                       EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
@@ -100,11 +101,11 @@ class GymHomeNearbySection extends StatelessWidget {
         }),
         sizedBoxHeight(height: 18),
         GetBuilder<HomeController>(builder: (homeController) {
-          final bool isListLoading = homeController.isLoading;
-          final int itemCount =
-              isListLoading ? 4 : homeController.listingModelList.length;
+          final gyms = homeController.displayedGymList;
+          final bool isListLoading = homeController.isGymLoading;
+          final int itemCount = isListLoading ? 4 : gyms.length;
 
-          if (!isListLoading && homeController.listingModelList.isEmpty) {
+          if (!isListLoading && gyms.isEmpty) {
             final activeCity = homeController.selectedGymCity?.city;
             return Center(
               child: Padding(
@@ -185,9 +186,8 @@ class GymHomeNearbySection extends StatelessWidget {
               mainAxisExtent: 285.h,
             ),
             itemBuilder: (context, index) {
-              final ListingModel listingModel = isListLoading
-                  ? ListingModel()
-                  : homeController.listingModelList[index];
+              final ListingModel listingModel =
+                  isListLoading ? ListingModel() : gyms[index];
 
               return _buildNearbyGridCard(
                 context: context,
