@@ -608,9 +608,7 @@ class _AllCategoryHomeScreenState extends State<AllCategoryHomeScreen> {
 
                   final int itemCount = homeController.isLoading
                       ? 4
-                      : (homeController.categoryModelList.length <= 4
-                          ? homeController.categoryModelList.length
-                          : 4);
+                      : homeController.categoryModelList.length;
 
                   return GridView.builder(
                     itemCount: itemCount,
