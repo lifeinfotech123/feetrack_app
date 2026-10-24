@@ -188,29 +188,79 @@ class RoomRepo {
     );
   }
 
-  /// 14. Fetch PG Customer Bookings (/api/v1/pg/customer/bookings)
+  /// 14. Fetch PG Customer Bookings (/api/pg/bookings)
   Future<Response> fetchPgCustomerBookings({String? status}) async {
-    final String url = (status != null && status.isNotEmpty && status != 'all')
-        ? "${AppConstants.pgCustomerBookings}?status=$status"
-        : AppConstants.pgCustomerBookings;
-    return await apiClient.getData(url, "fetchPgCustomerBookings");
+    final String query = (status != null && status.isNotEmpty && status != 'all')
+        ? "?status=$status"
+        : "";
+    Response response = await apiClient.getData(
+      "${AppConstants.pgCustomerBookings}$query",
+      "fetchPgCustomerBookings",
+    );
+    if (response.statusCode != 200) {
+      final altResponse = await apiClient.getData(
+        "${AppConstants.pgCustomerBookingsLegacy}$query",
+        "fetchPgCustomerBookingsLegacy",
+      );
+      if (altResponse.statusCode == 200) {
+        return altResponse;
+      }
+    }
+    return response;
   }
 
-  /// 15. Fetch PG Customer Booking Details (/api/v1/pg/customer/bookings/{id})
+  /// 14b. Create PG Booking (/api/pg/bookings or /api/bookings)
+  Future<Response> createPgBooking(Map<String, dynamic> data) async {
+    Response response = await apiClient.postData(
+      AppConstants.pgCustomerBookings,
+      "createPgBooking",
+      data,
+    );
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      final altResponse = await apiClient.postData(
+        AppConstants.postCreateBooking,
+        "createPgBookingAlt",
+        data,
+      );
+      if (altResponse.statusCode == 200 || altResponse.statusCode == 201) {
+        return altResponse;
+      }
+    }
+    return response;
+  }
+
+  /// 15. Fetch PG Customer Booking Details (/api/pg/bookings/{id})
   Future<Response> fetchPgCustomerBookingDetails(String bookingId) async {
-    return await apiClient.getData(
+    Response response = await apiClient.getData(
       AppConstants.pgCustomerBookingDetails(id: bookingId),
       "fetchPgCustomerBookingDetails",
     );
+    if (response.statusCode != 200) {
+      final altResp = await apiClient.getData(
+        "v1/pg/customer/bookings/$bookingId",
+        "fetchPgCustomerBookingDetailsLegacy",
+      );
+      if (altResp.statusCode == 200) return altResp;
+    }
+    return response;
   }
 
-  /// 16. Pay for PG Booking (/api/v1/pg/customer/bookings/{id}/pay)
+  /// 16. Pay for PG Booking (/api/pg/bookings/{id}/pay)
   Future<Response> payPgCustomerBooking(String bookingId) async {
-    return await apiClient.postData(
+    Response response = await apiClient.postData(
       AppConstants.pgCustomerBookingPay(id: bookingId),
-      "",
       "payPgCustomerBooking",
+      {},
     );
+    if (response.statusCode != 200) {
+      final altResp = await apiClient.postData(
+        "v1/pg/customer/bookings/$bookingId/pay",
+        "payPgCustomerBookingLegacy",
+        {},
+      );
+      if (altResp.statusCode == 200) return altResp;
+    }
+    return response;
   }
 
   /// 17. Fetch Customer Wallet (/api/v1/pg/customer/wallet)

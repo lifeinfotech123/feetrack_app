@@ -12,7 +12,6 @@ import 'package:vlr/services/constants.dart';
 import 'package:vlr/views/base/custom_image.dart';
 import 'package:vlr/views/base/dialogs/login_required_dialog.dart';
 import 'package:vlr/hospital/features/appointments/presentation/screen/booking_succsess_screen.dart';
-import 'package:vlr/views/screens/room_section/room/room_booking/room_booking_success_screen.dart';
 
 class RoomBookingScreen extends StatefulWidget {
   final PgRoomModel? roomModel;
@@ -332,34 +331,91 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
       _isSubmitting = true;
     });
 
-    final subController = Get.find<SubscriptionController>();
     final listingId = widget.listingId ?? listing?.id ?? "";
     final roomId = widget.roomId ?? room?.id ?? "";
+    final paymentMode =
+        _selectedPaymentMethod == 'pay_at_property' ? "cash" : "razorpay";
 
-    final bookingNumber =
+    String bookingNumber =
         "BKG-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}";
+    bool bookingCreated = false;
 
+    // ── 1. Try creating booking via RoomController → pg/bookings API ──
     try {
-      if (listingId.isNotEmpty && subController.allPlanList.isNotEmpty) {
-        final planId = subController.allPlanList.first.id?.toString() ?? "";
-        await subController.createSubscription(
+      if (listingId.isNotEmpty && Get.isRegistered<RoomController>()) {
+        final roomCtrl = Get.find<RoomController>();
+
+        // Determine packageId from room, listing, roomCtrl packages, or SubscriptionController
+        String? packageId;
+        if (room?.packages != null && room!.packages!.isNotEmpty) {
+          packageId = room.packages!.first.id;
+        } else if (listing?.packages != null && listing!.packages!.isNotEmpty) {
+          packageId = listing.packages!.first.id;
+        } else if (roomCtrl.listingPackagesList.isNotEmpty) {
+          packageId = roomCtrl.listingPackagesList.first.id;
+        } else if (Get.isRegistered<SubscriptionController>()) {
+          final subCtrl = Get.find<SubscriptionController>();
+          if (subCtrl.allPlanList.isNotEmpty) {
+            packageId = subCtrl.allPlanList.first.id?.toString();
+          }
+        }
+
+        final result = await roomCtrl.createPgBooking(
           listingId: listingId,
-          planId: planId,
+          packageId: packageId,
           roomId: roomId.isNotEmpty ? roomId : null,
           bedsBooked: _selectedBeds,
-          paymentMode: _selectedPaymentMethod == 'pay_at_property' ? "cash" : "razorpay",
+          paymentMethod: paymentMode,
         );
+
+        if (result.isSuccess) {
+          bookingCreated = true;
+          // Extract booking number from response if available
+          if (result.data is Map && result.data['booking_number'] != null) {
+            bookingNumber = result.data['booking_number'].toString();
+          }
+          debugPrint("✅ Booking created via RoomController: $bookingNumber");
+        } else {
+          debugPrint("⚠️ RoomController createPgBooking failed: ${result.message}");
+        }
       }
     } catch (e) {
-      debugPrint("createSubscription error: $e");
+      debugPrint("RoomController createPgBooking error: $e");
     }
 
-    // Refresh bookings in SubscriptionController and RoomController
+    // ── 2. Fallback: SubscriptionController.createSubscription ──
+    if (!bookingCreated) {
+      try {
+        if (listingId.isNotEmpty && Get.isRegistered<SubscriptionController>()) {
+          final subController = Get.find<SubscriptionController>();
+          if (subController.allPlanList.isNotEmpty) {
+            final planId = subController.allPlanList.first.id?.toString() ?? "";
+            final subResult = await subController.createSubscription(
+              listingId: listingId,
+              planId: planId,
+              roomId: roomId.isNotEmpty ? roomId : null,
+              bedsBooked: _selectedBeds,
+              paymentMode: paymentMode,
+            );
+            if (subResult.isSuccess) {
+              bookingCreated = true;
+              debugPrint("✅ Booking created via SubscriptionController");
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint("SubscriptionController createSubscription error: $e");
+      }
+    }
+
+    // ── 3. Refresh bookings in both controllers ──
     try {
-      await subController.fetchBookings();
+      if (Get.isRegistered<SubscriptionController>()) {
+        await Get.find<SubscriptionController>().fetchBookings();
+      }
       if (Get.isRegistered<RoomController>()) {
         final roomCtrl = Get.find<RoomController>();
-        roomCtrl.fetchPgCustomerBookings();
+        await roomCtrl.fetchPgCustomerBookings();
         roomCtrl.fetchPgCustomerDashboard();
       }
     } catch (_) {}

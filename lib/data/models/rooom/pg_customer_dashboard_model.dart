@@ -306,6 +306,7 @@ class PgCustomerBookingItem {
   final String? status;
   final String? statusLabel;
   final String? statusColor;
+  final String? paymentMethod;
   final String? paymentStatus;
   final String? paymentStatusBadge;
   final dynamic finalAmount;
@@ -325,6 +326,7 @@ class PgCustomerBookingItem {
   final Map<String, dynamic>? invoice;
   final Map<String, dynamic>? website;
   final List<dynamic>? payments;
+  final String? appUserId;
 
   PgCustomerBookingItem({
     this.id,
@@ -333,6 +335,7 @@ class PgCustomerBookingItem {
     this.status,
     this.statusLabel,
     this.statusColor,
+    this.paymentMethod,
     this.paymentStatus,
     this.paymentStatusBadge,
     this.finalAmount,
@@ -352,41 +355,120 @@ class PgCustomerBookingItem {
     this.invoice,
     this.website,
     this.payments,
+    this.appUserId,
   });
 
   factory PgCustomerBookingItem.fromJson(Map<String, dynamic> json) {
+    final status = json['status']?.toString() ?? "pending_otp";
+    final paymentMethod = json['payment_method']?.toString() ?? "cash";
+
+    // Format status label
+    String computedStatusLabel = json['status_label']?.toString() ?? "";
+    if (computedStatusLabel.isEmpty) {
+      if (status == 'pending_otp') {
+        computedStatusLabel = "Pending OTP";
+      } else if (status == 'pending_payment') {
+        computedStatusLabel = "Pending Payment";
+      } else if (status == 'confirmed') {
+        computedStatusLabel = "Confirmed";
+      } else if (status == 'completed') {
+        computedStatusLabel = "Completed";
+      } else if (status == 'cancelled') {
+        computedStatusLabel = "Cancelled";
+      } else {
+        computedStatusLabel = status.replaceAll('_', ' ').toUpperCase();
+      }
+    }
+
+    // Status color
+    String computedStatusColor = json['status_color']?.toString() ?? "";
+    if (computedStatusColor.isEmpty) {
+      if (status == 'confirmed' || status == 'completed') {
+        computedStatusColor = "#16A34A";
+      } else if (status.contains('pending')) {
+        computedStatusColor = "#D97706";
+      } else if (status == 'cancelled') {
+        computedStatusColor = "#DC2626";
+      } else {
+        computedStatusColor = "#2563EB";
+      }
+    }
+
+    // Payment badge
+    String computedPaymentBadge = json['payment_status_badge']?.toString() ?? "";
+    if (computedPaymentBadge.isEmpty) {
+      if (paymentMethod.toLowerCase() == 'cash' ||
+          paymentMethod.toLowerCase() == 'pay_at_property') {
+        computedPaymentBadge = "Pay at Property (Cash)";
+      } else if (status == 'confirmed' || status == 'completed') {
+        computedPaymentBadge = "Paid Online";
+      } else {
+        computedPaymentBadge = paymentMethod.toUpperCase();
+      }
+    }
+
+    final beds = json['beds_booked'] != null
+        ? int.tryParse(json['beds_booked'].toString()) ?? 1
+        : 1;
+
+    final pkgMap = json['package'] is Map ? Map<String, dynamic>.from(json['package']) : null;
+    final pkgName = pkgMap?['name']?.toString();
+
+    // Property / Listing parsing:
+    // Handles both "property" and "listing" keys returned by the API
+    PgPropertyShortInfo? propertyInfo;
+    if (json['property'] is Map) {
+      propertyInfo = PgPropertyShortInfo.fromJson(Map<String, dynamic>.from(json['property']));
+    } else if (json['listing'] is Map) {
+      propertyInfo = PgPropertyShortInfo.fromJson(Map<String, dynamic>.from(json['listing']));
+    }
+
+    final dynamic finalAmt = json['final_amount'] ??
+        json['total_amount'] ??
+        (json['invoice'] is Map ? json['invoice']['total'] : 0);
+
     return PgCustomerBookingItem(
       id: json['id']?.toString(),
-      shortId: json['short_id']?.toString(),
+      shortId: json['short_id']?.toString() ?? json['booking_number']?.toString(),
       bookingNumber: json['booking_number']?.toString(),
-      status: json['status']?.toString() ?? "pending",
-      statusLabel: json['status_label']?.toString() ?? (json['status']?.toString() ?? ""),
-      statusColor: json['status_color']?.toString(),
-      paymentStatus: json['payment_status']?.toString() ?? "unpaid",
-      paymentStatusBadge: json['payment_status_badge']?.toString() ?? "",
-      finalAmount: json['final_amount'] ?? json['total_amount'] ?? 0,
-      formattedAmount: json['formatted_amount']?.toString() ??
-          "₹${json['final_amount'] ?? 0}",
+      status: status,
+      statusLabel: computedStatusLabel,
+      statusColor: computedStatusColor,
+      paymentMethod: paymentMethod,
+      paymentStatus: json['payment_status']?.toString() ??
+          (paymentMethod == 'cash' ? 'cash' : 'unpaid'),
+      paymentStatusBadge: computedPaymentBadge,
+      finalAmount: finalAmt,
+      formattedAmount: json['formatted_amount']?.toString() ?? "₹$finalAmt",
       occupancyType: json['occupancy_type']?.toString(),
-      occupancyTypeDisplay: json['occupancy_type_display']?.toString(),
-      bedsBooked: json['beds_booked'] != null
-          ? int.tryParse(json['beds_booked'].toString())
-          : 1,
-      bedsDisplay: json['beds_display']?.toString() ?? "1 Bed",
+      occupancyTypeDisplay: json['occupancy_type_display']?.toString() ??
+          pkgName ??
+          (json['occupancy_type'] == 'per_bed' ? 'Per Bed' : json['occupancy_type']?.toString()),
+      bedsBooked: beds,
+      bedsDisplay: json['beds_display']?.toString() ?? "$beds Bed${beds > 1 ? 's' : ''}",
       otp: json['otp']?.toString(),
       otpVerifiedAt: json['otp_verified_at']?.toString(),
       createdAt: json['created_at']?.toString(),
       formattedDate: json['formatted_date']?.toString() ??
-          json['formatted_created_at']?.toString(),
-      actions: json['actions'] is Map ? Map<String, dynamic>.from(json['actions']) : null,
-      property: json['property'] is Map
-          ? PgPropertyShortInfo.fromJson(Map<String, dynamic>.from(json['property']))
-          : null,
-      package: json['package'] is Map ? Map<String, dynamic>.from(json['package']) : null,
+          json['formatted_created_at']?.toString() ??
+          json['created_at']?.toString(),
+      actions: json['actions'] is Map
+          ? Map<String, dynamic>.from(json['actions'])
+          : {
+              'can_view': true,
+              'can_invoice': json['invoice'] != null,
+              'can_cancel': status == 'pending_otp' || status == 'pending_payment',
+              'can_verify_otp': status == 'pending_otp',
+              'can_pay': paymentMethod != 'cash' &&
+                  (status == 'pending_payment' || json['payment_status'] == 'unpaid'),
+            },
+      property: propertyInfo,
+      package: pkgMap,
       room: json['room'] is Map ? Map<String, dynamic>.from(json['room']) : null,
       invoice: json['invoice'] is Map ? Map<String, dynamic>.from(json['invoice']) : null,
       website: json['website'] is Map ? Map<String, dynamic>.from(json['website']) : null,
       payments: json['payments'] is List ? json['payments'] : null,
+      appUserId: json['app_user_id']?.toString(),
     );
   }
 }

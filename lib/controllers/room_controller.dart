@@ -847,7 +847,7 @@ class RoomController extends GetxController implements GetxService {
     }
   }
 
-  /// 2. Fetch PG Customer Bookings (/api/v1/pg/customer/bookings)
+  /// 2. Fetch PG Customer Bookings (/api/pg/bookings)
   Future<void> fetchPgCustomerBookings({String? status}) async {
     log("RoomController: fetchPgCustomerBookings called (status: $status)");
     isCustomerBookingsLoading = true;
@@ -862,7 +862,39 @@ class RoomController extends GetxController implements GetxService {
       log("fetchPgCustomerBookings status: ${response.statusCode}");
       if (response.statusCode == 200 && response.body != null) {
         final data = response.body['data'];
-        if (data is Map) {
+
+        // ── New API format: data is a direct List of bookings ──
+        if (data is List) {
+          customerBookingsList = data
+              .whereType<Map>()
+              .map((b) =>
+                  PgCustomerBookingItem.fromJson(Map<String, dynamic>.from(b)))
+              .toList();
+
+          // Build tabs from the list counts
+          final total = response.body['total'] ?? customerBookingsList.length;
+          int confirmed = 0, pendingOtp = 0, pendingPayment = 0, completed = 0, cancelled = 0;
+          for (final b in customerBookingsList) {
+            final s = (b.status ?? '').toLowerCase();
+            if (s == 'confirmed') confirmed++;
+            else if (s == 'pending_otp') pendingOtp++;
+            else if (s == 'pending_payment') pendingPayment++;
+            else if (s == 'completed') completed++;
+            else if (s == 'cancelled') cancelled++;
+          }
+          customerBookingsTabs = {
+            'all': total is int ? total : customerBookingsList.length,
+            'confirmed': confirmed,
+            'pending_otp': pendingOtp,
+            'pending_payment': pendingPayment,
+            'completed': completed,
+            'cancelled': cancelled,
+          };
+
+          log("Parsed ${customerBookingsList.length} bookings from direct list format");
+        }
+        // ── Old API format: data is a Map with tabs/bookings ──
+        else if (data is Map) {
           if (data['tabs'] is Map) {
             customerBookingsTabs = Map<String, int>.from(
               (data['tabs'] as Map).map(
@@ -889,6 +921,75 @@ class RoomController extends GetxController implements GetxService {
       isCustomerBookingsLoading = false;
       update();
     }
+  }
+
+  /// 2b. Create PG Booking via /api/pg/bookings
+  Future<ResponseModel> createPgBooking({
+    required String listingId,
+    String? packageId,
+    String? roomId,
+    int? bedsBooked,
+    required String paymentMethod,
+  }) async {
+    log("RoomController: createPgBooking called");
+    isCustomerBookingsLoading = true;
+    update();
+
+    ResponseModel responseModel;
+    try {
+      final Map<String, dynamic> body = {
+        'listing_id': listingId,
+        'payment_method': paymentMethod,
+      };
+      if (packageId != null && packageId.isNotEmpty) {
+        body['package_id'] = packageId;
+      }
+      if (roomId != null && roomId.isNotEmpty) {
+        body['room_id'] = roomId;
+      }
+      if (bedsBooked != null) {
+        body['beds_booked'] = bedsBooked.toString();
+      }
+      body['occupancy_type'] = 'per_bed';
+
+      log("createPgBooking body: $body");
+      final Response response = await roomRepo.createPgBooking(body);
+      log("createPgBooking status: ${response.statusCode}, body: ${response.body}");
+
+      if ((response.statusCode == 200 || response.statusCode == 201) &&
+          response.body != null) {
+        final isSuccess = response.body['status'] == true ||
+            response.body['status'] == 'success';
+        if (isSuccess) {
+          // Refresh bookings list after creation
+          await fetchPgCustomerBookings();
+          fetchPgCustomerDashboard();
+          responseModel = ResponseModel(
+            true,
+            response.body['message'] ?? "Booking created successfully!",
+            response.body['data'],
+          );
+        } else {
+          responseModel = ResponseModel(
+            false,
+            response.body['message'] ?? "Failed to create booking.",
+            response.body['data'],
+          );
+        }
+      } else {
+        responseModel = ResponseModel(
+          false,
+          response.body?['message'] ?? "Error creating booking. Please try again.",
+        );
+      }
+    } catch (e) {
+      log("ERROR in createPgBooking: $e");
+      responseModel = ResponseModel(false, "Error creating booking: $e");
+    } finally {
+      isCustomerBookingsLoading = false;
+      update();
+    }
+    return responseModel;
   }
 
   /// 3. Fetch PG Customer Booking Details (/api/v1/pg/customer/bookings/{id})
