@@ -366,6 +366,9 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
           roomId: roomId.isNotEmpty ? roomId : null,
           bedsBooked: _selectedBeds,
           paymentMethod: paymentMode,
+          customerName: _nameController.text.trim(),
+          customerPhone: _phoneController.text.trim(),
+          customerEmail: _emailController.text.trim(),
         );
 
         if (result.isSuccess) {

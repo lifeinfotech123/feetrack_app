@@ -923,13 +923,16 @@ class RoomController extends GetxController implements GetxService {
     }
   }
 
-  /// 2b. Create PG Booking via /api/pg/bookings
+  /// 2b. Create PG Booking via /api/v1/pg/bookings
   Future<ResponseModel> createPgBooking({
     required String listingId,
     String? packageId,
     String? roomId,
     int? bedsBooked,
     required String paymentMethod,
+    String? customerName,
+    String? customerPhone,
+    String? customerEmail,
   }) async {
     log("RoomController: createPgBooking called");
     isCustomerBookingsLoading = true;
@@ -951,6 +954,16 @@ class RoomController extends GetxController implements GetxService {
         body['beds_booked'] = bedsBooked.toString();
       }
       body['occupancy_type'] = 'per_bed';
+
+      if (customerName != null && customerName.isNotEmpty) {
+        body['customer_name'] = customerName;
+      }
+      if (customerPhone != null && customerPhone.isNotEmpty) {
+        body['customer_phone'] = customerPhone;
+      }
+      if (customerEmail != null && customerEmail.isNotEmpty) {
+        body['customer_email'] = customerEmail;
+      }
 
       log("createPgBooking body: $body");
       final Response response = await roomRepo.createPgBooking(body);

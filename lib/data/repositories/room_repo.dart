@@ -209,7 +209,7 @@ class RoomRepo {
     return response;
   }
 
-  /// 14b. Create PG Booking (/api/pg/bookings or /api/bookings)
+  /// 14b. Create PG Booking (/api/v1/pg/bookings or /api/pg/bookings)
   Future<Response> createPgBooking(Map<String, dynamic> data) async {
     Response response = await apiClient.postData(
       AppConstants.pgCustomerBookings,
@@ -217,13 +217,29 @@ class RoomRepo {
       data,
     );
     if (response.statusCode != 200 && response.statusCode != 201) {
-      final altResponse = await apiClient.postData(
+      final alt1 = await apiClient.postData(
+        AppConstants.pgCustomerBookingsLegacy,
+        "createPgBookingLegacy",
+        data,
+      );
+      if (alt1.statusCode == 200 || alt1.statusCode == 201) {
+        return alt1;
+      }
+      final alt2 = await apiClient.postData(
+        "pg/bookings",
+        "createPgBookingShort",
+        data,
+      );
+      if (alt2.statusCode == 200 || alt2.statusCode == 201) {
+        return alt2;
+      }
+      final alt3 = await apiClient.postData(
         AppConstants.postCreateBooking,
         "createPgBookingAlt",
         data,
       );
-      if (altResponse.statusCode == 200 || altResponse.statusCode == 201) {
-        return altResponse;
+      if (alt3.statusCode == 200 || alt3.statusCode == 201) {
+        return alt3;
       }
     }
     return response;

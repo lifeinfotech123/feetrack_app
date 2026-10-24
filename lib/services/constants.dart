@@ -248,18 +248,18 @@ class AppConstants {
 
   //* PG Customer APIs
   static const String pgCustomerDashboard = 'v1/pg/customer/dashboard';
-  static const String pgCustomerBookings = 'pg/bookings';
+  static const String pgCustomerBookings = 'v1/pg/bookings';
   static const String pgCustomerBookingsLegacy = 'v1/pg/customer/bookings';
   static String pgCustomerBookingDetails({required dynamic id}) =>
-      'pg/bookings/$id';
+      'v1/pg/bookings/$id';
   static String pgCustomerBookingVerifyOtp({required dynamic id}) =>
-      'pg/bookings/$id/verify-otp';
+      'v1/pg/bookings/$id/verify-otp';
   static String pgCustomerBookingPay({required dynamic id}) =>
-      'pg/bookings/$id/pay';
+      'v1/pg/bookings/$id/pay';
   static String pgCustomerBookingCancel({required dynamic id}) =>
-      'pg/bookings/$id/cancel';
+      'v1/pg/bookings/$id/cancel';
   static String pgCustomerBookingInvoice({required dynamic id}) =>
-      'pg/bookings/$id/invoice';
+      'v1/pg/bookings/$id/invoice';
   static const String pgCustomerWallet = 'v1/pg/customer/wallet';
   static const String pgCustomerWalletRecharge = 'v1/pg/customer/wallet/recharge';
   static const String pgCustomerProfile = 'v1/pg/customer/profile';
