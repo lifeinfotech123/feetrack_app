@@ -453,6 +453,11 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
       }
     }
 
+    showToast(
+      message: "🎉 Booking placed successfully!",
+      toastType: ToastType.success,
+    );
+
     Get.off(
       () => BookingSuccsessScreen(
         bookingType: 'pg',
