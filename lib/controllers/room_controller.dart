@@ -1289,13 +1289,23 @@ class RoomController extends GetxController implements GetxService {
     final invNum = (invoiceNumber != null && invoiceNumber.isNotEmpty)
         ? invoiceNumber
         : invoiceId;
-    final String url = (downloadUrl != null && downloadUrl.isNotEmpty)
+
+    final String primaryUrl = (downloadUrl != null && downloadUrl.isNotEmpty)
         ? downloadUrl
-        : "${AppConstants.baseUrl}${AppConstants.downloadReceipt(type: 'invoice', id: invoiceId)}";
+        : "${AppConstants.baseUrl}v1/pg/customer/invoices/$invoiceId";
+
+    final List<String> fallbackUrls = [
+      "${AppConstants.baseUrl}v1/pg/customer/invoices/$invoiceId/download",
+      "${AppConstants.baseUrl}v1/pg/bookings/$invoiceId/invoice",
+      "${AppConstants.baseUrl}pg/bookings/$invoiceId/invoice",
+      "${AppConstants.baseUrl}invoice/invoice/$invoiceId/download",
+      "${AppConstants.baseUrl}invoice/$invoiceId/download",
+      "${AppConstants.baseUrl}v1/pg/invoices/$invoiceId",
+    ];
 
     final Map<String, String> headers = {
       'Authorization': 'Bearer ${roomRepo.apiClient.token}',
-      'Accept': 'application/pdf',
+      'Accept': 'application/pdf, application/json, */*',
     };
 
     isInvoiceDownloading = true;
@@ -1304,14 +1314,15 @@ class RoomController extends GetxController implements GetxService {
 
     try {
       await FileDownloadHelper.downloadAndShareFile(
-        url,
+        primaryUrl,
         "Invoice_$invNum.pdf",
         headers,
+        fallbackUrls: fallbackUrls,
       );
     } catch (e) {
       log("Error downloading invoice: $e");
       try {
-        final uri = Uri.parse(url);
+        final uri = Uri.parse(primaryUrl);
         if (await canLaunchUrl(uri)) {
           await launchUrl(uri, mode: LaunchMode.externalApplication);
         }
