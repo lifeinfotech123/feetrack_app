@@ -339,6 +339,7 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
     String bookingNumber =
         "BKG-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}";
     bool bookingCreated = false;
+    dynamic createdBookingData;
 
     // ── 1. Try creating booking via RoomController → pg/bookings API ──
     try {
@@ -373,6 +374,7 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
 
         if (result.isSuccess) {
           bookingCreated = true;
+          createdBookingData = result.data;
           // Extract booking number from response if available
           if (result.data is Map && result.data['booking_number'] != null) {
             bookingNumber = result.data['booking_number'].toString();
@@ -402,6 +404,7 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
             );
             if (subResult.isSuccess) {
               bookingCreated = true;
+              createdBookingData = subResult.data;
               debugPrint("✅ Booking created via SubscriptionController");
             }
           }
@@ -429,23 +432,55 @@ class _RoomBookingScreenState extends State<RoomBookingScreen> {
       _isSubmitting = false;
     });
 
+    Map<String, dynamic>? responseDataMap;
+    String? extractedOtp;
+    String? extractedAmount;
+
+    if (createdBookingData is Map) {
+      responseDataMap = Map<String, dynamic>.from(createdBookingData);
+      if (responseDataMap['booking_number'] != null) {
+        bookingNumber = responseDataMap['booking_number'].toString();
+      }
+      if (responseDataMap['otp'] != null) {
+        extractedOtp = responseDataMap['otp'].toString();
+      }
+      if (responseDataMap['pricing'] is Map &&
+          responseDataMap['pricing']['final_amount'] != null) {
+        extractedAmount =
+            responseDataMap['pricing']['final_amount'].toString();
+      } else if (responseDataMap['final_amount'] != null) {
+        extractedAmount = responseDataMap['final_amount'].toString();
+      }
+    }
+
     Get.off(
       () => BookingSuccsessScreen(
         bookingType: 'pg',
         bookingId: bookingNumber,
-        propertyName:
-            listing?.title ?? room?.listing?.title ?? "Premium PG & Hostel",
-        address:
-            listing?.address ?? room?.listing?.address ?? "Aliganj, Lucknow",
-        roomNumber: room?.roomNumber ?? "Standard Room",
+        otp: extractedOtp,
+        bookingData: responseDataMap,
+        propertyName: listing?.title ??
+            responseDataMap?['listing']?['title']?.toString() ??
+            room?.listing?.title ??
+            "Premium PG & Hostel",
+        address: listing?.address ??
+            responseDataMap?['listing']?['address']?.toString() ??
+            room?.listing?.address ??
+            "Aliganj, Lucknow",
+        roomNumber: room?.roomNumber ??
+            responseDataMap?['room']?['room_number']?.toString() ??
+            "Standard Room",
         floorName: room?.floorName ?? "1st Floor",
-        sharingType: room?.roomType ?? "Double Sharing",
+        sharingType: room?.roomType ??
+            responseDataMap?['package']?['name']?.toString() ??
+            "Double Sharing",
         moveInDate: DateFormat("dd MMM yyyy").format(_moveInDate),
-        amount: totalAmount.toString(),
+        amount: extractedAmount ?? totalAmount.toInt().toString(),
         paymentMethod: _selectedPaymentMethod,
         phone: _phoneController.text.trim(),
+        email: _emailController.text.trim(),
         message: _selectedPaymentMethod == 'pay_at_property'
-            ? "Your room reservation is confirmed! Pay at property on check-in."
+            ? "Your room reservation is confirmed! Show your activation OTP on arrival."
             : "Your room reservation is confirmed!",
       ),
     );
