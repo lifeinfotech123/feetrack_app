@@ -218,22 +218,44 @@ class _RoomBookVisitScreenState extends State<RoomBookVisitScreen> {
                       const SizedBox(height: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
+                            horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
+                          color: hasTime
+                              ? const Color(0xFF002060).withValues(alpha: 0.08)
+                              : const Color(0xFFF1F5F9),
                           borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          hasTime
-                              ? "$dateStr • ${bookController.selectedTime}"
-                              : "$dateStr • Slot not selected",
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                          border: Border.all(
                             color: hasTime
-                                ? const Color(0xFF002060)
-                                : const Color(0xFF94A3B8),
+                                ? const Color(0xFF002060).withValues(alpha: 0.2)
+                                : Colors.transparent,
                           ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              hasTime
+                                  ? Icons.event_available_rounded
+                                  : Icons.calendar_today_rounded,
+                              size: 14,
+                              color: hasTime
+                                  ? const Color(0xFF002060)
+                                  : const Color(0xFF94A3B8),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              hasTime
+                                  ? "$dateStr • ${bookController.selectedTime}"
+                                  : "$dateStr • Select a time slot",
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: hasTime
+                                    ? const Color(0xFF002060)
+                                    : const Color(0xFF94A3B8),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],

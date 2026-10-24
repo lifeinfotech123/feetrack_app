@@ -29,11 +29,13 @@ class BookAppointController extends GetxController implements GetxService {
 
     selectedTime = time;
     update(["time_slot"]);
+    update();
   }
 
   void selectPreferredSlot(String slot) {
     selectedTime = slot;
     update(["time_slot"]);
+    update();
   }
 
   void selectDate(DateTime date) {
