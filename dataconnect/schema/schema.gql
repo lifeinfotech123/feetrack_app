@@ -1,0 +1,48 @@
+type User @table {
+  displayName: String!
+  email: String!
+  createdAt: Timestamp!
+  photoUrl: String
+  isServiceProvider: Boolean
+}
+
+type Service @table {
+  provider: User!
+  name: String!
+  description: String!
+  price: Float!
+  durationMinutes: Int!
+  createdAt: Timestamp!
+  category: String
+  imageUrl: String
+  maxCapacity: Int
+}
+
+type AvailabilitySlot @table {
+  service: Service!
+  startTime: Timestamp!
+  endTime: Timestamp!
+  date: Date!
+  createdAt: Timestamp!
+  isRecurring: Boolean
+  recurrencePattern: String
+}
+
+type Booking @table {
+  client: User!
+  service: Service!
+  availabilitySlot: AvailabilitySlot!
+  bookingDate: Date!
+  bookingTime: Timestamp!
+  status: String! # pending, confirmed, cancelled
+  createdAt: Timestamp!
+  notes: String
+}
+
+type Review @table {
+  reviewer: User!
+  service: Service!
+  rating: Int!
+  createdAt: Timestamp!
+  comment: String
+}
