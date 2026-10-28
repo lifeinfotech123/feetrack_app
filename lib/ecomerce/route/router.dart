@@ -35,6 +35,11 @@ import '../screens/preferences/views/preferences_screen.dart';
 import '../screens/product/views/product_details_screen.dart';
 import '../models/restaurant_model.dart';
 import '../screens/restaurant/views/restaurant_detail_screen.dart';
+import '../screens/restaurant/views/dining/my_table_bookings_screen.dart';
+import '../screens/restaurant/views/dining/booking_confirm_screen.dart';
+import '../screens/restaurant/views/dining/table_selection_screen.dart';
+import '../screens/restaurant/views/dining/table_booking_screen.dart';
+import '../screens/restaurant/views/restaurant_table_list_screen.dart';
 import '../screens/reviews/view/product_reviews_screen.dart';
 import '../screens/search/views/search_screen.dart';
 import '../screens/user_info/views/user_info_screen.dart';
@@ -307,6 +312,38 @@ Route<dynamic> generateRoute(RouteSettings settings) {
           return const RestaurantDetailScreen(restaurantId: 28);
         },
       );
+
+    case restaurantTableListScreenRoute:
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => RestaurantTableListScreen(
+          domain: settings.arguments is String ? settings.arguments as String : 'e-team-12',
+        ),
+      );
+    case tableBookingScreenRoute:
+      if (settings.arguments is Map<String, dynamic>) {
+        final args = settings.arguments as Map<String, dynamic>;
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => TableBookingScreen(
+            restaurant: args['restaurant'],
+            domain: args['domain'] ?? 'e-team-12',
+            shopId: args['shopId'] ?? args['restaurant']?.shopId ?? args['restaurant']?.id,
+          ),
+        );
+      }
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => const RestaurantTableListScreen(),
+      );
+    case myTableBookingsScreenRoute:
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => MyTableBookingsScreen(
+          domain: settings.arguments is String ? settings.arguments as String : 'e-team-12',
+        ),
+      );
+
     default:
       return MaterialPageRoute(
         // Make a screen for undefine

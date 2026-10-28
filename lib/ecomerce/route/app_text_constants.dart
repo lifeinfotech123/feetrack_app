@@ -61,3 +61,9 @@ const String addNewCardScreenRoute = "add_new_card";
 const String thanksForOrderScreenRoute = "thanks_order";
 const String couponScreenRoute = "coupon";
 const String restaurantDetailsScreenRoute = "restaurant_details";
+
+const String restaurantTableListScreenRoute = "restaurant_table_list";
+const String tableBookingScreenRoute = "table_booking";
+const String tableSelectionScreenRoute = "table_selection";
+const String bookingConfirmScreenRoute = "booking_confirm";
+const String myTableBookingsScreenRoute = "my_table_bookings";

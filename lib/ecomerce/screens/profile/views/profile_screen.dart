@@ -18,6 +18,7 @@ import '../../preferences/views/preferences_screen.dart';
 import '../../return_refund/views/return_refund_screen.dart';
 import '../../user_info/views/user_info_screen.dart';
 import '../../wallet/views/wallet_screen.dart';
+import '../../restaurant/views/dining/my_table_bookings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -249,6 +250,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   title: "Ratings & Reviews",
                   subtitle: "Share feedback on items you've purchased",
                   onTap: () {},
+                ),
+
+                _buildSingleFeatureCard(
+                  context,
+                  icon: Icons.table_restaurant_rounded,
+                  iconColor: const Color(0xFF26A69A),
+                  iconBgColor: const Color(0xFF26A69A).withValues(alpha: 0.12),
+                  title: "Table Bookings",
+                  subtitle: "View and manage your dine-in reservations",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const MyTableBookingsScreen(domain: 'e-team-12'),
+                      ),
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 20),
