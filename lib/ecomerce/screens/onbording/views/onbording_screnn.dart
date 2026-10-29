@@ -4,7 +4,7 @@ import 'package:flutter_svg/svg.dart';
 
 import '../../../components/dot_indicators.dart';
 import '../../../constants.dart';
-import '../../../route/route_constants.dart';
+import '../../../route/app_text_constants.dart';
 import 'components/onbording_content.dart';
 
 class OnBordingScreen extends StatefulWidget {

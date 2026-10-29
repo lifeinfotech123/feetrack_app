@@ -131,7 +131,9 @@ class WishlistItemModel {
       price: unitPrice,
       priceAfetDiscount: finalPrice < unitPrice ? finalPrice : null,
       dicountpercent: discountPct,
-      discountAmount: discount > 0 ? discount : null,
+      discountAmount: discount > 0
+          ? discount
+          : (finalPrice < unitPrice ? (unitPrice - finalPrice) : null),
       categoryId: categoryId,
       categoryName: categoryName,
       categoryType: isFood ? 'food' : 'default',

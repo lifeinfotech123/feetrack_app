@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 
@@ -11,6 +12,7 @@ import 'package:vlr/data/models/response/response_model.dart';
 import 'package:vlr/data/models/user_model.dart';
 import 'package:vlr/firebase/get_fcm_token.dart';
 import 'package:vlr/services/appsflyer_service.dart';
+import 'package:vlr/services/constants.dart';
 
 import '../data/repositories/auth_repo.dart';
 
@@ -99,8 +101,7 @@ class AuthController extends GetxController implements GetxService {
 
     if ((firstNameController.text.isEmpty && lastNameController.text.isEmpty) &&
         fullNameController.text.isNotEmpty) {
-      List<String> parts =
-          fullNameController.text.trim().split(RegExp(r'\s+'));
+      List<String> parts = fullNameController.text.trim().split(RegExp(r'\s+'));
       firstNameController.text = parts.isNotEmpty ? parts.first : "";
       lastNameController.text =
           parts.length > 1 ? parts.sublist(1).join(" ") : "";
@@ -144,8 +145,8 @@ class AuthController extends GetxController implements GetxService {
 
     if (userModel?.bloodGroup != null && userModel!.bloodGroup!.isNotEmpty) {
       String bg = userModel!.bloodGroup!.trim().toUpperCase();
-      int index = bloodGroupList
-          .indexWhere((element) => element.toUpperCase() == bg);
+      int index =
+          bloodGroupList.indexWhere((element) => element.toUpperCase() == bg);
       if (index != -1) {
         bloodGroup = bloodGroupList[index];
       } else {
@@ -462,42 +463,62 @@ class AuthController extends GetxController implements GetxService {
     return responseModel;
   }
 
-  Future<ResponseModel> loginWithEmailPassword() async {
-    log('----------- loginWithEmailPassword Called ----------');
+  Future<ResponseModel> loginWithEmailPassword({
+    String? email,
+    String? password,
+  }) async {
+    debugPrint('----------- loginWithEmailPassword Called ----------');
 
     ResponseModel responseModel;
     isLoading = true;
     update();
 
     try {
-      String email = loginEmailController.text.trim();
-      if (email.isEmpty) {
-        email = emailController.text.trim();
+      String finalEmail = (email != null && email.trim().isNotEmpty)
+          ? email.trim()
+          : loginEmailController.text.trim();
+      if (finalEmail.isEmpty) {
+        finalEmail = emailController.text.trim();
       }
-      String password = loginPasswordController.text.trim();
-      if (password.isEmpty) {
-        password = passwordController.text.trim();
+
+      String finalPassword = (password != null && password.trim().isNotEmpty)
+          ? password.trim()
+          : loginPasswordController.text.trim();
+      if (finalPassword.isEmpty) {
+        finalPassword = passwordController.text.trim();
       }
+
+      debugPrint(
+          "===> loginWithEmailPassword: email='$finalEmail', password length=${finalPassword.length}");
 
       Response response = await authRepo.postEmailPasswordLogin(
-        email: email,
-        password: password,
+        email: finalEmail,
+        password: finalPassword,
       );
 
-      log("Status Code: ${response.statusCode}");
-      log("Raw Response (loginWithEmailPassword): ${response.body}");
+      debugPrint("===> Status Code: ${response.statusCode}");
+      debugPrint(
+          "===> Raw Response (loginWithEmailPassword): ${response.body}");
 
-      final body = response.body;
-      if (response.isOk &&
-          body != null &&
-          (body['status'] == true ||
-              body['status'] == "success" ||
-              body['status'] == 1 ||
-              body['status'] == "true" ||
-              (body['errors'] == null &&
-                  (response.statusCode == 200 ||
-                      response.statusCode == 201)))) {
-        final responseData = body['data'];
+      dynamic body = response.body;
+      if (body is String) {
+        try {
+          body = jsonDecode(body);
+        } catch (_) {}
+      }
+
+      final bool isSuccess =
+          (response.statusCode == 200 || response.statusCode == 201) &&
+              body != null &&
+              body is Map &&
+              (body['status'] == true ||
+                  body['status'] == "success" ||
+                  body['status'] == 1 ||
+                  body['status'] == "true" ||
+                  body['data'] != null);
+
+      if (isSuccess) {
+        final responseData = body is Map ? body['data'] : null;
 
         String? token;
         if (responseData != null && responseData is Map) {
@@ -508,51 +529,97 @@ class AuthController extends GetxController implements GetxService {
             responseData.isNotEmpty) {
           token = responseData;
         }
-        token ??= body['token']?.toString() ??
-            body['access_token']?.toString();
+        token ??= (body is Map
+            ? (body['token']?.toString() ?? body['access_token']?.toString())
+            : null);
 
         if (token != null && token.isNotEmpty) {
           await authRepo.setUserToken(token);
-          log("Saved token: $token");
+          debugPrint("Saved token: $token");
           AppsFlyerService.markAppReady(isLoggedIn: true);
-          await fetchProfile();
         }
+
+        // Set userModel directly from response data
+        if (responseData != null &&
+            responseData is Map &&
+            responseData['user'] != null) {
+          try {
+            final userJson = Map<String, dynamic>.from(responseData['user']);
+            userModel = UserModel.fromJson(userJson);
+            populateProfileControllers();
+            final uId = userModel?.id ?? userJson['id']?.toString();
+            if (uId != null && uId.isNotEmpty) {
+              await authRepo.sharedPreferences
+                  .setString(AppConstants.userId, uId);
+            }
+            debugPrint("User model populated successfully: ${userModel?.name}");
+          } catch (e) {
+            debugPrint(
+                "Error parsing userModel directly from login response: $e");
+          }
+        }
+
+        // Background profile fetch and FCM update without blocking login success
+        try {
+          fetchProfile();
+        } catch (_) {}
+        try {
+          updateFcmToken();
+        } catch (_) {}
 
         loginEmailController.clear();
         loginPasswordController.clear();
 
         responseModel = ResponseModel(
           true,
-          body['message'] ?? "Login successful.",
+          (body is Map && body['message'] != null)
+              ? body['message'].toString()
+              : "Login successful.",
         );
       } else {
-        String errorMessage = body?['message'] ?? "Invalid email or password";
+        String errorMessage = "Login failed. Please check your credentials.";
 
-        if (body?['errors'] != null) {
-          final errors = body['errors'];
-          if (errors is Map) {
-            for (var key in errors.keys) {
-              if (errors[key] != null && errors[key].isNotEmpty) {
-                if (errors[key] is List) {
-                  errorMessage = errors[key][0];
-                } else {
-                  errorMessage = errors[key].toString();
+        if (body is Map) {
+          if (body['message'] != null) {
+            errorMessage = body['message'].toString();
+          } else if (body['error'] != null) {
+            errorMessage = body['error'].toString();
+          }
+
+          if (body['errors'] != null) {
+            final errors = body['errors'];
+            if (errors is Map) {
+              for (var key in errors.keys) {
+                if (errors[key] != null && errors[key].isNotEmpty) {
+                  if (errors[key] is List) {
+                    errorMessage = errors[key][0].toString();
+                  } else {
+                    errorMessage = errors[key].toString();
+                  }
+                  break;
                 }
-                break;
               }
+            } else if (errors is List && errors.isNotEmpty) {
+              errorMessage = errors[0].toString();
             }
           }
+        } else if (response.statusText != null &&
+            response.statusText!.isNotEmpty) {
+          errorMessage = response.statusText!;
         }
 
+        debugPrint(
+            "===> LOGIN FAILED: $errorMessage (status: ${response.statusCode})");
         responseModel = ResponseModel(false, errorMessage);
       }
-    } catch (e) {
-      log('ERROR AT loginWithEmailPassword(): $e');
-      responseModel = ResponseModel(false, "Error during login: $e");
+    } catch (e, st) {
+      debugPrint('ERROR AT loginWithEmailPassword(): $e\n$st');
+      responseModel = ResponseModel(false, "Login error: $e");
+    } finally {
+      isLoading = false;
+      update();
     }
 
-    isLoading = false;
-    update();
     return responseModel;
   }
 
@@ -765,7 +832,9 @@ class AuthController extends GetxController implements GetxService {
     try {
       Response response = await authRepo.logout(data: FormData({}));
 
-      if (response.body != null && (response.body['status'] == "success" || response.body['status'] == true)) {
+      if (response.body != null &&
+          (response.body['status'] == "success" ||
+              response.body['status'] == true)) {
         responseModel = ResponseModel(
             true, response.body['message'] ?? "success logout user ");
       } else {

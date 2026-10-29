@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'dart:developer';
+import 'package:flutter/foundation.dart';
 import 'package:get/get_connect/http/src/multipart/form_data.dart';
 import 'package:get/get_connect/http/src/response/response.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/constants.dart';
 import '../../services/device_id_service.dart';
@@ -44,17 +47,74 @@ class AuthRepo {
     required String email,
     required String password,
   }) async {
-    Map<String, dynamic> data = {
-      "login": email,
-      "email": email,
-      "password": password,
+    final String cleanLogin = email.trim();
+    final String cleanPassword = password.trim();
+
+    final Map<String, dynamic> bodyMap = {
+      "login": cleanLogin,
+      "password": cleanPassword,
     };
-    return await apiClient.postData(
-      AppConstants.emailPasswordLoginUri,
-      "postEmailPasswordLogin",
-      FormData(data),
-      query: data,
-    );
+
+    try {
+      final String fullUrl =
+          '${AppConstants.baseUrl}${AppConstants.emailPasswordLoginUri}';
+      debugPrint("===> Calling email login at: $fullUrl with login: $cleanLogin");
+
+      http.Response httpResponse = await http.post(
+        Uri.parse(fullUrl),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(bodyMap),
+      );
+
+      // Handle redirect if any
+      if ((httpResponse.statusCode == 301 ||
+              httpResponse.statusCode == 302 ||
+              httpResponse.statusCode == 307 ||
+              httpResponse.statusCode == 308) &&
+          httpResponse.headers['location'] != null) {
+        final redirectUrl = httpResponse.headers['location']!;
+        debugPrint("===> Following redirect to: $redirectUrl");
+        httpResponse = await http.post(
+          Uri.parse(redirectUrl),
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode(bodyMap),
+        );
+      }
+
+      debugPrint("===> postEmailPasswordLogin HTTP Status: ${httpResponse.statusCode}");
+      debugPrint("===> postEmailPasswordLogin HTTP Body: ${httpResponse.body}");
+
+      dynamic responseBody;
+      try {
+        responseBody = jsonDecode(httpResponse.body);
+      } catch (_) {
+        responseBody = httpResponse.body;
+      }
+
+      return Response(
+        statusCode: httpResponse.statusCode,
+        body: responseBody,
+        statusText: httpResponse.reasonPhrase,
+      );
+    } catch (e, st) {
+      debugPrint("===> postEmailPasswordLogin HTTP Exception: $e\n$st, falling back to ApiClient");
+      return await apiClient.postData(
+        AppConstants.emailPasswordLoginUri,
+        "postEmailPasswordLogin",
+        bodyMap,
+        contentType: 'application/json',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      );
+    }
   }
 
   Future<Response> postLoginOtpVerify({required FormData data}) async =>
@@ -139,6 +199,7 @@ class AuthRepo {
   Future<void> setUserToken(String token) async {
     apiClient.updateHeader(token);
     await sharedPreferences.setString(AppConstants.token, token);
+    await sharedPreferences.setString('token', token);
   }
 
   String getUserId() {

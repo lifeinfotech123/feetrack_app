@@ -6,17 +6,29 @@ class CartButton extends StatelessWidget {
   const CartButton({
     super.key,
     required this.price,
+    this.originalPrice,
     this.title = "Buy Now",
     this.subTitle = "Unit price",
     required this.press,
   });
 
   final double price;
+  final double? originalPrice;
   final String title, subTitle;
   final VoidCallback press;
 
+  String _format(num? value) {
+    if (value == null) return "0";
+    return value % 1 == 0
+        ? value.toInt().toString()
+        : value.toStringAsFixed(2);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final bool hasDiscount =
+        originalPrice != null && originalPrice! > price;
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(
@@ -44,18 +56,39 @@ class CartButton extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            "₹${price % 1 == 0 ? price.toInt() : price.toStringAsFixed(2)}",
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleSmall!
-                                .copyWith(color: Colors.white),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                "₹${_format(price)}",
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleSmall!
+                                    .copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
+                              if (hasDiscount) ...[
+                                const SizedBox(width: 6),
+                                Text(
+                                  "₹${_format(originalPrice)}",
+                                  style: const TextStyle(
+                                    color: Colors.white60,
+                                    fontSize: 11,
+                                    decoration: TextDecoration.lineThrough,
+                                    decorationColor: Colors.white70,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                           Text(
                             subTitle,
                             style: const TextStyle(
                                 color: Colors.white54,
-                                fontWeight: FontWeight.w500),
+                                fontWeight: FontWeight.w500,
+                                fontSize: 11),
                           )
                         ],
                       ),
@@ -66,7 +99,7 @@ class CartButton extends StatelessWidget {
                     child: Container(
                       alignment: Alignment.center,
                       height: double.infinity,
-                      color: Colors.black.withOpacity(0.15),
+                      color: Colors.black.withValues(alpha: 0.15),
                       child: Text(
                         title,
                         style: Theme.of(context)

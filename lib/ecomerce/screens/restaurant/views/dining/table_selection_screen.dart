@@ -4,8 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:vlr/ecomerce/constants.dart';
 import 'package:vlr/ecomerce/controllers/dining_controller.dart';
 import 'package:vlr/ecomerce/models/restaurant_model.dart';
-import 'package:vlr/ecomerce/services/dining_service.dart';
-import 'booking_confirm_screen.dart';
+import 'bill_summary_screen.dart';
 
 class TableSelectionScreen extends StatefulWidget {
   const TableSelectionScreen({
@@ -33,7 +32,8 @@ class TableSelectionScreen extends StatefulWidget {
 
 class _TableSelectionScreenState extends State<TableSelectionScreen> {
   late final DiningController _controller;
-  dynamic selectedTable;
+  dynamic selectedTableId;
+  Map<String, dynamic>? selectedTableData;
 
   @override
   void initState() {
@@ -76,8 +76,8 @@ class _TableSelectionScreenState extends State<TableSelectionScreen> {
         }
 
         final data = _controller.tablesData['data'] ?? {};
-        final tables = data['tables'] as List? ?? [];
-        final autoOption = data['auto_table_option'];
+        final allTables = data['tables'] as List? ?? [];
+        final tables = allTables.where((t) => t['is_booked'] != true).toList();
 
         return SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
@@ -89,16 +89,25 @@ class _TableSelectionScreenState extends State<TableSelectionScreen> {
               const SizedBox(height: 18),
               const Text('Choose Your Table', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
-              if (autoOption != null)
-                _buildAutoOption(autoOption, cardBg, isDark),
-              const SizedBox(height: 12),
-              ...tables.map((table) => _buildTableCard(table, cardBg, isDark)),
+              if (tables.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: cardBg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: isDark ? Colors.white12 : const Color(0xFFEAEAEA)),
+                  ),
+                  child: const Text('No tables available for this slot', textAlign: TextAlign.center),
+                )
+              else
+                ...tables.map((table) => _buildTableCard(table, cardBg, isDark)),
               const SizedBox(height: 90),
             ],
           ),
         );
       }),
-      bottomNavigationBar: selectedTable == null
+      bottomNavigationBar: selectedTableId == null
           ? const SizedBox.shrink()
           : Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -111,14 +120,14 @@ class _TableSelectionScreenState extends State<TableSelectionScreen> {
                 child: SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: _proceedToConfirm,
+                    onPressed: _proceedToBill,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryColor,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       elevation: 0,
                     ),
-                    child: const Text('Continue to Booking', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                    child: const Text('Proceed to Bill', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
                   ),
                 ),
               ),
@@ -134,15 +143,11 @@ class _TableSelectionScreenState extends State<TableSelectionScreen> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: isDark ? Colors.white12 : const Color(0xFFEAEAEA)),
       ),
-      child: Column(
+      child: Row(
         children: [
-          Row(
-            children: [
-              _infoItem(Icons.calendar_today_rounded, 'Date', DateFormat('EEE, dd MMM yyyy').format(DateTime.parse(widget.date))),
-              _infoItem(Icons.access_time_rounded, 'Time', widget.timeSlot),
-              _infoItem(Icons.people_rounded, 'Guests', '${widget.guestsCount} Pax'),
-            ],
-          ),
+          _infoItem(Icons.calendar_today_rounded, 'Date', DateFormat('EEE, dd MMM yyyy').format(DateTime.parse(widget.date))),
+          _infoItem(Icons.access_time_rounded, 'Time', widget.timeSlot),
+          _infoItem(Icons.people_rounded, 'Guests', '${widget.guestsCount} Pax'),
         ],
       ),
     );
@@ -163,53 +168,21 @@ class _TableSelectionScreenState extends State<TableSelectionScreen> {
     );
   }
 
-  Widget _buildAutoOption(Map autoOption, Color cardBg, bool isDark) {
-    final isSelected = selectedTable == 'auto';
-    return GestureDetector(
-      onTap: () => setState(() => selectedTable = 'auto'),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: isSelected ? primaryColor.withValues(alpha: 0.08) : cardBg,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: isSelected ? primaryColor : (isDark ? Colors.white12 : const Color(0xFFEAEAEA)), width: isSelected ? 1.5 : 1),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: primaryColor.withValues(alpha: 0.12), shape: BoxShape.circle),
-              child: const Icon(Icons.auto_awesome_rounded, color: primaryColor),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(autoOption['display_name'] ?? 'Auto Assign Best Table', style: const TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 2),
-                  Text(autoOption['description'] ?? '', style: TextStyle(fontSize: 11, color: isDark ? Colors.white54 : Colors.black54)),
-                ],
-              ),
-            ),
-            Icon(isSelected ? Icons.radio_button_checked : Icons.radio_button_off, color: isSelected ? primaryColor : Colors.grey),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildTableCard(Map table, Color cardBg, bool isDark) {
     final isBooked = table['is_booked'] == true;
+    if (isBooked) return const SizedBox.shrink();
     final tableId = table['id'];
-    final isSelected = selectedTable is int && selectedTable == tableId;
+    final isSelected = selectedTableId == tableId;
     return GestureDetector(
-      onTap: isBooked ? null : () => setState(() => selectedTable = tableId),
+      onTap: () => setState(() {
+        selectedTableId = tableId;
+        selectedTableData = Map<String, dynamic>.from(table);
+      }),
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isBooked ? (isDark ? Colors.white10 : Colors.grey.shade100) : (isSelected ? primaryColor.withValues(alpha: 0.08) : cardBg),
+          color: isSelected ? primaryColor.withValues(alpha: 0.08) : cardBg,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: isSelected ? primaryColor : (isDark ? Colors.white12 : const Color(0xFFEAEAEA)), width: isSelected ? 1.5 : 1),
         ),
@@ -238,28 +211,19 @@ class _TableSelectionScreenState extends State<TableSelectionScreen> {
                 ],
               ),
             ),
-            if (isBooked)
-              const Text('Booked', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12))
-            else
-              Icon(isSelected ? Icons.radio_button_checked : Icons.radio_button_off, color: isSelected ? primaryColor : Colors.grey),
+            Icon(isSelected ? Icons.radio_button_checked : Icons.radio_button_off, color: isSelected ? primaryColor : Colors.grey),
           ],
         ),
       ),
     );
   }
 
-  void _proceedToConfirm() {
-    Map<String, dynamic>? selectedTableData;
-    final data = _controller.tablesData['data'] ?? {};
-    final tables = data['tables'] as List? ?? [];
-    if (selectedTable is int) {
-      selectedTableData = tables.firstWhere((e) => e['id'] == selectedTable, orElse: () => null);
-    }
-
+  void _proceedToBill() {
+    if (selectedTableId == null) return;
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => BookingConfirmScreen(
+        builder: (_) => BillSummaryScreen(
           restaurant: widget.restaurant,
           domain: widget.domain,
           shopId: widget.shopId,
@@ -267,9 +231,8 @@ class _TableSelectionScreenState extends State<TableSelectionScreen> {
           timeSlot: widget.timeSlot,
           mealType: widget.mealType,
           guestsCount: widget.guestsCount,
-          tableId: selectedTable is int ? selectedTable : null,
+          tableId: selectedTableId,
           tableData: selectedTableData,
-          autoAssign: selectedTable == 'auto',
         ),
       ),
     );

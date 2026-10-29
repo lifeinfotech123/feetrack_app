@@ -14,7 +14,7 @@ import '../../../controllers/wishlist_controller.dart';
 import '../../../models/product_model.dart';
 import '../../../models/product_variant_model.dart';
 import '../../../services/product_service.dart';
-import '../../../route/route_constants.dart';
+import '../../../route/app_text_constants.dart';
 import 'components/notify_me_card.dart';
 import 'components/product_images.dart';
 import 'components/product_info.dart';
@@ -219,6 +219,60 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     }
   }
 
+  List<String> _buildDynamicProductImages(ProductModel currentProduct) {
+    final List<String> images = [];
+
+    bool isValidDynamic(String? url) {
+      if (url == null) return false;
+      final u = url.trim();
+      if (u.isEmpty) return false;
+      final lower = u.toLowerCase();
+      if (!lower.startsWith('http://') && !lower.startsWith('https://')) {
+        return false;
+      }
+      // Strictly exclude any static demo/imgur images
+      if (lower.contains('imgur.com') ||
+          lower.contains('cgcyp1d') ||
+          lower.contains('akzwquj') ||
+          lower.contains('j7mgz12') ||
+          lower.contains('q9of9yq') ||
+          lower.contains('msppacx') ||
+          lower.contains('jfyzlno')) {
+        return false;
+      }
+      return true;
+    }
+
+    // 1. Current selected variation thumbnail (if available from live API)
+    final varThumb = _selectedVariationItem?.thumbnail;
+    if (isValidDynamic(varThumb)) {
+      images.add(varThumb!.trim());
+    }
+
+    // 2. Main dynamic image from product model
+    if (isValidDynamic(currentProduct.image) &&
+        !images.contains(currentProduct.image.trim())) {
+      images.add(currentProduct.image.trim());
+    }
+
+    // 3. Any additional thumbnails from other variations in live API
+    if (_variantDetails != null) {
+      for (final v in _variantDetails!.variations) {
+        if (isValidDynamic(v.thumbnail) &&
+            !images.contains(v.thumbnail!.trim())) {
+          images.add(v.thumbnail!.trim());
+        }
+      }
+    }
+
+    // 4. Fallback if empty but product has non-demo image
+    if (images.isEmpty && isValidDynamic(currentProduct.image)) {
+      images.add(currentProduct.image.trim());
+    }
+
+    return images;
+  }
+
   @override
   Widget build(BuildContext context) {
     final routeArgs = ModalRoute.of(context)?.settings.arguments;
@@ -235,8 +289,16 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               : null;
       if (homeCtrl != null && homeCtrl.allProducts.isNotEmpty) {
         currentProduct = homeCtrl.allProducts.first.toProductModel();
+      } else if (homeCtrl != null && homeCtrl.newArrivalsProducts.isNotEmpty) {
+        currentProduct = homeCtrl.newArrivalsProducts.first.toProductModel();
       } else {
-        currentProduct = demoPopularProducts.first;
+        currentProduct = ProductModel(
+          id: 1,
+          image: '',
+          brandName: 'Store',
+          title: 'Product Details',
+          price: 0,
+        );
       }
     }
 
@@ -249,6 +311,17 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     final CartController cart = CartController.instance;
     final double displayUnitPrice = _selectedVariationItem?.price ??
         (currentProduct.priceAfetDiscount ?? currentProduct.price);
+    final double originalUnitPrice =
+        _selectedVariationItem?.mrp ?? currentProduct.price;
+    final double effectiveDiscount = (originalUnitPrice > displayUnitPrice)
+        ? (originalUnitPrice - displayUnitPrice)
+        : (currentProduct.discountAmount ?? 0.0);
+    final int effectiveDiscountPercent = currentProduct.dicountpercent ??
+        ((originalUnitPrice > 0 && effectiveDiscount > 0)
+            ? ((effectiveDiscount / originalUnitPrice) * 100).round()
+            : 0);
+    final bool hasDiscount =
+        (originalUnitPrice > displayUnitPrice) || (effectiveDiscount > 0);
 
     return Scaffold(
       bottomNavigationBar: widget.isProductAvailable
@@ -270,6 +343,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                 if (qty == 0) {
                   return CartButton(
                     price: displayUnitPrice,
+                    originalPrice: hasDiscount ? originalUnitPrice : null,
                     title: "Add to cart",
                     subTitle: "Total Price",
                     press: () {
@@ -356,13 +430,32 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                       : Colors.grey.shade600,
                                 ),
                               ),
-                              Text(
-                                "₹${(displayUnitPrice * qty).toStringAsFixed(0)}",
-                                style: const TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.bold,
-                                  color: primaryColor,
-                                ),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    "₹${((displayUnitPrice * qty) % 1 == 0 ? (displayUnitPrice * qty).toInt() : (displayUnitPrice * qty).toStringAsFixed(2))}",
+                                    style: const TextStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.bold,
+                                      color: primaryColor,
+                                    ),
+                                  ),
+                                  if (hasDiscount) ...[
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      "₹${((originalUnitPrice * qty) % 1 == 0 ? (originalUnitPrice * qty).toInt() : (originalUnitPrice * qty).toStringAsFixed(2))}",
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        decoration: TextDecoration.lineThrough,
+                                        color: Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.white38
+                                            : Colors.grey.shade500,
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
                             ],
                           ),
@@ -494,8 +587,10 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               ),
               actions: [
                 Obx(() {
-                  final isFav = WishlistController.instance
-                      .isWishlisted(currentProduct.id);
+                  final isFav = WishlistController.instance.isWishlisted(
+                    currentProduct.id,
+                    domain: currentProduct.storeDomain,
+                  );
                   return IconButton(
                     tooltip: isFav ? "Remove from Wishlist" : "Add to Wishlist",
                     onPressed: () {
@@ -533,23 +628,22 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               ],
             ),
 
-            // Product Images Slider
+            // Product Images Slider (Dynamic images only - static demo images removed)
             ProductImages(
-              images: {
-                if (_selectedVariationItem?.thumbnail != null &&
-                    _selectedVariationItem!.thumbnail!.isNotEmpty)
-                  _selectedVariationItem!.thumbnail!,
-                currentProduct.image,
-                productDemoImg2,
-                productDemoImg3,
-              }.toList(),
+              images: _buildDynamicProductImages(currentProduct),
             ),
 
-            // Product Information Header
+            // Product Information Header with Full Pricing Details
             ProductInfo(
               brand: currentProduct.brandName.toUpperCase(),
               title: currentProduct.title,
               isAvailable: widget.isProductAvailable,
+              price: displayUnitPrice,
+              originalPrice: originalUnitPrice,
+              discountAmount:
+                  effectiveDiscount > 0 ? effectiveDiscount : null,
+              discountPercent:
+                  effectiveDiscountPercent > 0 ? effectiveDiscountPercent : null,
               description:
                   "Premium curated design with exceptional durability and high comfort. Handcrafted with authentic materials, designed for your everyday lifestyle.",
               rating: 4.8,

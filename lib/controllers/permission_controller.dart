@@ -7,8 +7,6 @@ import 'package:get/get_state_manager/get_state_manager.dart';
 import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
 
-import '../views/base/dialogs/request_permission_dialog.dart';
-
 class PermissionController extends GetxController implements GetxService {
   Future<bool> getPermission(
       Permission permission, BuildContext context) async {
@@ -127,7 +125,8 @@ class PermissionController extends GetxController implements GetxService {
 
       // Reverse geocoding using Google Maps API - use formatted_address for reliable city display
       try {
-        final url = 'https://maps.googleapis.com/maps/api/geocode/json?latlng=$_latitude,$_longitude&key=AIzaSyDODsIBKvD4Ft0M58AYjLrdsED5xZDg0A0';
+        final url =
+            'https://maps.googleapis.com/maps/api/geocode/json?latlng=$_latitude,$_longitude&key=AIzaSyDODsIBKvD4Ft0M58AYjLrdsED5xZDg0A0';
         final response = await http.get(Uri.parse(url));
 
         log("Geocoding API Status: ${response.statusCode}");
@@ -157,12 +156,17 @@ class PermissionController extends GetxController implements GetxService {
               log("Full Formatted Address: $formattedAddress");
 
               // Strip any Plus Code string if it still appears at the beginning (e.g. "V323+RX8, Lolai, ...")
-              formattedAddress = formattedAddress.replaceAll(RegExp(r'^[A-Z0-9]{4,8}\+[A-Z0-9]{2,3}[,\s]*'), '');
+              formattedAddress = formattedAddress.replaceAll(
+                  RegExp(r'^[A-Z0-9]{4,8}\+[A-Z0-9]{2,3}[,\s]*'), '');
 
               // Remove country name (India) and postal code from the end
-              formattedAddress = formattedAddress.replaceAll(RegExp(r',?\s*India\s*$'), '');
-              formattedAddress = formattedAddress.replaceAll(RegExp(r'\s*\d{6}\s*'), ''); // Remove 6-digit Indian postal codes
-              formattedAddress = formattedAddress.replaceAll(RegExp(r',\s*$'), ''); // Remove trailing comma
+              formattedAddress =
+                  formattedAddress.replaceAll(RegExp(r',?\s*India\s*$'), '');
+              formattedAddress = formattedAddress.replaceAll(
+                  RegExp(r'\s*\d{6}\s*'),
+                  ''); // Remove 6-digit Indian postal codes
+              formattedAddress = formattedAddress.replaceAll(
+                  RegExp(r',\s*$'), ''); // Remove trailing comma
 
               if (formattedAddress.isNotEmpty) {
                 _address = formattedAddress.trim();
@@ -233,8 +237,8 @@ class PermissionController extends GetxController implements GetxService {
         print("Fallback Address: $fallbackAddress");
         return fallbackAddress;
       }
-    } catch(e) {
-       log("Fallback geocoding error: $e");
+    } catch (e) {
+      log("Fallback geocoding error: $e");
     }
     return "Location Found";
   }

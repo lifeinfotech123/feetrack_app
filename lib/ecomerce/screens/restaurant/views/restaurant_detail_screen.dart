@@ -8,17 +8,20 @@ import 'package:vlr/ecomerce/constants.dart';
 import 'package:vlr/ecomerce/controllers/cart_controller.dart';
 import 'package:vlr/ecomerce/controllers/restaurant_controller.dart';
 import 'package:vlr/ecomerce/models/food_model.dart';
+import 'package:vlr/ecomerce/models/home_screen_models.dart';
 import 'package:vlr/ecomerce/models/restaurant_model.dart';
 import 'package:vlr/ecomerce/screens/checkout/views/cart_screen.dart';
 
 class RestaurantDetailScreen extends StatefulWidget {
   final int restaurantId;
   final RestaurantModel? initialRestaurant;
+  final List<ApiProductModel>? allFoodProducts;
 
   const RestaurantDetailScreen({
     super.key,
     required this.restaurantId,
     this.initialRestaurant,
+    this.allFoodProducts,
   });
 
   @override
@@ -38,6 +41,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
       shopId: widget.initialRestaurant?.shopId,
       domain: widget.initialRestaurant?.domain,
       initialRestaurant: widget.initialRestaurant,
+      foodProductsList: widget.allFoodProducts,
     );
   }
 
@@ -485,7 +489,58 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
 
                     const SizedBox(height: 16),
 
-                    // Search In Menu
+                    // 1. Menu Categories Horizontal Bar
+                    Obx(() {
+                      final categories = _controller.categoriesMenu;
+                      final allCount = _controller.allDishes.length;
+                      final selectedCat = _controller.selectedCategory.value;
+
+                      return SizedBox(
+                        height: 40,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          children: [
+                            _buildCategoryChip(
+                              name: "All Dishes",
+                              count: allCount,
+                              isSelected: selectedCat == "All",
+                              isDark: isDark,
+                              onTap: () => _controller.setCategory("All"),
+                            ),
+                            ...categories.map((cat) {
+                              final isSelected = selectedCat.toLowerCase() ==
+                                  cat.categoryName.toLowerCase();
+                              return _buildCategoryChip(
+                                name: cat.categoryName,
+                                count: cat.dishesCount,
+                                isSelected: isSelected,
+                                isDark: isDark,
+                                onTap: () =>
+                                    _controller.setCategory(cat.categoryName),
+                              );
+                            }),
+                          ],
+                        ),
+                      );
+                    }),
+
+                    const SizedBox(height: 14),
+
+                    // 2. Food Preference (Veg / Non-Veg Filters)
+                    Row(
+                      children: [
+                        _buildVegFilterChip("All", isDark),
+                        const SizedBox(width: 8),
+                        _buildVegFilterChip("Veg", isDark, isVeg: true),
+                        const SizedBox(width: 8),
+                        _buildVegFilterChip("Non-Veg", isDark, isNonVeg: true),
+                      ],
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    // 3. Search in Menu Field
                     TextField(
                       controller: _searchController,
                       onChanged: (val) => _controller.setSearch(val),
@@ -533,60 +588,9 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 14),
-
-                    // Filter Chips Row (Veg / Non-Veg Filters)
-                    Row(
-                      children: [
-                        _buildVegFilterChip("All", isDark),
-                        const SizedBox(width: 8),
-                        _buildVegFilterChip("Veg", isDark, isVeg: true),
-                        const SizedBox(width: 8),
-                        _buildVegFilterChip("Non-Veg", isDark, isNonVeg: true),
-                      ],
-                    ),
-
-                    const SizedBox(height: 14),
-
-                    // Categories Horizontal Bar
-                    Obx(() {
-                      final categories = _controller.categoriesMenu;
-                      final allCount = _controller.allDishes.length;
-                      final selectedCat = _controller.selectedCategory.value;
-
-                      return SizedBox(
-                        height: 40,
-                        child: ListView(
-                          scrollDirection: Axis.horizontal,
-                          physics: const BouncingScrollPhysics(),
-                          children: [
-                            _buildCategoryChip(
-                              name: "All Dishes",
-                              count: allCount,
-                              isSelected: selectedCat == "All",
-                              isDark: isDark,
-                              onTap: () => _controller.setCategory("All"),
-                            ),
-                            ...categories.map((cat) {
-                              final isSelected = selectedCat.toLowerCase() ==
-                                  cat.categoryName.toLowerCase();
-                              return _buildCategoryChip(
-                                name: cat.categoryName,
-                                count: cat.dishesCount,
-                                isSelected: isSelected,
-                                isDark: isDark,
-                                onTap: () =>
-                                    _controller.setCategory(cat.categoryName),
-                              );
-                            }),
-                          ],
-                        ),
-                      );
-                    }),
-
                     const SizedBox(height: 12),
 
-                    // Dishes Header Status
+                    // 4. Dishes Header Status
                     Obx(() {
                       final selectedCat = _controller.selectedCategory.value;
                       final count = _controller.filteredDishes.length;
@@ -629,7 +633,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
               ),
             ),
 
-            // 3. Live Dishes List
+            // 5. Live Dishes List (List layout)
             Obx(() {
               if (_controller.isDetailLoading.value &&
                   _controller.allDishes.isEmpty) {

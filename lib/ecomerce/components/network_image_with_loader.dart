@@ -19,6 +19,20 @@ class NetworkImageWithLoader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (src.isEmpty || !src.startsWith('http')) {
+      return Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF252532)
+              : const Color(0xFFF0F0F5),
+          borderRadius: BorderRadius.all(Radius.circular(radius)),
+        ),
+        child: const Center(
+          child: Icon(Icons.image_outlined, color: Colors.grey, size: 28),
+        ),
+      );
+    }
+
     return ClipRRect(
       borderRadius: BorderRadius.all(Radius.circular(radius)),
       child: CachedNetworkImage(
@@ -33,7 +47,14 @@ class NetworkImageWithLoader extends StatelessWidget {
           ),
         ),
         placeholder: (context, url) => const Skeleton(),
-        errorWidget: (context, url, error) => const Icon(Icons.error),
+        errorWidget: (context, url, error) => Container(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF252532)
+              : const Color(0xFFF0F0F5),
+          child: const Center(
+            child: Icon(Icons.broken_image_outlined, color: Colors.grey, size: 26),
+          ),
+        ),
       ),
     );
   }

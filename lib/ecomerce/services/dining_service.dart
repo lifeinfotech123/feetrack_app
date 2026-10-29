@@ -46,8 +46,7 @@ class DiningService {
         if (data['status'] == true && data['data'] != null) {
           final List list = data['data'];
           return list
-              .map((item) =>
-                  RestaurantModel.fromJson(Map<String, dynamic>.from(item)))
+              .map((item) => RestaurantModel.fromJson(Map<String, dynamic>.from(item)))
               .toList();
         }
       }
@@ -67,23 +66,7 @@ class DiningService {
     if (date != null && date.isNotEmpty) queryParams['date'] = date;
     if (guests != null) queryParams['guests'] = guests.toString();
 
-    String url = '$ecomBaseUrl/v1/ecommerce/dining/slots';
-    // Try with base url pattern as given
-    url =
-        '${ecomBaseUrl.replaceAll(RegExp(r'ecommerce/$'), '')}ecommerce/dining/slots?${Uri(queryParameters: queryParams).query}';
-    // Fallback to construct properly
-    if (!url.contains('api/v1')) {
-      url =
-          'https://orderknow.com/api/v1/ecommerce/dining/slots?${Uri(queryParameters: queryParams).query}';
-    } else if (url.contains(ecomBaseUrl) &&
-        !url.contains('/dining/slots') &&
-        ecomBaseUrl.contains('ecommerce/')) {
-      // Try different construction
-    }
-
-    // Simpler construction matching pattern
-    final uri = Uri.parse('https://orderknow.com/api/v1/ecommerce/dining/slots')
-        .replace(queryParameters: queryParams);
+    final uri = Uri.parse('https://orderknow.com/api/v1/ecommerce/dining/slots').replace(queryParameters: queryParams);
 
     try {
       final response = await _client.get(uri, headers: _headers);
@@ -113,9 +96,7 @@ class DiningService {
     };
     if (guests != null) queryParams['guests_count'] = guests.toString();
 
-    final uri =
-        Uri.parse('https://orderknow.com/api/v1/ecommerce/dining/tables')
-            .replace(queryParameters: queryParams);
+    final uri = Uri.parse('https://orderknow.com/api/v1/ecommerce/dining/tables').replace(queryParameters: queryParams);
 
     try {
       final response = await _client.get(uri, headers: _headers);
@@ -138,8 +119,7 @@ class DiningService {
       'domain': domain,
       'shop_id': shopId.toString(),
     };
-    final uri = Uri.parse('https://orderknow.com/api/v1/ecommerce/dining/menu')
-        .replace(queryParameters: queryParams);
+    final uri = Uri.parse('https://orderknow.com/api/v1/ecommerce/dining/menu').replace(queryParameters: queryParams);
     final token = await _getToken();
     final headers = {..._headers};
     if (token.isNotEmpty) headers['Authorization'] = 'Bearer $token';
@@ -166,13 +146,14 @@ class DiningService {
     required int guestsCount,
     int? tableId,
     String? specialRequest,
+    List<Map<String, dynamic>>? preorderItems,
   }) async {
     final token = await _getToken();
     final headers = {..._headers};
     if (token.isNotEmpty) headers['Authorization'] = 'Bearer $token';
 
     final uri = Uri.parse('https://orderknow.com/api/v1/ecommerce/dining/book');
-    final body = {
+    final body = <String, dynamic>{
       'domain': domain,
       'shop_id': shopId,
       'booking_date': bookingDate,
@@ -182,22 +163,33 @@ class DiningService {
       if (tableId != null) 'table_id': tableId,
       if (specialRequest != null && specialRequest.isNotEmpty)
         'special_request': specialRequest,
+      if (preorderItems != null && preorderItems.isNotEmpty) ...{
+        'preorder_items': preorderItems,
+        'items': preorderItems,
+        'menu_items': preorderItems,
+      },
     };
 
     try {
-      final response =
-          await _client.post(uri, headers: headers, body: jsonEncode(body));
+      debugPrint('BOOK TABLE REQUEST: $body');
+      final response = await _client.post(uri, headers: headers, body: jsonEncode(body));
+      debugPrint('BOOK TABLE RESPONSE: ${response.statusCode} ${response.body}');
       if (response.statusCode == 200 || response.statusCode == 201) {
         final Map<String, dynamic> data = jsonDecode(response.body);
-        if (data['status'] == true) return data;
         return data;
       }
-      return jsonDecode(response.body);
+      try {
+        return jsonDecode(response.body);
+      } catch (_) {
+        return {'status': false, 'message': response.body};
+      }
     } catch (e) {
       debugPrint('DiningService bookTable Exception: $e');
     }
-    return null;
+    return {'status': false, 'message': 'Network error'};
   }
+
+
 
   /// Get my bookings
   Future<Map<String, dynamic>?> getMyBookings({
@@ -208,9 +200,7 @@ class DiningService {
     if (token.isNotEmpty) headers['Authorization'] = 'Bearer $token';
 
     final queryParams = <String, String>{'domain': domain};
-    final uri =
-        Uri.parse('https://orderknow.com/api/v1/ecommerce/dining/bookings')
-            .replace(queryParameters: queryParams);
+    final uri = Uri.parse('https://orderknow.com/api/v1/ecommerce/dining/bookings').replace(queryParameters: queryParams);
 
     try {
       final response = await _client.get(uri, headers: headers);
@@ -234,8 +224,7 @@ class DiningService {
     final headers = {..._headers};
     if (token.isNotEmpty) headers['Authorization'] = 'Bearer $token';
 
-    final uri = Uri.parse(
-        'https://orderknow.com/api/v1/ecommerce/dining/bookings/cancel');
+    final uri = Uri.parse('https://orderknow.com/api/v1/ecommerce/dining/bookings/cancel');
     final body = {
       'domain': domain,
       'booking_id': bookingId,
@@ -243,8 +232,7 @@ class DiningService {
     };
 
     try {
-      final response =
-          await _client.post(uri, headers: headers, body: jsonEncode(body));
+      final response = await _client.post(uri, headers: headers, body: jsonEncode(body));
       if (response.statusCode == 200 || response.statusCode == 201) {
         final Map<String, dynamic> data = jsonDecode(response.body);
         return data;

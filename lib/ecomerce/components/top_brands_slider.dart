@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../constants.dart';
 import '../ecomerce_banner/components/network_image_with_loader.dart';
-import '../route/route_constants.dart';
+import '../route/app_text_constants.dart';
 
 class TopBrandModel {
   final String name;

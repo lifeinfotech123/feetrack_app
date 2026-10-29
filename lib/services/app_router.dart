@@ -8,7 +8,7 @@ import 'package:vlr/views/screens/auth_screens/login/login_screen.dart';
 import 'package:vlr/views/screens/auth_screens/register/register_screen.dart';
 import 'package:vlr/views/screens/dashboard/dashboard_screen.dart';
 import 'package:vlr/views/screens/dashboard/job/job_detail_screen.dart';
-import 'package:vlr/views/screens/splash_screen/splash_screen.dart';
+import 'package:vlr/views/screens/auth_screens/splash_screen.dart';
 
 class AppRouter {
   static const String splash = '/';
@@ -60,7 +60,8 @@ class AppRouter {
     initialLocation: splash,
     redirect: (BuildContext context, GoRouterState state) {
       final uri = state.uri;
-      dev.log('GoRouter redirect check: uri=$uri, path=${uri.path}', name: 'APP_ROUTER');
+      dev.log('GoRouter redirect check: uri=$uri, path=${uri.path}',
+          name: 'APP_ROUTER');
 
       final parsed = parseDeepLinkUri(uri);
       final jobId = parsed.jobId;
@@ -72,9 +73,12 @@ class AppRouter {
       }
 
       // 2. If incoming URI is an external URL (OneLink or custom scheme feetrack://)
-      if (uri.scheme == 'feetrack' || (uri.host.isNotEmpty && uri.host != 'localhost')) {
+      if (uri.scheme == 'feetrack' ||
+          (uri.host.isNotEmpty && uri.host != 'localhost')) {
         final isLoggedIn = AppsFlyerService.checkIsLoggedIn();
-        dev.log('External URI handled -> jobId: $jobId, referral: $referralCode, isLoggedIn: $isLoggedIn', name: 'APP_ROUTER');
+        dev.log(
+            'External URI handled -> jobId: $jobId, referral: $referralCode, isLoggedIn: $isLoggedIn',
+            name: 'APP_ROUTER');
 
         final refQuery = (referralCode != null && referralCode.isNotEmpty)
             ? '?referral=${Uri.encodeComponent(referralCode)}'
@@ -132,7 +136,8 @@ class AppRouter {
       GoRoute(
         path: register,
         builder: (context, state) {
-          final referralCode = state.uri.queryParameters['referral'] ?? state.uri.queryParameters['deep_link_sub3'];
+          final referralCode = state.uri.queryParameters['referral'] ??
+              state.uri.queryParameters['deep_link_sub3'];
           return RegisterScreen(
             referralCode: (referralCode != null && referralCode.isNotEmpty)
                 ? referralCode
@@ -145,7 +150,8 @@ class AppRouter {
         builder: (context, state) {
           final idStr = state.pathParameters['id'];
           final jobId = int.tryParse(idStr ?? '');
-          final referralCode = state.uri.queryParameters['referral'] ?? state.uri.queryParameters['deep_link_sub3'];
+          final referralCode = state.uri.queryParameters['referral'] ??
+              state.uri.queryParameters['deep_link_sub3'];
           return JobDetailScreen(
             job: JobPostModel(id: jobId),
             referralCode: (referralCode != null && referralCode.isNotEmpty)
@@ -157,7 +163,8 @@ class AppRouter {
       GoRoute(
         path: '/job',
         builder: (context, state) {
-          final referralCode = state.uri.queryParameters['referral'] ?? state.uri.queryParameters['deep_link_sub3'];
+          final referralCode = state.uri.queryParameters['referral'] ??
+              state.uri.queryParameters['deep_link_sub3'];
           return JobDetailScreen(
             job: JobPostModel(),
             referralCode: (referralCode != null && referralCode.isNotEmpty)

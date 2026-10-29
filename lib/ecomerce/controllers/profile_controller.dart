@@ -34,9 +34,7 @@ class ProfileController extends GetxController {
 
   Future<String> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('token') ??
-        prefs.getString('user_app_token') ??
-        '';
+    return prefs.getString('token') ?? prefs.getString('user_app_token') ?? '';
   }
 
   Future<void> fetchAllData() async {
@@ -129,7 +127,8 @@ class ProfileController extends GetxController {
 
         for (final item in ordersList) {
           if (item is Map) {
-            final status = (item['order_status'] ?? '').toString().toLowerCase();
+            final status =
+                (item['order_status'] ?? '').toString().toLowerCase();
             if (status == 'pending' || status == 'confirmed') {
               pending++;
             } else if (status == 'shipped' ||

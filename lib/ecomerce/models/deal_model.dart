@@ -101,7 +101,11 @@ class DealProductModel {
 
     return ProductModel(
       id: id,
-      image: thumbnail ?? productDemoImg1,
+      image: (thumbnail != null &&
+              thumbnail!.isNotEmpty &&
+              !thumbnail!.contains('imgur.com'))
+          ? thumbnail!
+          : '',
       brandName: brandName ?? storeName ?? "Special Deal",
       title: name,
       price: originalPrice > 0 ? originalPrice : dealPrice,

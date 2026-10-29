@@ -5,6 +5,7 @@ import 'package:vlr/ecomerce/screens/checkout/views/cart_screen.dart';
 import 'package:vlr/ecomerce/screens/home/views/home_screen.dart';
 import 'package:vlr/ecomerce/screens/instant_delivery/Presention/screen/instant_product_.dart';
 import 'package:vlr/ecomerce/screens/profile/views/profile_screen.dart';
+import 'package:vlr/ecomerce/route/router.dart' as router;
 
 import 'components/mini_cart_bar.dart';
 import 'constants.dart';
@@ -17,6 +18,44 @@ class EntryPoint extends StatefulWidget {
 }
 
 class _EntryPointState extends State<EntryPoint> {
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_navigatorKey.currentState?.canPop() ?? false) {
+          _navigatorKey.currentState!.pop();
+        } else {
+          Navigator.of(context).pop();
+        }
+      },
+      child: Navigator(
+        key: _navigatorKey,
+        onGenerateRoute: (settings) {
+          if (settings.name == '/' || settings.name == null) {
+            return MaterialPageRoute(
+              builder: (_) => const _EntryPointHome(),
+              settings: settings,
+            );
+          }
+          return router.generateRoute(settings);
+        },
+      ),
+    );
+  }
+}
+
+class _EntryPointHome extends StatefulWidget {
+  const _EntryPointHome();
+
+  @override
+  State<_EntryPointHome> createState() => _EntryPointHomeState();
+}
+
+class _EntryPointHomeState extends State<_EntryPointHome> {
   final List _pages = const [
     HomeScreen(),
     InstantProduct(),

@@ -8,7 +8,6 @@ import 'package:vlr/views/screens/auth_screens/login/login_screen.dart';
 import '../../../components/network_image_with_loader.dart';
 import '../../../constants.dart';
 import '../../../controllers/profile_controller.dart';
-import '../../../route/app_text_constants.dart';
 import '../../address/presentation/views/addresses_screen.dart';
 import '../../bookmark/views/bookmark_screen.dart';
 import '../../coupon/views/coupon_screen.dart';
@@ -19,6 +18,7 @@ import '../../return_refund/views/return_refund_screen.dart';
 import '../../user_info/views/user_info_screen.dart';
 import '../../wallet/views/wallet_screen.dart';
 import '../../restaurant/views/dining/my_table_bookings_screen.dart';
+import '../../support/views/support_ticket_list_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -263,7 +263,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const MyTableBookingsScreen(domain: 'e-team-12'),
+                        builder: (_) =>
+                            const MyTableBookingsScreen(domain: 'e-team-12'),
                       ),
                     );
                   },
@@ -274,23 +275,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 // 5. Preferences & Settings (Individual Single Cards)
                 _buildSectionHeader(context, title: "Preferences & Security"),
                 const SizedBox(height: 10),
-
-                _buildSingleFeatureCard(
-                  context,
-                  icon: Icons.notifications_active_rounded,
-                  iconColor: const Color(0xFF00BCD4),
-                  iconBgColor: const Color(0xFF00BCD4).withValues(alpha: 0.12),
-                  title: "Notifications & Alerts",
-                  subtitle: "Order status alerts, offers & flash deals",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const NotificationsScreen(),
-                      ),
-                    );
-                  },
-                ),
 
                 _buildSingleFeatureCard(
                   context,
@@ -336,21 +320,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   iconColor: const Color(0xFF00C853),
                   iconBgColor: const Color(0xFF00C853).withValues(alpha: 0.12),
                   title: "24/7 Customer Support",
-                  subtitle: "Live chat with customer support team",
+                  subtitle: "Support tickets, live help & issue tracking",
                   onTap: () {
-                    Navigator.pushNamed(context, getHelpScreenRoute);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const SupportTicketListScreen(),
+                      ),
+                    );
                   },
                 ),
 
-                _buildSingleFeatureCard(
-                  context,
-                  icon: Icons.help_center_rounded,
-                  iconColor: const Color(0xFF0288D1),
-                  iconBgColor: const Color(0xFF0288D1).withValues(alpha: 0.12),
-                  title: "FAQs & Knowledgebase",
-                  subtitle: "Frequently asked questions & shopping guides",
-                  onTap: () {},
-                ),
+                // _buildSingleFeatureCard(
+                //   context,
+                //   icon: Icons.help_center_rounded,
+                //   iconColor: const Color(0xFF0288D1),
+                //   iconBgColor: const Color(0xFF0288D1).withValues(alpha: 0.12),
+                //   title: "FAQs & Knowledgebase",
+                //   subtitle: "Frequently asked questions & shopping guides",
+                //   onTap: () {},
+                // ),
 
                 _buildSingleFeatureCard(
                   context,

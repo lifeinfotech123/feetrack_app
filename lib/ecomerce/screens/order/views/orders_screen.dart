@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:vlr/ecomerce/screens/chat/views/live_chat_screen.dart';
 
 import '../../../constants.dart';
 import '../../../controllers/orders_controller.dart';
 import '../../../models/order_model.dart';
 import 'order_details_screen.dart';
+import 'order_tracking_screen.dart';
 
 class OrdersScreen extends StatefulWidget {
   final String? initialFilter;
@@ -103,6 +105,16 @@ class _OrdersScreenState extends State<OrdersScreen> {
         backgroundColor: cardBg,
         actions: [
           IconButton(
+            onPressed: () {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const LiveChatScreen()));
+            },
+            icon: const Icon(Icons.chat_bubble_outline_rounded),
+            tooltip: "Live Chat Support",
+          ),
+          IconButton(
             onPressed: () => _controller.fetchOrders(),
             icon: const Icon(Icons.refresh_rounded),
             tooltip: "Refresh Orders",
@@ -121,7 +133,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 Container(
                   height: 44,
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF282836) : const Color(0xFFF1F1F5),
+                    color: isDark
+                        ? const Color(0xFF282836)
+                        : const Color(0xFFF1F1F5),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: TextField(
@@ -551,51 +565,60 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
                 // Row 3: Items Count, Payment Status & Total Price
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Items Count & Payment pill
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "${order.itemsCount} ${order.itemsCount == 1 ? 'item' : 'items'}",
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? Colors.white70 : Colors.black87,
+                    // Items Count & Payment pill (Expanded prevents any overflow)
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "${order.itemsCount} ${order.itemsCount == 1 ? 'item' : 'items'}",
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white70 : Colors.black87,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 3),
-                        Row(
-                          children: [
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: order.isPaid
-                                    ? const Color(0xFF00C853)
-                                    : const Color(0xFFFF9800),
+                          const SizedBox(height: 3),
+                          Row(
+                            children: [
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: order.isPaid
+                                      ? const Color(0xFF00C853)
+                                      : const Color(0xFFFF9800),
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 5),
-                            Text(
-                              "${order.paymentMethod.replaceAll('_', ' ').toUpperCase()} • ${order.paymentStatus.toUpperCase()}",
-                              style: TextStyle(
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w600,
-                                color: order.isPaid
-                                    ? const Color(0xFF00C853)
-                                    : const Color(0xFFFF9800),
+                              const SizedBox(width: 5),
+                              Expanded(
+                                child: Text(
+                                  "${order.paymentMethod.replaceAll('_', ' ').toUpperCase()} • ${order.paymentStatus.toUpperCase()}",
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: order.isPaid
+                                        ? const Color(0xFF00C853)
+                                        : const Color(0xFFFF9800),
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
 
-                    // Amount + CTA
+                    const SizedBox(width: 12),
+
+                    // Amount + Navigation Indicator
                     Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
@@ -619,44 +642,109 @@ class _OrdersScreenState extends State<OrdersScreen> {
                           ],
                         ),
                         const SizedBox(width: 8),
-                        if (status == 'delivered')
-                          TextButton.icon(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => OrderDetailsScreen(
-                                    orderId: order.orderId,
-                                    storeDomain: order.domain,
-                                    initialOrder: order,
-                                  ),
-                                ),
-                              );
-                            },
-                            icon: const Icon(Icons.star_rate_rounded, size: 16),
-                            label: const Text("Review"),
-                            style: TextButton.styleFrom(
-                              foregroundColor: primaryColor,
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            ),
-                          )
-                        else
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: primaryColor.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(
-                              Icons.arrow_forward_ios_rounded,
-                              size: 13,
-                              color: primaryColor,
-                            ),
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: primaryColor.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(8),
                           ),
+                          child: const Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 12,
+                            color: primaryColor,
+                          ),
+                        ),
                       ],
                     ),
                   ],
                 ),
+
+                // Review Action for Delivered Orders
+                if (status == 'delivered') ...[
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 36,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => OrderDetailsScreen(
+                              orderId: order.orderId,
+                              storeDomain: order.domain,
+                              initialOrder: order,
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(
+                        Icons.star_rate_rounded,
+                        size: 16,
+                        color: Color(0xFFFFB300),
+                      ),
+                      label: const Text(
+                        "Rate & Review Products",
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: isDark ? Colors.white : Colors.black87,
+                        side: BorderSide(
+                          color:
+                              isDark ? Colors.white24 : const Color(0xFFD8D8E0),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+
+                // Dedicated Full-Width Track Order Button (Only for active / non-delivered orders)
+                if (status != 'delivered' &&
+                    status != 'canceled' &&
+                    status != 'cancelled') ...[
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 38,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => OrderTrackingScreen(
+                              orderId: order.orderId,
+                              storeDomain: order.domain,
+                              initialOrder: order,
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.location_on_rounded, size: 16),
+                      label: const Text(
+                        "Track Order",
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryColor,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

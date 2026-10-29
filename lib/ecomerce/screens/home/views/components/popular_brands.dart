@@ -75,81 +75,7 @@ class PopularBrands extends StatelessWidget {
     final HomeScreenApiController apiController =
         Get.put(HomeScreenApiController());
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Section Header Row
-        Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: defaultPadding,
-            vertical: defaultPadding / 2,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: primaryColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.verified_rounded,
-                      color: primaryColor,
-                      size: 18,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    "Top Brands",
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                  ),
-                ],
-              ),
-              InkWell(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const PopularBrands(),
-                    ),
-                  );
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  child: Row(
-                    children: [
-                      Text(
-                        "See All",
-                        style: TextStyle(
-                          color: primaryColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                      SizedBox(width: 2),
-                      Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        color: primaryColor,
-                        size: 11,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: defaultPadding / 3),
-
-        // Horizontal Slider of Brand Cards
-        Obx(() {
+    return Obx(() {
           if (apiController.isTopBrandsLoading.value) {
             return SizedBox(
               height: 160,
@@ -157,8 +83,8 @@ class PopularBrands extends StatelessWidget {
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: defaultPadding),
                 itemCount: 5,
-                itemBuilder: (context, index) => Padding(
-                  padding: const EdgeInsets.only(right: 12),
+                itemBuilder: (context, index) => const Padding(
+                  padding: EdgeInsets.only(right: 12),
                   child: Skeleton(
                     height: 160,
                     width: 145,
@@ -335,8 +261,6 @@ class PopularBrands extends StatelessWidget {
               },
             ),
           );
-        }),
-      ],
-    );
+        });
   }
 }

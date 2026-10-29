@@ -140,6 +140,8 @@ class OrderDetailsDataModel {
   final List<OrderDetailItemModel> items;
   final String createdAt;
   final String updatedAt;
+  final Map<String, dynamic>? rawJson;
+  final Map<String, dynamic>? deliveryMan;
 
   OrderDetailsDataModel({
     required this.orderId,
@@ -165,7 +167,94 @@ class OrderDetailsDataModel {
     required this.items,
     required this.createdAt,
     required this.updatedAt,
+    this.rawJson,
+    this.deliveryMan,
   });
+
+  static double? _parseDouble(dynamic val) {
+    if (val == null) return null;
+    if (val is num) return val.toDouble();
+    if (val is String) return double.tryParse(val.trim());
+    return null;
+  }
+
+  double? get customerLat => _parseDouble(
+        shippingAddress?['latitude'] ??
+            shippingAddress?['lat'] ??
+            shippingAddress?['destination_lat'] ??
+            rawJson?['delivery_address']?['latitude'] ??
+            rawJson?['customer_lat'],
+      );
+
+  double? get customerLng => _parseDouble(
+        shippingAddress?['longitude'] ??
+            shippingAddress?['lng'] ??
+            shippingAddress?['destination_lng'] ??
+            rawJson?['delivery_address']?['longitude'] ??
+            rawJson?['customer_lng'],
+      );
+
+  double? get vendorLat => _parseDouble(
+        vendorDetails?['latitude'] ??
+            vendorDetails?['lat'] ??
+            vendorDetails?['pickup_lat'] ??
+            rawJson?['pickup_lat'],
+      );
+
+  double? get vendorLng => _parseDouble(
+        vendorDetails?['longitude'] ??
+            vendorDetails?['lng'] ??
+            vendorDetails?['pickup_lng'] ??
+            rawJson?['pickup_lng'],
+      );
+
+  double? get deliveryPartnerLat => _parseDouble(
+        deliveryMan?['latitude'] ??
+            deliveryMan?['lat'] ??
+            deliveryMan?['current_lat'] ??
+            rawJson?['delivery_man_lat'] ??
+            rawJson?['driver_lat'],
+      );
+
+  double? get deliveryPartnerLng => _parseDouble(
+        deliveryMan?['longitude'] ??
+            deliveryMan?['lng'] ??
+            deliveryMan?['current_lng'] ??
+            rawJson?['delivery_man_lng'] ??
+            rawJson?['driver_lng'],
+      );
+
+  String? get deliveryPartnerName =>
+      deliveryMan?['name']?.toString() ??
+      (deliveryMan?['f_name'] != null
+          ? '${deliveryMan!['f_name']} ${deliveryMan!['l_name'] ?? ''}'.trim()
+          : null) ??
+      rawJson?['delivery_man_name']?.toString();
+
+  String? get deliveryPartnerPhone =>
+      deliveryMan?['phone']?.toString() ??
+      deliveryMan?['mobile']?.toString() ??
+      deliveryMan?['contact']?.toString() ??
+      rawJson?['delivery_man_phone']?.toString();
+
+  String? get deliveryPartnerImage =>
+      deliveryMan?['image']?.toString() ??
+      deliveryMan?['avatar']?.toString() ??
+      deliveryMan?['photo']?.toString();
+
+  String? get deliveryPartnerRating =>
+      deliveryMan?['rating']?.toString() ??
+      deliveryMan?['avg_rating']?.toString();
+
+  String? get eta =>
+      rawJson?['eta']?.toString() ??
+      rawJson?['estimated_delivery_time']?.toString() ??
+      rawJson?['delivery_time']?.toString();
+
+  bool get isFood =>
+      domain.toLowerCase().contains('food') ||
+      (rawJson?['order_type']?.toString().toLowerCase().contains('food') ??
+          false);
 
   factory OrderDetailsDataModel.fromJson(Map<String, dynamic> json) {
     final List<OrderDetailItemModel> itemsList = [];
@@ -176,6 +265,12 @@ class OrderDetailsDataModel {
         }
       }
     }
+
+    final dynamic dm = json['delivery_man'] ??
+        json['delivery_person'] ??
+        json['delivery_partner'] ??
+        json['delivery_boy'] ??
+        json['driver'];
 
     return OrderDetailsDataModel(
       orderId: json['order_id'] is int
@@ -209,6 +304,8 @@ class OrderDetailsDataModel {
       items: itemsList,
       createdAt: json['created_at']?.toString() ?? '',
       updatedAt: json['updated_at']?.toString() ?? '',
+      rawJson: json,
+      deliveryMan: dm is Map<String, dynamic> ? dm : null,
     );
   }
 }

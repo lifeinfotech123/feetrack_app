@@ -95,7 +95,9 @@ class UserModel {
         pincode: json["pincode"]?.toString(),
         country: json["country"]?.toString() ?? "India",
         preferredCategory: json["preferred_category"]?.toString(),
-        walletBalance: json["wallet_balance"]?.toString(),
+        walletBalance: json["wallet_balance"]?.toString() ??
+            json["walletAmount"]?.toString() ??
+            (json["wallet"] is Map ? json["wallet"]["balance"]?.toString() : null),
         emailVerifiedAt: _parseBoolValue(json["email_verified_at"]),
         mobileVerifiedAt:
             _parseBoolValue(json["phone_verified_at"]) ||

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../constants.dart';
 import '../../order/views/orders_screen.dart';
+import '../../order/views/order_tracking_screen.dart';
 
 class ThanksForOrderScreen extends StatelessWidget {
   final Map<String, dynamic>? orderData;
@@ -123,10 +124,12 @@ class ThanksForOrderScreen extends StatelessWidget {
 
               // 2. ORDER TRACK TIMELINE CARD ("Order Track")
               _buildOrderTrackCard(
+                context: context,
                 cardBg: cardBg,
                 isDark: isDark,
                 orderId: orderId,
                 placedAt: placedAt,
+                data: data,
               ),
 
               const SizedBox(height: 16),
@@ -157,6 +160,43 @@ class ThanksForOrderScreen extends StatelessWidget {
               const SizedBox(height: 24),
 
               // 5. ACTION BUTTONS
+              ElevatedButton.icon(
+                onPressed: () {
+                  final int parsedId = int.tryParse(orderId) ?? 0;
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => OrderTrackingScreen(
+                        orderId: parsedId,
+                        initialData: data,
+                      ),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00C853),
+                  minimumSize: const Size(double.infinity, 52),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 2,
+                  shadowColor: const Color(0xFF00C853).withValues(alpha: 0.35),
+                ),
+                icon: const Icon(Icons.location_on_rounded,
+                    color: Colors.white, size: 22),
+                label: const Text(
+                  "TRACK ORDER (LIVE MAP)",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 14.5,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
               ElevatedButton.icon(
                 onPressed: () {
                   Navigator.push(
@@ -389,10 +429,12 @@ class ThanksForOrderScreen extends StatelessWidget {
 
   // 2. ORDER TRACK TIMELINE CARD
   Widget _buildOrderTrackCard({
+    required BuildContext context,
     required Color cardBg,
     required bool isDark,
     required String orderId,
     required String placedAt,
+    required Map<String, dynamic> data,
   }) {
     return Container(
       width: double.infinity,
@@ -519,6 +561,43 @@ class ThanksForOrderScreen extends StatelessWidget {
             isActive: false,
             isLast: true,
             isDark: isDark,
+          ),
+
+          const SizedBox(height: 16),
+
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                final int parsedId = int.tryParse(orderId) ?? 0;
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => OrderTrackingScreen(
+                      orderId: parsedId,
+                      initialData: data,
+                    ),
+                  ),
+                );
+              },
+              style: OutlinedButton.styleFrom(
+                foregroundColor: primaryColor,
+                side: const BorderSide(color: primaryColor, width: 1.2),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 11),
+              ),
+              icon: const Icon(Icons.map_rounded, size: 18),
+              label: const Text(
+                "OPEN LIVE MAP TRACKING",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12.5,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ),
           ),
         ],
       ),

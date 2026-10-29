@@ -21,6 +21,11 @@ const String ecomAddressUpdateEndpoint = "addresses/update";
 const String ecomAddressDeleteEndpoint = "addresses/delete";
 const String ecomOrdersPlaceEndpoint = "orders/place";
 const String ecomProductVariantsEndpoint = "products/variants";
+const String ecomChatSendEndpoint = "chat/send";
+const String ecomChatConversationsEndpoint = "chat/conversations";
+const String ecomChatMessagesEndpoint = "chat/messages";
+const String ecomChatReadEndpoint = "chat/read";
+const String ecomChatUnreadCountEndpoint = "chat/unread-count";
 
 const String baseUrl = "";
 const String categoriesEndpoint = "";

@@ -14,6 +14,7 @@ class FoodController extends GetxController implements GetxService {
   final Rx<FoodHomeDataModel?> foodData = Rx<FoodHomeDataModel?>(null);
   final RxList<CuisineModel> cuisines = <CuisineModel>[].obs;
   final RxList<RestaurantModel> restaurants = <RestaurantModel>[].obs;
+  final Rxn<RestaurantModel> selectedRestaurant = Rxn<RestaurantModel>();
   final RxList<ApiProductModel> foodProducts = <ApiProductModel>[].obs;
   final RxList<ApiProductModel> filteredFoodProducts = <ApiProductModel>[].obs;
 
@@ -83,6 +84,28 @@ class FoodController extends GetxController implements GetxService {
     applyFilters();
   }
 
+  void selectRestaurant(RestaurantModel? restaurant) {
+    selectedRestaurant.value = restaurant;
+    if (restaurant == null) {
+      filteredFoodProducts.assignAll(foodProducts);
+    } else {
+      final rDomain = (restaurant.domain ?? '').toLowerCase();
+      final rName = restaurant.name.toLowerCase();
+      final rShopId = restaurant.shopId;
+      final list = foodProducts.where((p) {
+        final pDomain = (p.store?.domain ?? '').toLowerCase();
+        final pStoreName = (p.store?.name ?? '').toLowerCase();
+        final pShopId = p.store?.shopId;
+        if (rDomain.isNotEmpty && pDomain.isNotEmpty && pDomain == rDomain) return true;
+        if (rShopId != null && pShopId != null && pShopId == rShopId) return true;
+        if (rName.isNotEmpty && (pStoreName.contains(rName) || rName.contains(pStoreName))) return true;
+        return false;
+      }).toList();
+      filteredFoodProducts.assignAll(list);
+    }
+  }
+
+
   void setSearch(String query) {
     searchQuery.value = query.trim().toLowerCase();
     applyFilters();
@@ -129,13 +152,23 @@ class FoodController extends GetxController implements GetxService {
   }
 
   List<RestaurantModel> get filteredRestaurants {
-    if (selectedVegFilter.value == 'Pure Veg') {
-      return restaurants.where((r) => r.restaurantType?.toLowerCase() == 'veg').toList().isNotEmpty
-          ? restaurants.where((r) => r.restaurantType?.toLowerCase() == 'veg').toList()
-          : restaurants;
-    } else if (selectedVegFilter.value == 'Non-Veg') {
-      return restaurants.where((r) => r.restaurantType?.toLowerCase() != 'veg').toList();
+    var list = restaurants.toList();
+
+    if (searchQuery.value.isNotEmpty) {
+      final q = searchQuery.value.toLowerCase();
+      list = list.where((r) =>
+        r.name.toLowerCase().contains(q) ||
+        (r.address?.toLowerCase().contains(q) ?? false) ||
+        (r.domain?.toLowerCase().contains(q) ?? false)
+      ).toList();
     }
-    return restaurants;
+
+    if (selectedVegFilter.value == 'Pure Veg') {
+      final vegOnly = list.where((r) => r.restaurantType?.toLowerCase() == 'veg').toList();
+      return vegOnly.isNotEmpty ? vegOnly : list;
+    } else if (selectedVegFilter.value == 'Non-Veg') {
+      return list.where((r) => r.restaurantType?.toLowerCase() != 'veg').toList();
+    }
+    return list;
   }
 }

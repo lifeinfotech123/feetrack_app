@@ -4,7 +4,7 @@ import '../../../../../services/theme.dart';
 import '../../../../components/network_image_with_loader.dart';
 import '../../../../controllers/cart_controller.dart';
 import '../../../../models/product_model.dart';
-import '../../../../route/route_constants.dart';
+import '../../../../route/app_text_constants.dart';
 import '../../../../components/product/product_quantity_button.dart';
 import '../../../../components/product/wishlist_heart_button.dart';
 

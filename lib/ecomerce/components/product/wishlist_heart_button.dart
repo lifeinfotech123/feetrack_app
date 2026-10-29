@@ -96,8 +96,8 @@ class _WishlistHeartButtonState extends State<WishlistHeartButton>
           child: ScaleTransition(
             scale: _scaleAnim,
             child: Obx(() {
-              final isFav =
-                  WishlistController.instance.isWishlisted(widget.productId);
+              final isFav = WishlistController.instance
+                  .isWishlisted(widget.productId, domain: widget.storeDomain);
               return Icon(
                 isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                 size: widget.iconSize,

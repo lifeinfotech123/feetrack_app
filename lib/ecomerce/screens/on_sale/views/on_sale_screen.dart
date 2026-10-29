@@ -9,7 +9,7 @@ import '../../../constants.dart';
 import '../../../controllers/cart_controller.dart';
 import '../../../controllers/deals_controller.dart';
 import '../../../models/product_model.dart';
-import '../../../route/route_constants.dart';
+import '../../../route/app_text_constants.dart';
 
 class OnSaleScreen extends StatelessWidget {
   const OnSaleScreen({super.key});
@@ -130,7 +130,7 @@ class OnSaleScreen extends StatelessWidget {
                       key: ValueKey(activeDeal.id),
                       duration: Duration(seconds: seconds > 0 ? seconds : 3600),
                       text: "${activeDeal.title}\nSpecial Flash Deal",
-                      image: activeDeal.banner ?? productDemoImg1,
+                      image: activeDeal.banner ?? '',
                       press: () {},
                     ),
                   ),

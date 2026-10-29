@@ -161,6 +161,7 @@ class _RestaurantTableListScreenState extends State<RestaurantTableListScreen> {
               ),
               Positioned(
                 left: 14,
+                right: 14,
                 bottom: 14,
                 child: Row(
                   children: [
@@ -183,25 +184,30 @@ class _RestaurantTableListScreenState extends State<RestaurantTableListScreen> {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          restaurant.name,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          restaurant.address ?? '',
-                          style: const TextStyle(
-                              color: Colors.white70, fontSize: 11),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            restaurant.name,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            restaurant.address ?? '',
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 11),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -228,42 +234,56 @@ class _RestaurantTableListScreenState extends State<RestaurantTableListScreen> {
           ),
           Padding(
             padding: const EdgeInsets.all(14),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _infoChip(
-                    Icons.star_rounded, '${restaurant.rating}', Colors.amber),
-                const SizedBox(width: 8),
-                _infoChip(Icons.people_outline_rounded,
-                    '${restaurant.reviewsCount} Reviews', Colors.blueGrey),
-                const SizedBox(width: 8),
-                if (restaurant.estimatedDeliveryTime != null)
-                  _infoChip(Icons.timer_outlined,
-                      restaurant.estimatedDeliveryTime!, Colors.teal),
-                const Spacer(),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => TableBookingScreen(
-                          restaurant: restaurant,
-                          domain: restaurant.domain ?? widget.domain,
-                          shopId: restaurant.shopId ?? restaurant.id,
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: Row(
+                    children: [
+                      _infoChip(Icons.star_rounded, '${restaurant.rating}',
+                          Colors.amber),
+                      const SizedBox(width: 8),
+                      _infoChip(
+                          Icons.people_outline_rounded,
+                          '${restaurant.reviewsCount} Reviews',
+                          Colors.blueGrey),
+                      const SizedBox(width: 8),
+                      if (restaurant.estimatedDeliveryTime != null)
+                        _infoChip(Icons.timer_outlined,
+                            restaurant.estimatedDeliveryTime!, Colors.teal),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => TableBookingScreen(
+                            restaurant: restaurant,
+                            domain: restaurant.domain ?? widget.domain,
+                            shopId: restaurant.shopId ?? restaurant.id,
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.table_restaurant_rounded, size: 18),
-                  label: const Text('Book Table',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryColor,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 10),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
+                      );
+                    },
+                    icon: const Icon(Icons.table_restaurant_rounded, size: 18),
+                    label: const Text('Book Table',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
+                    ),
                   ),
                 ),
               ],

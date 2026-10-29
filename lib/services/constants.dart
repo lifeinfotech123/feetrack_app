@@ -120,20 +120,24 @@ void showToast(
             : ToastificationType.error),
     title: Text(
       message,
-      style:
-          Helper(navigatorKey.currentContext!).textTheme.bodyMedium!.copyWith(
-                color: black,
-                fontSize: 14,
-              ),
+      style: (navigatorKey.currentContext != null
+              ? Helper(navigatorKey.currentContext!).textTheme.bodyMedium?.copyWith(
+                    color: black,
+                    fontSize: 14,
+                  )
+              : null) ??
+          const TextStyle(color: Colors.black, fontSize: 14),
     ),
     description: description != null
-        ? Text(description,
-            style: Helper(navigatorKey.currentContext!)
-                .textTheme
-                .bodySmall!
-                .copyWith(
-                  color: black,
-                ))
+        ? Text(
+            description,
+            style: (navigatorKey.currentContext != null
+                    ? Helper(navigatorKey.currentContext!).textTheme.bodySmall?.copyWith(
+                          color: black,
+                        )
+                    : null) ??
+                const TextStyle(color: Colors.black, fontSize: 12),
+          )
         : null,
     style: toastificationStyle ?? ToastificationStyle.minimal,
     icon: toastType == ToastType.success

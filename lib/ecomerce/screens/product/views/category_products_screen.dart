@@ -8,7 +8,7 @@ import '../../../controllers/cart_controller.dart';
 import '../../../controllers/categories_controller.dart';
 import '../../../models/category_model.dart';
 import '../../../models/home_screen_models.dart';
-import '../../../route/route_constants.dart';
+import '../../../route/app_text_constants.dart';
 import '../../../components/product/product_quantity_button.dart';
 import '../../../components/product/wishlist_heart_button.dart';
 
@@ -759,9 +759,10 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                             : const Color(0xFFF7F7F9),
                         child: CachedNetworkImage(
                           imageUrl: item.thumbnail != null &&
-                                  item.thumbnail!.isNotEmpty
+                                  item.thumbnail!.isNotEmpty &&
+                                  !item.thumbnail!.contains('imgur.com')
                               ? item.thumbnail!
-                              : productDemoImg1,
+                              : '',
                           fit: BoxFit.cover,
                           errorWidget: (_, __, ___) => const Center(
                             child: Icon(Icons.image_not_supported_outlined,

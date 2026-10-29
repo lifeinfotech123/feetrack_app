@@ -5,6 +5,8 @@ import 'package:get/get.dart';
 import 'package:vlr/controllers/auth_controller.dart';
 import 'package:vlr/controllers/permission_controller.dart';
 import 'package:vlr/ecomerce/screens/checkout/views/cart_screen.dart';
+import 'package:vlr/ecomerce/screens/instant_delivery/Presention/screen/instant_product_.dart';
+import 'package:vlr/ecomerce/screens/restaurant/views/restaurant_table_list_screen.dart';
 import '../../../../constants.dart';
 import '../../../../controllers/cart_controller.dart';
 import '../../../../route/app_text_constants.dart';
@@ -480,6 +482,124 @@ class _HomeAppBarHeaderWidgetState extends State<HomeAppBarHeaderWidget> {
                   ],
                 ),
               ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Quick Action Buttons: Food Delivery & Book Table
+            Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const InstantProduct()),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF262038) : Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.1)
+                              : const Color(0xFFE8E8EE),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.06),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: primaryColor.withValues(alpha: 0.12),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.delivery_dining_rounded,
+                                color: primaryColor, size: 18),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            "Food Delivery",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const RestaurantTableListScreen(
+                                  domain: 'e-team-12',
+                                )),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF262038) : Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.1)
+                              : const Color(0xFFE8E8EE),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.06),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF00C853).withValues(alpha: 0.12),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.table_restaurant_rounded,
+                                color: Color(0xFF00C853), size: 18),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            "Book Table",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

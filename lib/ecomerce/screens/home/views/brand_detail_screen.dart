@@ -7,7 +7,7 @@ import '../../../components/skleton/skelton.dart';
 import '../../../constants.dart';
 import '../../../controllers/brand_crontoller.dart';
 import '../../../models/product_model.dart';
-import '../../../route/route_constants.dart';
+import '../../../route/app_text_constants.dart';
 
 class BrandDetailScreen extends StatefulWidget {
   final String? brandSlug;
@@ -389,7 +389,10 @@ class _BrandDetailScreenState extends State<BrandDetailScreen> {
                             final product = filteredProducts[index];
                             return ProductCard(
                               id: product.id,
-                              image: product.thumbnail ?? productDemoImg1,
+                              image: (product.thumbnail != null &&
+                                      !product.thumbnail!.contains('imgur.com'))
+                                  ? product.thumbnail!
+                                  : '',
                               brandName: detail.brand.name,
                               title: product.name,
                               price: product.unitPrice,
@@ -401,7 +404,11 @@ class _BrandDetailScreenState extends State<BrandDetailScreen> {
                               press: () {
                                 final productModel = ProductModel(
                                   id: product.id,
-                                  image: product.thumbnail ?? productDemoImg1,
+                                  image: (product.thumbnail != null &&
+                                          !product.thumbnail!
+                                              .contains('imgur.com'))
+                                      ? product.thumbnail!
+                                      : '',
                                   brandName: detail.brand.name,
                                   title: product.name,
                                   price: product.unitPrice,

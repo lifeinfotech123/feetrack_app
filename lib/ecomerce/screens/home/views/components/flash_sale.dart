@@ -48,8 +48,8 @@ class FlashSale extends StatelessWidget {
           (activeDeal?.banner != null && activeDeal!.banner!.isNotEmpty)
               ? activeDeal.banner!
               : (hasDealOfTheDay
-                  ? dealOfTheDay.product?.thumbnail ?? productDemoImg1
-                  : productDemoImg1);
+                  ? dealOfTheDay.product?.thumbnail ?? ''
+                  : '');
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -65,78 +65,7 @@ class FlashSale extends StatelessWidget {
             },
           ),
 
-          const SizedBox(height: defaultPadding),
-
-          // 2. Section Header Row
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: defaultPadding,
-              vertical: defaultPadding / 2,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFF5252).withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.bolt_rounded,
-                        color: Color(0xFFFF5252),
-                        size: 18,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      activeDeal?.title ?? "Flash Deals",
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                    ),
-                  ],
-                ),
-                InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const FlashSale(),
-                      ),
-                    );
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                    child: Row(
-                      children: [
-                        Text(
-                          "See All",
-                          style: TextStyle(
-                            color: primaryColor,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12.5,
-                          ),
-                        ),
-                        SizedBox(width: 4),
-                        Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          color: primaryColor,
-                          size: 11,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 6),
+          const SizedBox(height: defaultPadding / 2),
 
           // 3. Horizontal Products Slider from Live Flash Deal (Filtered for non-food)
           if (dealProducts.isNotEmpty)

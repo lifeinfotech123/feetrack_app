@@ -75,24 +75,17 @@ class HomeScreenApiController extends GetxController implements GetxService {
         mostPopularProducts.assignAll(nonFoodList.reversed.toList());
         newArrivalsProducts.assignAll(nonFoodList);
       } else {
-        // Fallback to local structured data (filtered for non-food)
-        final fallback = (await _localService.getFeaturedProducts()).where((p) => !p.isFood).toList();
-        allProducts.assignAll(fallback);
-        featuredProducts.assignAll(fallback);
-        final popular = (await _localService.getMostPopularProducts()).where((p) => !p.isFood).toList();
-        mostPopularProducts.assignAll(popular);
-        final newArr = (await _localService.getNewArrivalsProducts()).where((p) => !p.isFood).toList();
-        newArrivalsProducts.assignAll(newArr);
+        allProducts.clear();
+        featuredProducts.clear();
+        mostPopularProducts.clear();
+        newArrivalsProducts.clear();
       }
     } catch (e) {
       featuredErrorMessage.value = e.toString();
-      final fallback = (await _localService.getFeaturedProducts()).where((p) => !p.isFood).toList();
-      allProducts.assignAll(fallback);
-      featuredProducts.assignAll(fallback);
-      final popular = (await _localService.getMostPopularProducts()).where((p) => !p.isFood).toList();
-      mostPopularProducts.assignAll(popular);
-      final newArr = (await _localService.getNewArrivalsProducts()).where((p) => !p.isFood).toList();
-      newArrivalsProducts.assignAll(newArr);
+      allProducts.clear();
+      featuredProducts.clear();
+      mostPopularProducts.clear();
+      newArrivalsProducts.clear();
     } finally {
       isFeaturedLoading.value = false;
       isMostPopularLoading.value = false;
@@ -112,13 +105,13 @@ class HomeScreenApiController extends GetxController implements GetxService {
       // Filter products belonging to this store (excluding food items)
       final filtered = allProducts.where((p) {
         if (p.isFood) return false;
-        final matchesShopId =
-            store.shopId != null && (p.shopId == store.shopId || p.store?.shopId == store.shopId);
+        final matchesShopId = store.shopId != null &&
+            (p.shopId == store.shopId || p.store?.shopId == store.shopId);
         final matchesStoreId = store.id != 0 && p.store?.id == store.id;
-        final matchesDomain =
-            store.domain != null && p.store?.domain?.toLowerCase() == store.domain?.toLowerCase();
-        final matchesSlug =
-            store.slug != null && p.store?.slug?.toLowerCase() == store.slug?.toLowerCase();
+        final matchesDomain = store.domain != null &&
+            p.store?.domain?.toLowerCase() == store.domain?.toLowerCase();
+        final matchesSlug = store.slug != null &&
+            p.store?.slug?.toLowerCase() == store.slug?.toLowerCase();
         return matchesShopId || matchesStoreId || matchesDomain || matchesSlug;
       }).toList();
 

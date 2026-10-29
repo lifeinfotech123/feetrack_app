@@ -1,4 +1,3 @@
-import '../constants.dart';
 import 'brand_model.dart';
 import 'category_model.dart';
 import 'product_model.dart';
@@ -29,6 +28,8 @@ class ApiProductModel {
   final String? variant;
   final String? color;
   final Map<String, dynamic>? choices;
+  final double? tax;
+  final String? taxType;
 
   ApiProductModel({
     required this.id,
@@ -55,6 +56,8 @@ class ApiProductModel {
     this.variant,
     this.color,
     this.choices,
+    this.tax,
+    this.taxType,
   });
 
   factory ApiProductModel.fromJson(Map<String, dynamic> json) {
@@ -144,6 +147,8 @@ class ApiProductModel {
       choices: json['choices'] is Map
           ? Map<String, dynamic>.from(json['choices'])
           : null,
+      tax: (json['tax'] as num?)?.toDouble() ?? 18.0,
+      taxType: json['tax_type']?.toString() ?? 'percent',
     );
   }
 
@@ -197,9 +202,11 @@ class ApiProductModel {
 
     return ProductModel(
       id: id,
-      image: (thumbnail != null && thumbnail!.isNotEmpty)
+      image: (thumbnail != null &&
+              thumbnail!.isNotEmpty &&
+              !thumbnail!.contains('imgur.com'))
           ? thumbnail!
-          : productDemoImg1,
+          : '',
       brandName: brand?.name ?? (store?.name ?? 'Official Brand'),
       title: name,
       price: unitPrice,
@@ -218,6 +225,8 @@ class ApiProductModel {
       categoryName: category?.name,
       categorySlug: category?.slug,
       categoryType: category?.categoryType,
+      tax: tax ?? 18.0,
+      taxType: taxType ?? 'percent',
     );
   }
 }

@@ -7,7 +7,7 @@ import 'package:get/get.dart';
 import '../../../../constants.dart';
 import '../../../../controllers/categories_controller.dart';
 import '../../../../models/home_screen_models.dart';
-import '../../../../route/route_constants.dart';
+import '../../../../route/app_text_constants.dart';
 import '../../../product/views/category_products_screen.dart';
 import '../../../../components/product/product_quantity_button.dart';
 import '../../../../components/product/wishlist_heart_button.dart';
@@ -498,7 +498,7 @@ class _Sub_categoryState extends State<Sub_category> {
                           color: isDark ? const Color(0xFF252532) : const Color(0xFFF6F6F9),
                           width: double.infinity,
                           child: CachedNetworkImage(
-                            imageUrl: item.thumbnail ?? productDemoImg1,
+                            imageUrl: item.thumbnail ?? '',
                             fit: BoxFit.cover,
                             errorWidget: (_, __, ___) => const Center(
                               child: Icon(Icons.broken_image, size: 24),

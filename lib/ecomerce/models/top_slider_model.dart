@@ -33,7 +33,11 @@ class LinkedProductModel {
 
   ProductModel toProductModel({String? storeName, String? storeDomain}) {
     return ProductModel(
-      image: thumbnail ?? productDemoImg1,
+      image: (thumbnail != null &&
+              thumbnail!.isNotEmpty &&
+              !thumbnail!.contains('imgur.com'))
+          ? thumbnail!
+          : '',
       brandName: storeName ?? "Featured",
       title: name,
       price: unitPrice,

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
+import 'dart:io';
 import 'package:app_links/app_links.dart';
 import 'package:appsflyer_sdk/appsflyer_sdk.dart';
 import 'package:get/get.dart';
@@ -31,14 +32,25 @@ class AppsFlyerService {
 
   /// Initialize AppsFlyer SDK with dev key and OneLink template
   static Future<void> initialize() async {
-    final AppsFlyerOptions options = AppsFlyerOptions(
-      afDevKey: 'eS7j6iQs9oYCgCZecsRFBV',
-      appId: 'com.tpipay.feetrack_student_parent', // Android package name
-      showDebug: true, // Set to false in production
-      timeToWaitForATTUserAuthorization: 10, // iOS ATT dialog timeout
-    );
+    try {
+      // Direct URI Listener (works across platforms without requiring Apple ID)
+      _setupDirectUriListener();
 
-    _appsflyerSdk = AppsflyerSdk(options);
+      // Skip AppsFlyer SDK initialization on iOS to avoid requiring or storing any Apple ID
+      if (Platform.isIOS) {
+        log('AppsFlyer SDK skipped on iOS (no Apple ID stored or required)',
+            name: 'APPSFLYER');
+        return;
+      }
+
+      final AppsFlyerOptions options = AppsFlyerOptions(
+        afDevKey: 'eS7j6iQs9oYCgCZecsRFBV',
+        appId: 'com.tpipay.feetrack_student_parent', // Android package name
+        showDebug: true, // Set to false in production
+        timeToWaitForATTUserAuthorization: 10, // iOS ATT dialog timeout
+      );
+
+      _appsflyerSdk = AppsflyerSdk(options);
 
     // ============================
     // 1. Unified Deep Linking (UDL)
@@ -152,13 +164,9 @@ class AppsFlyerService {
     );
 
     log('AppsFlyer SDK initialized successfully', name: 'APPSFLYER');
-
-    // ============================
-    // 4. Direct URI Listener (Fallback)
-    // Captures incoming URI directly when AppsFlyer UDL fails
-    // (common on debug builds or when App Links verification fails)
-    // ============================
-    _setupDirectUriListener();
+    } catch (e, stack) {
+      log('AppsFlyer SDK initialization failed: $e\n$stack', name: 'APPSFLYER');
+    }
   }
 
   static Map<String, dynamic>? _asStringKeyedMap(dynamic value) {
@@ -170,6 +178,7 @@ class AppsFlyerService {
 
   /// Listen for incoming URIs directly using app_links package
   static void _setupDirectUriListener() {
+    if (_linkSubscription != null) return;
     final appLinks = AppLinks();
 
     // Handle initial link (app was closed, opened via link)

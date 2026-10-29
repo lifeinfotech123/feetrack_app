@@ -5,7 +5,7 @@ import '../../../../components/skleton/skelton.dart';
 import '../../../../constants.dart';
 import '../../../../controllers/brand_crontoller.dart';
 import '../../../../models/brand_model.dart';
-import '../../../../route/route_constants.dart';
+import '../../../../route/app_text_constants.dart';
 
 class BrandWidget extends StatelessWidget {
   const BrandWidget({super.key});

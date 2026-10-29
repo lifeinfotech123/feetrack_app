@@ -7,7 +7,7 @@ import '../../../constants.dart';
 import '../../../controllers/home_screen_api_controller.dart';
 import '../../../controllers/store_controller.dart';
 import '../../../models/store_model.dart';
-import '../../../route/route_constants.dart';
+import '../../../route/app_text_constants.dart';
 
 class StoreDetailScreen extends StatefulWidget {
   final StoreModel store;

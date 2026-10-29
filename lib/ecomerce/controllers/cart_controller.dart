@@ -17,6 +17,7 @@ class CartItemModel {
   final String? variant;
   final String? color;
   final Map<String, dynamic>? choices;
+  bool isSelected;
 
   CartItemModel({
     required this.product,
@@ -25,6 +26,7 @@ class CartItemModel {
     this.variant,
     this.color,
     this.choices,
+    this.isSelected = true,
   });
 
   String get effectiveVariant =>
@@ -43,8 +45,30 @@ class CartItemModel {
           : product.getDefaultChoices();
 
   String? get domain => storeDomain ?? product.storeDomain;
+  double get originalUnitPrice =>
+      (product.price > unitPrice) ? product.price : unitPrice;
+  double get originalTotalPrice => originalUnitPrice * quantity;
   double get unitPrice => product.priceAfetDiscount ?? product.price;
   double get totalPrice => unitPrice * quantity;
+  double get discountAmount =>
+      (originalUnitPrice - unitPrice).clamp(0.0, double.infinity);
+  double get totalDiscount => discountAmount * quantity;
+
+  double get taxRate => product.tax ?? 18.0;
+  double get unitTax => (product.taxType == 'flat')
+      ? taxRate
+      : (unitPrice * (taxRate / 100));
+  double get totalTax => unitTax * quantity;
+
+  String get storeName {
+    if (product.storeName != null && product.storeName!.trim().isNotEmpty) {
+      return product.storeName!.trim();
+    }
+    if (domain != null && domain!.trim().isNotEmpty) {
+      return domain!.trim();
+    }
+    return 'Official Store';
+  }
 
   Map<String, dynamic> toJson() => {
         'product': product.toJson(),
@@ -53,6 +77,7 @@ class CartItemModel {
         'variant': effectiveVariant,
         'color': effectiveColor,
         'choices': effectiveChoices,
+        'isSelected': isSelected,
       };
 
   Map<String, dynamic> toOrderItemJson({String? fallbackDomain}) {
@@ -166,6 +191,7 @@ class CartItemModel {
       choices: json['choices'] != null
           ? Map<String, dynamic>.from(json['choices'] as Map)
           : prod.getDefaultChoices(),
+      isSelected: json['isSelected'] as bool? ?? true,
     );
   }
 }
@@ -240,27 +266,65 @@ class CartController extends ChangeNotifier {
   int get totalItemCount {
     int count = 0;
     for (var item in _items) {
-      count += item.quantity;
+      if (item.isSelected) {
+        count += item.quantity;
+      }
     }
     return count;
   }
 
+  /// Total Original Products Price (before product discount) of selected items
+  double get originalSubtotal {
+    double total = 0.0;
+    for (var item in _items) {
+      if (item.isSelected) {
+        total += item.originalTotalPrice;
+      }
+    }
+    return total;
+  }
+
+  /// Total Product Discount (difference between MRP and final price) of selected items
+  double get totalProductDiscount {
+    double discount = 0.0;
+    for (var item in _items) {
+      if (item.isSelected) {
+        discount += item.totalDiscount;
+      }
+    }
+    return discount;
+  }
+
+  /// Total Tax across selected cart items
+  double get totalTax {
+    double tax = 0.0;
+    for (var item in _items) {
+      if (item.isSelected) {
+        tax += item.totalTax;
+      }
+    }
+    return tax;
+  }
+
+  /// Subtotal (final price of products) of selected items
   double get subtotal {
     double total = 0.0;
     for (var item in _items) {
-      total += item.totalPrice;
+      if (item.isSelected) {
+        total += item.totalPrice;
+      }
     }
     return total;
   }
 
   double get deliveryFee {
-    if (_items.isEmpty) return 0.0;
+    if (_items.where((i) => i.isSelected).isEmpty) return 0.0;
     if (_appliedCoupon != null &&
         _appliedCoupon!.isFreeDelivery &&
         subtotal >= _appliedCoupon!.minOrderValue) {
       return 0.0;
     }
-    return subtotal > 25.0 ? 0.0 : 1.99;
+    return 0.0; // In screenshot: Shipping is ₹0.00
   }
 
   double get discountAmount {
@@ -271,18 +335,10 @@ class CartController extends ChangeNotifier {
   }
 
   double get grandTotal =>
-      (subtotal + deliveryFee - discountAmount).clamp(0.0, double.infinity);
+      (subtotal + totalTax + deliveryFee - discountAmount).clamp(0.0, double.infinity);
 
-  /// Total money saved by user (discounts + free delivery waiver if applicable)
-  double get totalSavings {
-    double saved = discountAmount;
-    if (subtotal <= 25.0 &&
-        _appliedCoupon != null &&
-        _appliedCoupon!.isFreeDelivery) {
-      saved += 1.99;
-    }
-    return saved;
-  }
+  /// Total money saved by user (product discount + coupon discount)
+  double get totalSavings => totalProductDiscount + discountAmount;
 
   /// Unique domains across all products in the cart (for multi-vendor management)
   List<String> get uniqueDomains {
@@ -300,8 +356,8 @@ class CartController extends ChangeNotifier {
   List<String> get uniqueStoreNames {
     final stores = <String>{};
     for (var item in _items) {
-      final s = item.product.storeName;
-      if (s != null && s.isNotEmpty) {
+      final s = item.storeName;
+      if (s.isNotEmpty) {
         stores.add(s);
       }
     }
@@ -322,11 +378,49 @@ class CartController extends ChangeNotifier {
   Map<String, List<CartItemModel>> get itemsGroupedByStore {
     final map = <String, List<CartItemModel>>{};
     for (var item in _items) {
-      final key = item.product.storeName ?? 'Store';
+      final key = item.storeName;
       map.putIfAbsent(key, () => []).add(item);
     }
     return map;
   }
+
+  /// Toggle item selection
+  void toggleItemSelection(CartItemModel item) {
+    item.isSelected = !item.isSelected;
+    _saveCartToPrefs();
+    notifyListeners();
+  }
+
+  /// Toggle store selection
+  void toggleStoreSelection(String storeName, bool selected) {
+    for (var item in _items) {
+      if (item.storeName == storeName) {
+        item.isSelected = selected;
+      }
+    }
+    _saveCartToPrefs();
+    notifyListeners();
+  }
+
+  /// Check if all items for a store are selected
+  bool isStoreSelected(String storeName) {
+    final storeItems = _items.where((i) => i.storeName == storeName).toList();
+    if (storeItems.isEmpty) return false;
+    return storeItems.every((i) => i.isSelected);
+  }
+
+  /// Toggle all items selection
+  void toggleAllSelection(bool selected) {
+    for (var item in _items) {
+      item.isSelected = selected;
+    }
+    _saveCartToPrefs();
+    notifyListeners();
+  }
+
+  /// Are all items selected
+  bool get isAllSelected =>
+      _items.isNotEmpty && _items.every((i) => i.isSelected);
 
   /// Applies a coupon if eligible. Returns an error string if ineligible, null on success.
   String? applyCoupon(CouponModel coupon) {
@@ -348,7 +442,7 @@ class CartController extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? prefs.getString('user_app_token') ?? '';
-      final d = 'e-team-12';
+      const d = 'e-team-12';
       int sId = 1;
       if (_items.isNotEmpty) {
         sId = _items.first.product.storeId ?? 1;
@@ -520,6 +614,12 @@ class CartController extends ChangeNotifier {
       _saveCartToPrefs();
       notifyListeners();
     }
+  }
+
+  void removeItem(CartItemModel item) {
+    _items.remove(item);
+    _saveCartToPrefs();
+    notifyListeners();
   }
 
   void removeFromCart(ProductModel product, {String? storeDomain}) {

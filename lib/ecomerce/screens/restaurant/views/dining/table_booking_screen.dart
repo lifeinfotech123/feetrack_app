@@ -292,7 +292,27 @@ class _TableBookingScreenState extends State<TableBookingScreen> {
         return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator(color: primaryColor)));
       }
 
-      final slots = _controller.slotsData['data']?['slots'] as List? ?? [];
+      final allSlots = _controller.slotsData['data']?['slots'] as List? ?? [];
+      final now = DateTime.now();
+      final isToday = DateFormat('yyyy-MM-dd').format(selectedDate) == DateFormat('yyyy-MM-dd').format(now);
+
+      final slots = allSlots.where((slot) {
+        final time24 = slot['time_24']?.toString() ?? '';
+        if (time24.isEmpty) return false;
+        final available = slot['is_available'] == true && slot['is_past'] != true;
+        if (!available) return false;
+        if (isToday) {
+          try {
+            final parts = time24.split(':');
+            final slotTime = DateTime(now.year, now.month, now.day, int.parse(parts[0]), parts.length > 1 ? int.parse(parts[1]) : 0);
+            if (slotTime.isBefore(now.add(const Duration(minutes: 0)))) {
+              return false;
+            }
+          } catch (_) {}
+        }
+        return true;
+      }).toList();
+
       if (slots.isEmpty) {
         return Container(
           width: double.infinity,
@@ -316,13 +336,13 @@ class _TableBookingScreenState extends State<TableBookingScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                color: isSelected ? primaryColor : (available ? cardBg : (isDark ? Colors.white10 : Colors.grey.shade100)),
+                color: isSelected ? primaryColor : cardBg,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: isSelected ? primaryColor : (isDark ? Colors.white12 : const Color(0xFFEAEAEA))),
               ),
               child: Text(
                 time,
-                style: TextStyle(fontWeight: FontWeight.w600, color: isSelected ? Colors.white : (available ? (isDark ? Colors.white : Colors.black87) : Colors.grey)),
+                style: TextStyle(fontWeight: FontWeight.w600, color: isSelected ? Colors.white : (isDark ? Colors.white : Colors.black87)),
               ),
             ),
           );

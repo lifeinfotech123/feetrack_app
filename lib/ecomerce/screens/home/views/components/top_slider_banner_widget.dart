@@ -8,7 +8,7 @@ import '../../../../components/skleton/banner/banner_m_skelton.dart';
 import '../../../../constants.dart';
 import '../../../../controllers/top_slider_controller.dart';
 import '../../../../models/top_slider_model.dart';
-import '../../../../route/route_constants.dart';
+import '../../../../route/app_text_constants.dart';
 
 class TopSliderBannerWidget extends StatefulWidget {
   const TopSliderBannerWidget({super.key});

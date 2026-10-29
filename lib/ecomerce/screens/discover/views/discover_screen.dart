@@ -6,7 +6,7 @@ import '../../../components/skleton/others/discover_categories_skelton.dart';
 import '../../../constants.dart';
 import '../../../controllers/cart_controller.dart';
 import '../../../controllers/categories_controller.dart';
-import '../../../route/route_constants.dart';
+import '../../../route/app_text_constants.dart';
 import '../../home/views/components/sub_category.dart';
 import '../models/category_data.dart';
 import 'components/category_content_view.dart';

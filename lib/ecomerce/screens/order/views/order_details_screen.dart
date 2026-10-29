@@ -11,6 +11,7 @@ import '../../../constants.dart';
 import '../../../controllers/orders_controller.dart';
 import '../../../controllers/return_refund_controller.dart';
 import '../../../models/order_model.dart';
+import 'order_tracking_screen.dart';
 
 class OrderDetailsScreen extends StatefulWidget {
   final int orderId;
@@ -100,6 +101,22 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         elevation: 0,
         backgroundColor: cardBg,
         actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => OrderTrackingScreen(
+                    orderId: widget.orderId,
+                    storeDomain: _effectiveStore,
+                    initialOrder: widget.initialOrder,
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.location_on_rounded, color: primaryColor),
+            tooltip: "Track Order",
+          ),
           IconButton(
             onPressed: _downloadInvoice,
             icon: const Icon(Icons.receipt_long_rounded),
@@ -209,6 +226,16 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                 isDark: isDark,
                 cardBg: cardBg,
               ),
+              if (status != 'delivered' &&
+                  status != 'canceled' &&
+                  status != 'cancelled') ...[
+                const SizedBox(height: 14),
+                _buildTrackOrderCard(
+                  status: status,
+                  isDark: isDark,
+                  cardBg: cardBg,
+                ),
+              ],
               const SizedBox(height: 14),
               if (verifyCode != null && verifyCode.trim().isNotEmpty) ...[
                 _buildVerificationCard(
@@ -242,6 +269,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                 const SizedBox(height: 14),
                 _buildStatusTimelineCard(
                   timeline: statusTimeline,
+                  orderStatus: status,
                   isDark: isDark,
                   cardBg: cardBg,
                 ),
@@ -268,6 +296,31 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                 cardBg: cardBg,
               ),
               const SizedBox(height: 14),
+              if (status != 'delivered' &&
+                  status != 'canceled' &&
+                  status != 'cancelled') ...[
+                _buildActionTile(
+                  icon: Icons.location_on_rounded,
+                  iconColor: const Color(0xFF00C853),
+                  title: "Track Order (Live Map)",
+                  subtitle: "View real-time delivery location & timeline",
+                  isDark: isDark,
+                  cardBg: cardBg,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => OrderTrackingScreen(
+                          orderId: widget.orderId,
+                          storeDomain: _effectiveStore,
+                          initialOrder: widget.initialOrder,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+              ],
               _buildActionTile(
                 icon: Icons.download_rounded,
                 iconColor: primaryColor,
@@ -765,8 +818,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                                       }
                                     }
                                   } catch (_) {}
-                                  if (mounted)
+                                  if (mounted) {
                                     setState(() => submitting = false);
+                                  }
                                 },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryColor,
@@ -998,6 +1052,117 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           },
         );
       },
+    );
+  }
+
+  Widget _buildTrackOrderCard({
+    required String status,
+    required bool isDark,
+    required Color cardBg,
+  }) {
+    final bool isDelivered = status == 'delivered';
+    final bool isCanceled = status == 'canceled' || status == 'cancelled';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.35),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: primaryColor.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: primaryColor.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.map_rounded,
+                  color: primaryColor,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Live Order Tracking",
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      "Track delivery partner & live route on Google Map",
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: greyColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => OrderTrackingScreen(
+                      orderId: widget.orderId,
+                      storeDomain: _effectiveStore,
+                      initialOrder: widget.initialOrder,
+                    ),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+              icon: const Icon(Icons.location_on_rounded, size: 18),
+              label: Text(
+                isDelivered
+                    ? "VIEW DELIVERY SUMMARY & ROUTE"
+                    : (isCanceled ? "VIEW ORDER TRACKING" : "TRACK ORDER ON LIVE MAP"),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  letterSpacing: 0.4,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1462,9 +1627,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                                 "Qty: ${item.quantity} × ₹${item.unitPrice.toStringAsFixed(2)}",
                                 style: TextStyle(
                                   fontSize: 11.5,
-                                  color: isDark
-                                      ? Colors.white60
-                                      : Colors.black54,
+                                  color:
+                                      isDark ? Colors.white60 : Colors.black54,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -1524,43 +1688,160 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 
   Widget _buildStatusTimelineCard({
     required List<dynamic> timeline,
+    String? orderStatus,
     required bool isDark,
     required Color cardBg,
   }) {
+    final currentStatus = (orderStatus ?? '').toLowerCase().trim();
+    final bool isDelivered = currentStatus == 'delivered' ||
+        currentStatus == 'completed' ||
+        timeline.any((entry) {
+          if (entry is Map) {
+            final s = entry['status']?.toString().toLowerCase().trim() ?? '';
+            return s == 'delivered' || s == 'completed';
+          }
+          return false;
+        });
+
+    const Color deliveredGreen = Color(0xFF00C853);
+
+    // If backend only returns 1 entry and order is delivered, synthesize full 4-step delivery milestones
+    List<Map<String, dynamic>> effectiveTimeline = [];
+    if (isDelivered && timeline.length == 1 && timeline.first is Map) {
+      final single = timeline.first as Map<String, dynamic>;
+      final timestamp = single['timestamp']?.toString() ?? '';
+      effectiveTimeline = [
+        {
+          'status': 'ORDER PLACED',
+          'cause': 'Your order has been placed successfully.',
+          'timestamp': timestamp,
+        },
+        {
+          'status': 'ORDER CONFIRMED',
+          'cause': 'Seller has confirmed your order.',
+          'timestamp': timestamp,
+        },
+        {
+          'status': 'OUT FOR DELIVERY',
+          'cause': 'Order is out for delivery.',
+          'timestamp': timestamp,
+        },
+        {
+          'status': 'DELIVERED',
+          'cause':
+              single['cause']?.toString() ?? 'Order delivered successfully.',
+          'timestamp': timestamp,
+        },
+      ];
+    } else {
+      effectiveTimeline = timeline.whereType<Map<String, dynamic>>().toList();
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? Colors.white12 : const Color(0xFFECECF2),
+          color: isDelivered
+              ? deliveredGreen.withValues(alpha: 0.35)
+              : (isDark ? Colors.white12 : const Color(0xFFECECF2)),
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.timeline_rounded, color: primaryColor, size: 20),
-              SizedBox(width: 8),
-              Text(
+              Icon(
+                Icons.timeline_rounded,
+                color: isDelivered ? deliveredGreen : primaryColor,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              const Text(
                 "Order Tracking Timeline",
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
               ),
+              const Spacer(),
+              if (!isDelivered &&
+                  orderStatus != 'canceled' &&
+                  orderStatus != 'cancelled') ...[
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => OrderTrackingScreen(
+                          orderId: widget.orderId,
+                          storeDomain: _effectiveStore,
+                          initialOrder: widget.initialOrder,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.map_rounded, size: 14),
+                  label: const Text(
+                    "Live Map",
+                    style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+                  ),
+                  style: TextButton.styleFrom(
+                    foregroundColor: primaryColor,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              ],
+              if (isDelivered) ...[
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: deliveredGreen.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: deliveredGreen.withValues(alpha: 0.35),
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.check_circle_rounded,
+                          color: deliveredGreen, size: 14),
+                      SizedBox(width: 4),
+                      Text(
+                        "Delivered",
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: deliveredGreen,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
           const Divider(height: 20),
-          ...List.generate(timeline.length, (index) {
-            final entry = timeline[index];
-            if (entry is! Map<String, dynamic>) {
-              return const SizedBox.shrink();
-            }
-            final isLast = index == timeline.length - 1;
+          ...List.generate(effectiveTimeline.length, (index) {
+            final entry = effectiveTimeline[index];
+            final isLast = index == effectiveTimeline.length - 1;
+            final isFirst = index == 0;
             final itemStatus =
                 (entry['status']?.toString() ?? 'Update').toUpperCase();
             final cause = entry['cause']?.toString() ?? '';
             final time = entry['timestamp']?.toString() ?? '';
-            final by = entry['updated_by']?.toString();
+
+            final Color circleColor = isDelivered
+                ? deliveredGreen
+                : (isFirst ? primaryColor : Colors.grey.shade400);
+
+            // When delivered, the left vertical line runs continuously from start to end in green
+            final Color lineColor = isDelivered
+                ? deliveredGreen
+                : (isDark ? Colors.white24 : const Color(0xFFE0E0E0));
 
             return IntrinsicHeight(
               child: Row(
@@ -1569,11 +1850,11 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                   Column(
                     children: [
                       Container(
-                        width: 14,
-                        height: 14,
+                        width: 18,
+                        height: 18,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: index == 0 ? primaryColor : Colors.grey,
+                          color: circleColor,
                           border: Border.all(
                             color:
                                 isDark ? const Color(0xFF1E1E28) : Colors.white,
@@ -1581,20 +1862,37 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: (index == 0 ? primaryColor : Colors.grey)
-                                  .withValues(alpha: 0.3),
+                              color: circleColor.withValues(alpha: 0.35),
                               blurRadius: 4,
                             ),
                           ],
                         ),
+                        child: isDelivered
+                            ? const Center(
+                                child: Icon(
+                                  Icons.check,
+                                  size: 11,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : (isFirst
+                                ? Center(
+                                    child: Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: const BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  )
+                                : null),
                       ),
                       if (!isLast)
                         Expanded(
                           child: Container(
-                            width: 2,
-                            color: isDark
-                                ? Colors.white24
-                                : const Color(0xFFE0E0E0),
+                            width: 3,
+                            color: lineColor,
                           ),
                         ),
                     ],
@@ -1614,11 +1912,13 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
-                                  color: index == 0
-                                      ? primaryColor
-                                      : (isDark
-                                          ? Colors.white
-                                          : Colors.black87),
+                                  color: isDelivered
+                                      ? deliveredGreen
+                                      : (isFirst
+                                          ? primaryColor
+                                          : (isDark
+                                              ? Colors.white
+                                              : Colors.black87)),
                                 ),
                               ),
                               if (time.isNotEmpty)
@@ -1640,17 +1940,6 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                               style: TextStyle(
                                 fontSize: 12,
                                 color: isDark ? Colors.white70 : Colors.black87,
-                              ),
-                            ),
-                          ],
-                          if (by != null && by.isNotEmpty) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              "Updated by $by",
-                              style: TextStyle(
-                                fontSize: 10.5,
-                                fontStyle: FontStyle.italic,
-                                color: isDark ? Colors.white38 : Colors.black38,
                               ),
                             ),
                           ],
@@ -1796,21 +2085,21 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 "Payment & Bill Details",
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
               ),
-              if (orderGroupId != null && orderGroupId.isNotEmpty)
-                Text(
-                  "Ref: $orderGroupId",
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isDark ? Colors.white38 : Colors.black38,
-                  ),
-                ),
+              // if (orderGroupId != null && orderGroupId.isNotEmpty)
+              //   Text(
+              //     "Ref: $orderGroupId",
+              //     style: TextStyle(
+              //       fontSize: 11,
+              //       color: isDark ? Colors.white38 : Colors.black38,
+              //     ),
+              //   ),
             ],
           ),
           const Divider(height: 20),

@@ -22,6 +22,8 @@ class ProductModel {
   final String? categoryName;
   final String? categorySlug;
   final String? categoryType;
+  final double? tax;
+  final String? taxType;
 
   ProductModel({
     required this.image,
@@ -44,6 +46,8 @@ class ProductModel {
     this.categoryName,
     this.categorySlug,
     this.categoryType,
+    this.tax,
+    this.taxType,
   });
 
   bool get isFood {
@@ -310,6 +314,8 @@ class ProductModel {
         'category_name': categoryName,
         'category_slug': categorySlug,
         'category_type': categoryType,
+        'tax': tax,
+        'taxType': taxType,
       };
 
   factory ProductModel.fromJson(Map<String, dynamic> json) => ProductModel(
@@ -320,6 +326,8 @@ class ProductModel {
         priceAfetDiscount: (json['priceAfetDiscount'] as num?)?.toDouble(),
         dicountpercent: json['dicountpercent'] as int?,
         discountAmount: (json['discountAmount'] as num?)?.toDouble(),
+        tax: (json['tax'] as num?)?.toDouble(),
+        taxType: json['tax_type']?.toString() ?? json['taxType']?.toString(),
         storeName: json['storeName'] as String?,
         storeDomain: json['storeDomain'] as String?,
         shopId: json['shopId'] as int?,

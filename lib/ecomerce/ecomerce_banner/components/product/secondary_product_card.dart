@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../../services/theme.dart';
-import '../../../controllers/cart_controller.dart';
 import '../../../models/product_model.dart';
 import '../network_image_with_loader.dart';
 import '../../../components/product/product_quantity_button.dart';
@@ -101,7 +100,8 @@ class SecondaryProductCard extends StatelessWidget {
               // Product Details
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -128,7 +128,9 @@ class SecondaryProductCard extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 11.5,
                               fontWeight: FontWeight.w600,
-                              color: isDark ? Colors.white : const Color(0xFF222228),
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF222228),
                               height: 1.2,
                             ),
                           ),
@@ -164,7 +166,9 @@ class SecondaryProductCard extends StatelessWidget {
                               : Text(
                                   "\$$price",
                                   style: TextStyle(
-                                    color: isDark ? Colors.white : const Color(0xFF1E1E24),
+                                    color: isDark
+                                        ? Colors.white
+                                        : const Color(0xFF1E1E24),
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
                                   ),

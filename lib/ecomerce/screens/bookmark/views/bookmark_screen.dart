@@ -5,7 +5,7 @@ import '../../../components/product/product_card.dart';
 import '../../../constants.dart';
 import '../../../controllers/wishlist_controller.dart';
 import '../../../models/wishlist_model.dart';
-import '../../../route/route_constants.dart';
+import '../../../route/app_text_constants.dart';
 
 class BookmarkScreen extends StatefulWidget {
   const BookmarkScreen({super.key});
@@ -110,10 +110,12 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
                         id: item.productId,
                         shopId: item.shopId,
                         storeDomain: item.domain,
-                        discountAmount: item.discount > 0 ? item.discount : null,
-                        image: item.thumbnail != null && item.thumbnail!.isNotEmpty
-                            ? item.thumbnail!
-                            : productDemoImg1,
+                        discountAmount:
+                            item.discount > 0 ? item.discount : null,
+                        image:
+                            item.thumbnail != null && item.thumbnail!.isNotEmpty
+                                ? item.thumbnail!
+                                : '',
                         brandName: item.brandName ?? 'Store',
                         title: item.name,
                         price: item.unitPrice,
@@ -251,7 +253,8 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryColor,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:vlr/ecomerce/route/route_constants.dart';
+import 'package:vlr/ecomerce/route/app_text_constants.dart';
 
 import '../../views/screens/auth_screens/login/login_screen.dart';
 import '../../views/screens/auth_screens/signup_screen.dart';
@@ -10,7 +10,6 @@ import '../models/category_model.dart';
 import '../models/product_model.dart';
 import '../screens/address/presentation/views/addresses_screen.dart';
 import '../screens/address/presentation/views/add_new_address_screen.dart';
-import '../screens/auth/views/password_recovery_screen.dart';
 import '../screens/bookmark/views/bookmark_screen.dart';
 import '../screens/checkout/views/cart_screen.dart';
 import '../screens/checkout/views/payment_method_screen.dart';
@@ -18,6 +17,7 @@ import '../screens/checkout/views/thanks_for_order_screen.dart';
 import '../screens/discover/views/discover_screen.dart';
 import '../screens/product/views/category_products_screen.dart';
 import '../screens/coupon/views/coupon_screen.dart';
+import '../screens/home/views/all_brands_screen.dart';
 import '../screens/home/views/brand_detail_screen.dart';
 import '../screens/home/views/home_screen.dart';
 import '../screens/instant_delivery/Presention/screen/instant_product_.dart';
@@ -31,13 +31,18 @@ import '../models/order_model.dart';
 import '../screens/onbording/views/onbording_screnn.dart';
 import '../screens/order/views/orders_screen.dart';
 import '../screens/order/views/order_details_screen.dart';
+import '../screens/order/views/order_tracking_screen.dart';
 import '../screens/preferences/views/preferences_screen.dart';
+import '../screens/product/views/all_products_screen.dart';
 import '../screens/product/views/product_details_screen.dart';
+import '../screens/store/views/all_stores_screen.dart';
+import '../screens/support/views/create_support_ticket_screen.dart';
+import '../screens/support/views/support_ticket_details_screen.dart';
+import '../screens/support/views/support_ticket_list_screen.dart';
+import '../models/support_ticket_model.dart';
 import '../models/restaurant_model.dart';
 import '../screens/restaurant/views/restaurant_detail_screen.dart';
 import '../screens/restaurant/views/dining/my_table_bookings_screen.dart';
-import '../screens/restaurant/views/dining/booking_confirm_screen.dart';
-import '../screens/restaurant/views/dining/table_selection_screen.dart';
 import '../screens/restaurant/views/dining/table_booking_screen.dart';
 import '../screens/restaurant/views/restaurant_table_list_screen.dart';
 import '../screens/reviews/view/product_reviews_screen.dart';
@@ -67,13 +72,6 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         builder: (context) => const SignUpScreen(),
       );
     // case profileSetupScreenRoute:
-    //   return MaterialPageRoute(
-    //     builder: (context) => const ProfileSetupScreen(),
-    //   );
-    case passwordRecoveryScreenRoute:
-      return MaterialPageRoute(
-        builder: (context) => const PasswordRecoveryScreen(),
-      );
 
     case productDetailsScreenRoute:
       return MaterialPageRoute(
@@ -151,6 +149,63 @@ Route<dynamic> generateRoute(RouteSettings settings) {
     case onSaleScreenRoute:
       return MaterialPageRoute(
         builder: (context) => const OnSaleScreen(),
+      );
+    case allStoresScreenRoute:
+      return MaterialPageRoute(
+        builder: (context) => const AllStoresScreen(),
+      );
+    case allBrandsScreenRoute:
+      return MaterialPageRoute(
+        builder: (context) => const AllBrandsScreen(),
+      );
+    case allProductsScreenRoute:
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) {
+          if (settings.arguments is Map<String, dynamic>) {
+            final args = settings.arguments as Map<String, dynamic>;
+            return AllProductsScreen(
+              title: args['title'] as String? ?? "Products",
+              type:
+                  args['type'] as ProductSectionType? ?? ProductSectionType.all,
+            );
+          } else if (settings.arguments is String) {
+            return AllProductsScreen(
+              title: settings.arguments as String,
+            );
+          }
+          return const AllProductsScreen(title: "Products");
+        },
+      );
+    case supportTicketListScreenRoute:
+      return MaterialPageRoute(
+        builder: (context) => const SupportTicketListScreen(),
+      );
+    case createSupportTicketScreenRoute:
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) {
+          final orderId =
+              settings.arguments is int ? settings.arguments as int : null;
+          return CreateSupportTicketScreen(prefilledOrderId: orderId);
+        },
+      );
+    case supportTicketDetailsScreenRoute:
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) {
+          if (settings.arguments is int) {
+            return SupportTicketDetailsScreen(
+                ticketId: settings.arguments as int);
+          } else if (settings.arguments is Map<String, dynamic>) {
+            final args = settings.arguments as Map<String, dynamic>;
+            return SupportTicketDetailsScreen(
+              ticketId: args['ticketId'] as int,
+              initialTicket: args['ticket'] as SupportTicketModel?,
+            );
+          }
+          return const SupportTicketListScreen();
+        },
       );
     case kidsScreenRoute:
       return MaterialPageRoute(
@@ -241,6 +296,34 @@ Route<dynamic> generateRoute(RouteSettings settings) {
         settings: settings,
         builder: (context) => const OrdersScreen(),
       );
+    case orderTrackingScreenRoute:
+      if (settings.arguments is Map<String, dynamic>) {
+        final args = settings.arguments as Map<String, dynamic>;
+        final int orderId = args['orderId'] is int
+            ? args['orderId'] as int
+            : int.tryParse(args['orderId']?.toString() ?? '0') ?? 0;
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => OrderTrackingScreen(
+            orderId: orderId,
+            storeDomain: args['storeDomain'] as String? ??
+                (args['initialOrder'] as OrderListItemModel?)?.domain,
+            initialOrder: args['initialOrder'] as OrderListItemModel?,
+            initialData: args['initialData'] as Map<String, dynamic>?,
+          ),
+        );
+      } else if (settings.arguments is int) {
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => OrderTrackingScreen(
+            orderId: settings.arguments as int,
+          ),
+        );
+      }
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => const OrdersScreen(),
+      );
     // case cancleOrderScreenRoute:
     //   return MaterialPageRoute(
     //     builder: (context) => const CancleOrderScreen(),
@@ -317,7 +400,9 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         settings: settings,
         builder: (context) => RestaurantTableListScreen(
-          domain: settings.arguments is String ? settings.arguments as String : 'e-team-12',
+          domain: settings.arguments is String
+              ? settings.arguments as String
+              : 'e-team-12',
         ),
       );
     case tableBookingScreenRoute:
@@ -328,7 +413,9 @@ Route<dynamic> generateRoute(RouteSettings settings) {
           builder: (context) => TableBookingScreen(
             restaurant: args['restaurant'],
             domain: args['domain'] ?? 'e-team-12',
-            shopId: args['shopId'] ?? args['restaurant']?.shopId ?? args['restaurant']?.id,
+            shopId: args['shopId'] ??
+                args['restaurant']?.shopId ??
+                args['restaurant']?.id,
           ),
         );
       }
@@ -340,7 +427,9 @@ Route<dynamic> generateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         settings: settings,
         builder: (context) => MyTableBookingsScreen(
-          domain: settings.arguments is String ? settings.arguments as String : 'e-team-12',
+          domain: settings.arguments is String
+              ? settings.arguments as String
+              : 'e-team-12',
         ),
       );
 

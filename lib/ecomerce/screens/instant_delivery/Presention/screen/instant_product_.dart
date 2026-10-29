@@ -4,12 +4,10 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:vlr/controllers/permission_controller.dart';
 
-import 'package:vlr/ecomerce/components/product/product_quantity_button.dart';
 import 'package:vlr/ecomerce/components/skleton/skelton.dart';
 import 'package:vlr/ecomerce/constants.dart';
 import 'package:vlr/ecomerce/controllers/cart_controller.dart';
 import 'package:vlr/ecomerce/controllers/food_controller.dart';
-import 'package:vlr/ecomerce/models/home_screen_models.dart';
 import 'package:vlr/ecomerce/models/restaurant_model.dart';
 import 'package:vlr/ecomerce/route/app_text_constants.dart';
 import 'package:vlr/ecomerce/screens/checkout/views/cart_screen.dart';
@@ -56,7 +54,8 @@ class _HomePageState extends State<InstantProduct> {
     final cart = CartController.instance;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF12121A) : const Color(0xFFF7F7FA),
+      backgroundColor:
+          isDark ? const Color(0xFF12121A) : const Color(0xFFF7F7FA),
       bottomNavigationBar: ListenableBuilder(
         listenable: cart,
         builder: (context, _) {
@@ -66,7 +65,8 @@ class _HomePageState extends State<InstantProduct> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF1E1E28) : Colors.white,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(20)),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.12),
@@ -307,26 +307,34 @@ class _HomePageState extends State<InstantProduct> {
                           color: cardBg,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                            color: isDark ? Colors.white12 : const Color(0xFFE2E2E8),
+                            color: isDark
+                                ? Colors.white12
+                                : const Color(0xFFE2E2E8),
                           ),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.search_rounded, color: primaryColor, size: 20),
+                            const Icon(Icons.search_rounded,
+                                color: primaryColor, size: 20),
                             const SizedBox(width: 10),
                             Expanded(
                               child: TextField(
                                 controller: _searchController,
-                                onChanged: (val) => _foodController.setSearch(val),
+                                onChanged: (val) =>
+                                    _foodController.setSearch(val),
                                 decoration: InputDecoration(
-                                  hintText: "Search for restaurant, dish, or cuisine...",
+                                  hintText:
+                                      "Search for restaurant, dish, or cuisine...",
                                   hintStyle: TextStyle(
                                     fontSize: 13,
-                                    color: isDark ? Colors.white38 : Colors.black38,
+                                    color: isDark
+                                        ? Colors.white38
+                                        : Colors.black38,
                                   ),
                                   border: InputBorder.none,
                                   isDense: true,
-                                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                                  contentPadding:
+                                      const EdgeInsets.symmetric(vertical: 12),
                                 ),
                               ),
                             ),
@@ -347,9 +355,12 @@ class _HomePageState extends State<InstantProduct> {
                       // 1. Dynamic Hero CMS Banner (api/v1/ecommerce/food)
                       Obx(() {
                         final hero = _foodController.foodData.value?.heroCms;
-                        final badge = hero?.badgeText ?? "25-35 Mins Instant Food Delivery";
-                        final titleMain = hero?.titleMain ?? "Craving Something";
-                        final titleHighlight = hero?.titleHighlight ?? "Delicious?";
+                        final badge = hero?.badgeText ??
+                            "25-35 Mins Instant Food Delivery";
+                        final titleMain =
+                            hero?.titleMain ?? "Craving Something";
+                        final titleHighlight =
+                            hero?.titleHighlight ?? "Delicious?";
                         final subtitle = hero?.subtitle ??
                             "Order fresh, hot, and hygienic meals from the finest restaurants and cafes delivered to your doorstep.";
                         final avgDel = hero?.avgDelivery ?? "30-40m";
@@ -368,7 +379,8 @@ class _HomePageState extends State<InstantProduct> {
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFFE65100).withValues(alpha: 0.3),
+                                color: const Color(0xFFE65100)
+                                    .withValues(alpha: 0.3),
                                 blurRadius: 12,
                                 offset: const Offset(0, 5),
                               ),
@@ -378,7 +390,8 @@ class _HomePageState extends State<InstantProduct> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 3),
                                 decoration: BoxDecoration(
                                   color: Colors.black.withValues(alpha: 0.25),
                                   borderRadius: BorderRadius.circular(6),
@@ -386,7 +399,8 @@ class _HomePageState extends State<InstantProduct> {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(Icons.bolt_rounded, size: 14, color: Colors.white),
+                                    const Icon(Icons.bolt_rounded,
+                                        size: 14, color: Colors.white),
                                     const SizedBox(width: 4),
                                     Text(
                                       badge.toUpperCase(),
@@ -437,11 +451,16 @@ class _HomePageState extends State<InstantProduct> {
                               const SizedBox(height: 12),
                               Row(
                                 children: [
-                                  _buildHeroStatPill(Icons.timer_outlined, avgDel, "Delivery"),
+                                  _buildHeroStatPill(
+                                      Icons.timer_outlined, avgDel, "Delivery"),
                                   const SizedBox(width: 6),
-                                  _buildHeroStatPill(Icons.star_rounded, topRated, "Top Rated"),
+                                  _buildHeroStatPill(Icons.star_rounded,
+                                      topRated, "Top Rated"),
                                   const SizedBox(width: 6),
-                                  _buildHeroStatPill(Icons.track_changes_rounded, tracking, "Tracking"),
+                                  _buildHeroStatPill(
+                                      Icons.track_changes_rounded,
+                                      tracking,
+                                      "Tracking"),
                                 ],
                               ),
                             ],
@@ -460,7 +479,10 @@ class _HomePageState extends State<InstantProduct> {
                             children: [
                               Text(
                                 "Popular Cuisines & Moods",
-                                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleSmall
+                                    ?.copyWith(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16,
                                     ),
@@ -470,7 +492,8 @@ class _HomePageState extends State<InstantProduct> {
                                 "Pick from your favorite categories",
                                 style: TextStyle(
                                   fontSize: 11.5,
-                                  color: isDark ? Colors.white54 : Colors.black54,
+                                  color:
+                                      isDark ? Colors.white54 : Colors.black54,
                                 ),
                               ),
                             ],
@@ -490,12 +513,16 @@ class _HomePageState extends State<InstantProduct> {
                       // Cuisines Horizontal Slider
                       Obx(() {
                         final cuisines = _foodController.cuisines;
-                        final selectedIndex = _foodController.selectedCuisineIndex.value;
+                        final selectedIndex =
+                            _foodController.selectedCuisineIndex.value;
 
-                        if (cuisines.isEmpty && _foodController.isLoading.value) {
+                        if (cuisines.isEmpty &&
+                            _foodController.isLoading.value) {
                           return const SizedBox(
                             height: 70,
-                            child: Center(child: CircularProgressIndicator(color: primaryColor)),
+                            child: Center(
+                                child: CircularProgressIndicator(
+                                    color: primaryColor)),
                           );
                         }
 
@@ -519,7 +546,8 @@ class _HomePageState extends State<InstantProduct> {
                                   iconUrl: c.icon,
                                   isSelected: selectedIndex == (idx + 1),
                                   isDark: isDark,
-                                  onTap: () => _foodController.selectCuisine(idx + 1),
+                                  onTap: () =>
+                                      _foodController.selectCuisine(idx + 1),
                                 );
                               }),
                             ],
@@ -538,42 +566,58 @@ class _HomePageState extends State<InstantProduct> {
                             children: [
                               Text(
                                 "Restaurants Near You",
-                                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleSmall
+                                    ?.copyWith(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16,
                                     ),
                               ),
                               Obx(() {
-                                final count = _foodController.filteredRestaurants.length;
+                                final count =
+                                    _foodController.filteredRestaurants.length;
                                 return Text(
                                   "$count ${count == 1 ? 'outlet' : 'outlets'} delivering fresh food right now",
                                   style: TextStyle(
                                     fontSize: 11.5,
-                                    color: isDark ? Colors.white54 : Colors.black54,
+                                    color: isDark
+                                        ? Colors.white54
+                                        : Colors.black54,
                                   ),
                                 );
                               }),
                             ],
                           ),
                           // Veg Filter Chips
-                          Row(
-                            children: [
-                              _buildVegFilterSmallChip("All", isDark),
-                              const SizedBox(width: 4),
-                              _buildVegFilterSmallChip("Pure Veg", isDark, isVeg: true),
-                              const SizedBox(width: 4),
-                              _buildVegFilterSmallChip("Non-Veg", isDark, isNonVeg: true),
-                            ],
-                          ),
                         ],
                       ),
                       const SizedBox(height: 12),
 
+                      // Row(
+                      //   children: [
+                      //     _buildVegFilterSmallChip("All", isDark),
+                      //     const SizedBox(width: 4),
+                      //     _buildVegFilterSmallChip("Pure Veg", isDark,
+                      //         isVeg: true),
+                      //     const SizedBox(width: 4),
+                      //     _buildVegFilterSmallChip("Non-Veg", isDark,
+                      //         isNonVeg: true),
+                      //   ],
+                      // ),
+
+                      // const SizedBox(
+                      //   height: 10,
+                      // ),
+
                       // Restaurants List Cards
                       Obx(() {
-                        final restaurants = _foodController.filteredRestaurants;
+                        final restaurants = _foodController.filteredRestaurants
+                            .where((r) => r.isRestaurant)
+                            .toList();
 
-                        if (restaurants.isEmpty && !_foodController.isLoading.value) {
+                        if (restaurants.isEmpty &&
+                            !_foodController.isLoading.value) {
                           return Container(
                             padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
@@ -583,7 +627,8 @@ class _HomePageState extends State<InstantProduct> {
                             child: const Center(
                               child: Text(
                                 "No restaurants currently found.",
-                                style: TextStyle(fontSize: 13, color: Colors.grey),
+                                style:
+                                    TextStyle(fontSize: 13, color: Colors.grey),
                               ),
                             ),
                           );
@@ -601,81 +646,11 @@ class _HomePageState extends State<InstantProduct> {
                         );
                       }),
 
-                      const SizedBox(height: defaultPadding * 1.4),
-
-                      // 4. Popular Dishes Section (Live API dishes)
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Popular Dishes Near You",
-                                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
-                              ),
-                              Obx(() {
-                                final count = _foodController.filteredFoodProducts.length;
-                                return Text(
-                                  "$count ${count == 1 ? 'dish' : 'dishes'} available for instant order",
-                                  style: TextStyle(
-                                    fontSize: 11.5,
-                                    color: isDark ? Colors.white54 : Colors.black54,
-                                  ),
-                                );
-                              }),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: defaultPadding),
                     ],
                   ),
                 ),
               ),
-
-              // Dishes Grid (Displays live dishes with real-time add to cart stepper)
-              Obx(() {
-                final products = _foodController.filteredFoodProducts;
-
-                if (products.isEmpty) {
-                  return SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Center(
-                        child: Text(
-                          "No dishes available for this selection.",
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: isDark ? Colors.white54 : Colors.black54,
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }
-
-                return SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: defaultPadding),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (BuildContext context, int index) {
-                        final item = products[index];
-                        return _buildFoodDishItem(
-                          context,
-                          item,
-                          cardBg,
-                          isDark,
-                        );
-                      },
-                      childCount: products.length,
-                    ),
-                  ),
-                );
-              }),
 
               const SliverToBoxAdapter(
                 child: SizedBox(height: 50),
@@ -748,7 +723,8 @@ class _HomePageState extends State<InstantProduct> {
                     width: 20,
                     height: 20,
                     fit: BoxFit.cover,
-                    errorWidget: (_, __, ___) => const Icon(Icons.fastfood, size: 14),
+                    errorWidget: (_, __, ___) =>
+                        const Icon(Icons.fastfood, size: 14),
                   ),
                 ),
                 const SizedBox(width: 6),
@@ -764,38 +740,6 @@ class _HomePageState extends State<InstantProduct> {
                 ),
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildVegFilterSmallChip(String label, bool isDark, {bool isVeg = false, bool isNonVeg = false}) {
-    final isSelected = _foodController.selectedVegFilter.value == label;
-    return InkWell(
-      onTap: () => _foodController.setVegFilter(label),
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? (isDark ? Colors.white : Colors.black87)
-              : (isDark ? const Color(0xFF262634) : Colors.white),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected
-                ? Colors.transparent
-                : (isDark ? Colors.white12 : const Color(0xFFE2E2E8)),
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected
-                ? (isDark ? Colors.black : Colors.white)
-                : (isDark ? Colors.white70 : Colors.black87),
           ),
         ),
       ),
@@ -818,8 +762,18 @@ class _HomePageState extends State<InstantProduct> {
               builder: (_) => RestaurantDetailScreen(
                 restaurantId: restaurant.id,
                 initialRestaurant: restaurant,
+                allFoodProducts: _foodController.foodProducts,
               ),
             ),
+          );
+        },
+        onLongPress: () {
+          try {
+            _foodController.selectRestaurant(restaurant);
+            _foodController.applyFilters();
+          } catch (_) {}
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Showing dishes from ${restaurant.name}')),
           );
         },
         borderRadius: BorderRadius.circular(16),
@@ -845,8 +799,10 @@ class _HomePageState extends State<InstantProduct> {
               Stack(
                 children: [
                   ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-                    child: restaurant.banner != null && restaurant.banner!.isNotEmpty
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(15)),
+                    child: restaurant.banner != null &&
+                            restaurant.banner!.isNotEmpty
                         ? CachedNetworkImage(
                             imageUrl: restaurant.banner!,
                             height: 135,
@@ -856,13 +812,15 @@ class _HomePageState extends State<InstantProduct> {
                             errorWidget: (_, __, ___) => Container(
                               height: 135,
                               color: primaryColor.withValues(alpha: 0.1),
-                              child: const Icon(Icons.restaurant, color: primaryColor),
+                              child: const Icon(Icons.restaurant,
+                                  color: primaryColor),
                             ),
                           )
                         : Container(
                             height: 135,
                             color: primaryColor.withValues(alpha: 0.1),
-                            child: const Icon(Icons.restaurant, color: primaryColor),
+                            child: const Icon(Icons.restaurant,
+                                color: primaryColor),
                           ),
                   ),
 
@@ -871,7 +829,8 @@ class _HomePageState extends State<InstantProduct> {
                     top: 10,
                     left: 10,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: restaurant.isOpenNow
                             ? const Color(0xFF00C853)
@@ -881,7 +840,8 @@ class _HomePageState extends State<InstantProduct> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.circle, size: 7, color: Colors.white),
+                          const Icon(Icons.circle,
+                              size: 7, color: Colors.white),
                           const SizedBox(width: 4),
                           Text(
                             restaurant.isOpenNow ? "Open" : "Closed",
@@ -901,14 +861,16 @@ class _HomePageState extends State<InstantProduct> {
                     bottom: 10,
                     left: 10,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.75),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.timer_outlined, size: 12, color: Colors.white),
+                          const Icon(Icons.timer_outlined,
+                              size: 12, color: Colors.white),
                           const SizedBox(width: 4),
                           Text(
                             restaurant.estimatedDeliveryTime ?? "15 mins",
@@ -919,7 +881,8 @@ class _HomePageState extends State<InstantProduct> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          const Icon(Icons.delivery_dining_rounded, size: 12, color: Colors.white),
+                          const Icon(Icons.delivery_dining_rounded,
+                              size: 12, color: Colors.white),
                           const SizedBox(width: 4),
                           Text(
                             "₹${restaurant.minDeliveryCharge.toStringAsFixed(0)} Fee",
@@ -954,7 +917,8 @@ class _HomePageState extends State<InstantProduct> {
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
                             color: const Color(0xFF00C853),
                             borderRadius: BorderRadius.circular(6),
@@ -970,7 +934,8 @@ class _HomePageState extends State<InstantProduct> {
                                 ),
                               ),
                               const SizedBox(width: 2),
-                              const Icon(Icons.star_rounded, color: Colors.white, size: 12),
+                              const Icon(Icons.star_rounded,
+                                  color: Colors.white, size: 12),
                             ],
                           ),
                         ),
@@ -991,9 +956,12 @@ class _HomePageState extends State<InstantProduct> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: isDark ? Colors.white10 : const Color(0xFFF0F0F5),
+                            color: isDark
+                                ? Colors.white10
+                                : const Color(0xFFF0F0F5),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: const Text(
@@ -1033,229 +1001,9 @@ class _HomePageState extends State<InstantProduct> {
       ),
     );
   }
-
-  Widget _buildFoodDishItem(
-    BuildContext context,
-    ApiProductModel item,
-    Color cardBg,
-    bool isDark,
-  ) {
-    final productModel = item.toProductModel();
-    final bool isVeg = !item.name.toLowerCase().contains('chicken') &&
-        !item.name.toLowerCase().contains('mutton') &&
-        !item.name.toLowerCase().contains('egg');
-    final double unitPrice = item.finalPrice ?? item.unitPrice;
-    final bool hasDiscount = item.discount != null && item.discount! > 0;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? Colors.white12 : const Color(0xFFECECF0),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Left: Info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    isVeg ? _buildVegIcon() : _buildNonVegIcon(),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFF9800).withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Text(
-                          "★ BESTSELLER",
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFFE65100),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  item.name,
-                  style: const TextStyle(
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.bold,
-                    height: 1.25,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        "₹${unitPrice.toStringAsFixed(2)}",
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF00C853),
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (hasDiscount) ...[
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          "₹${item.unitPrice.toStringAsFixed(2)}",
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            color: isDark ? Colors.white38 : Colors.black38,
-                            decoration: TextDecoration.lineThrough,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "${item.category?.name ?? 'Food'} • ${item.store?.name ?? 'Restaurant'}",
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isDark ? Colors.white54 : Colors.black54,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(width: 10),
-
-          // Right: Image & Quantity Button
-          SizedBox(
-            width: 88,
-            child: Column(
-              children: [
-                Stack(
-                  clipBehavior: Clip.none,
-                  alignment: Alignment.bottomCenter,
-                  children: [
-                    Container(
-                      width: 88,
-                      height: 88,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(14),
-                        color: isDark ? const Color(0xFF262634) : const Color(0xFFF4F4F8),
-                        border: Border.all(
-                          color: isDark ? Colors.white10 : const Color(0xFFEAEAEA),
-                        ),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(13),
-                        child: item.thumbnail != null && item.thumbnail!.isNotEmpty
-                            ? CachedNetworkImage(
-                                imageUrl: item.thumbnail!,
-                                fit: BoxFit.cover,
-                                placeholder: (_, __) => const Skeleton(),
-                                errorWidget: (_, __, ___) => const Icon(
-                                  Icons.fastfood_rounded,
-                                  color: primaryColor,
-                                  size: 28,
-                                ),
-                              )
-                            : const Icon(
-                                Icons.fastfood_rounded,
-                                color: primaryColor,
-                                size: 28,
-                              ),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: -10,
-                      child: SizedBox(
-                        width: 80,
-                        child: ProductQuantityButton(
-                          product: productModel,
-                          storeDomain: item.store?.domain ?? 'e-team-12',
-                          activeColor: const Color(0xFF00C853),
-                          height: 28,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVegIcon() {
-    return Container(
-      width: 14,
-      height: 14,
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFF00C853), width: 1.5),
-        borderRadius: BorderRadius.circular(3),
-      ),
-      child: Center(
-        child: Container(
-          width: 6,
-          height: 6,
-          decoration: const BoxDecoration(
-            color: Color(0xFF00C853),
-            shape: BoxShape.circle,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNonVegIcon() {
-    return Container(
-      width: 14,
-      height: 14,
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFE53935), width: 1.5),
-        borderRadius: BorderRadius.circular(3),
-      ),
-      child: Center(
-        child: CustomPaint(
-          size: const Size(6, 6),
-          painter: _SmallTrianglePainter(color: const Color(0xFFE53935)),
-        ),
-      ),
-    );
-  }
 }
 
+// ignore: unused_element
 class _SmallTrianglePainter extends CustomPainter {
   final Color color;
 
