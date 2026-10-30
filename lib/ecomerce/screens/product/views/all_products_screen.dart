@@ -12,7 +12,6 @@ import '../../../route/app_text_constants.dart';
 
 enum ProductSectionType {
   newArrivals,
-  mostPopular,
   featured,
   all,
 }
@@ -65,11 +64,6 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
       case ProductSectionType.newArrivals:
         baseList = _apiController.newArrivalsProducts.isNotEmpty
             ? _apiController.newArrivalsProducts
-            : _apiController.allProducts;
-        break;
-      case ProductSectionType.mostPopular:
-        baseList = _apiController.mostPopularProducts.isNotEmpty
-            ? _apiController.mostPopularProducts
             : _apiController.allProducts;
         break;
       case ProductSectionType.featured:
@@ -357,7 +351,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
           Expanded(
             child: Obx(() {
               final isLoading = _apiController.isNewArrivalsLoading.value ||
-                  _apiController.isMostPopularLoading.value;
+                  _apiController.isFeaturedLoading.value;
               final products = _getFilteredAndSortedProducts();
 
               if (isLoading && products.isEmpty) {

@@ -1,8 +1,5 @@
 // For demo only
 
-
-import '../constants.dart';
-
 class ProductModel {
   final String image, brandName, title;
   final double price;
@@ -66,10 +63,29 @@ class ProductModel {
       return true;
     }
     const foodKeywords = [
-      'paneer', 'pizza', 'burger', 'sandwich', 'biryani', 'masala',
-      'dal ', 'roti', 'naan', 'curry', 'chicken butter', 'thali',
-      'noodles', 'fried rice', 'dosa', 'idli', 'samosa', 'momo',
-      'beverage', 'shake', 'juice', 'coffee', 'tea'
+      'paneer',
+      'pizza',
+      'burger',
+      'sandwich',
+      'biryani',
+      'masala',
+      'dal ',
+      'roti',
+      'naan',
+      'curry',
+      'chicken butter',
+      'thali',
+      'noodles',
+      'fried rice',
+      'dosa',
+      'idli',
+      'samosa',
+      'momo',
+      'beverage',
+      'shake',
+      'juice',
+      'coffee',
+      'tea'
     ];
     for (final kw in foodKeywords) {
       if (titleLower.contains(kw)) return true;
@@ -156,7 +172,9 @@ class ProductModel {
     }
 
     // 8. Groceries
-    if (catNameLower.contains('grocery') || titleLower.contains('oil') || titleLower.contains('atta')) {
+    if (catNameLower.contains('grocery') ||
+        titleLower.contains('oil') ||
+        titleLower.contains('atta')) {
       return "1 kg";
     }
 
@@ -169,10 +187,20 @@ class ProductModel {
       return color!.trim();
     }
     final titleLower = title.toLowerCase();
-    if (titleLower.contains('jean') || titleLower.contains('denim')) return "Blue";
-    if (titleLower.contains('t-shirt') || titleLower.contains('t-shart') || titleLower.contains('shirt')) return "Black";
-    if (titleLower.contains('mobile') || titleLower.contains('phone')) return "Phantom Black";
-    if (titleLower.contains('shoe') || titleLower.contains('sneaker')) return "White";
+    if (titleLower.contains('jean') || titleLower.contains('denim')) {
+      return "Blue";
+    }
+    if (titleLower.contains('t-shirt') ||
+        titleLower.contains('t-shart') ||
+        titleLower.contains('shirt')) {
+      return "Black";
+    }
+    if (titleLower.contains('mobile') || titleLower.contains('phone')) {
+      return "Phantom Black";
+    }
+    if (titleLower.contains('shoe') || titleLower.contains('sneaker')) {
+      return "White";
+    }
     return null;
   }
 
@@ -193,7 +221,9 @@ class ProductModel {
       return {"RAM": "8 GB", "Storage": "128 GB"};
     }
 
-    if (titleLower.contains('jean') || titleLower.contains('pant') || titleLower.contains('trouser')) {
+    if (titleLower.contains('jean') ||
+        titleLower.contains('pant') ||
+        titleLower.contains('trouser')) {
       return {"Size": "32", "Color": "Blue"};
     }
 
@@ -210,7 +240,10 @@ class ProductModel {
       return {"Size": "UK 8"};
     }
 
-    if (isFood || catNameLower.contains('food') || titleLower.contains('naan') || titleLower.contains('biryani')) {
+    if (isFood ||
+        catNameLower.contains('food') ||
+        titleLower.contains('naan') ||
+        titleLower.contains('biryani')) {
       return {"Portion": "Regular"};
     }
 
@@ -220,10 +253,14 @@ class ProductModel {
   /// Available sizes for the product (if applicable)
   List<String> getAvailableSizes() {
     final titleLower = title.toLowerCase();
-    if (titleLower.contains('jean') || titleLower.contains('pant') || titleLower.contains('trouser')) {
+    if (titleLower.contains('jean') ||
+        titleLower.contains('pant') ||
+        titleLower.contains('trouser')) {
       return const ["30", "32", "34", "36", "38"];
     }
-    if (titleLower.contains('shoe') || titleLower.contains('sneaker') || titleLower.contains('boot')) {
+    if (titleLower.contains('shoe') ||
+        titleLower.contains('sneaker') ||
+        titleLower.contains('boot')) {
       return const ["UK 7", "UK 8", "UK 9", "UK 10", "UK 11"];
     }
     if (titleLower.contains('t-shirt') ||
@@ -265,7 +302,12 @@ class ProductModel {
     if (titleLower.contains('mobile') ||
         titleLower.contains('phone') ||
         (categoryName ?? '').toLowerCase().contains('mobile')) {
-      return const ["6 GB, 128 GB", "8 GB, 128 GB", "8 GB, 256 GB", "12 GB, 256 GB"];
+      return const [
+        "6 GB, 128 GB",
+        "8 GB, 128 GB",
+        "8 GB, 256 GB",
+        "12 GB, 256 GB"
+      ];
     }
     if (titleLower.contains('laptop') || titleLower.contains('macbook')) {
       return const ["8 GB, 256 GB SSD", "16 GB, 512 GB SSD", "16 GB, 1 TB SSD"];
@@ -283,7 +325,9 @@ class ProductModel {
     if (titleLower.contains('jean') || titleLower.contains('pant')) {
       return const ["30, Blue", "32, Blue", "34, Dark Blue", "36, Black"];
     }
-    if (titleLower.contains('t-shirt') || titleLower.contains('t-shart') || titleLower.contains('shirt')) {
+    if (titleLower.contains('t-shirt') ||
+        titleLower.contains('t-shart') ||
+        titleLower.contains('shirt')) {
       return const ["S, Black", "M, Black", "L, Navy Blue", "XL, White"];
     }
     return const ["Standard"];
@@ -364,80 +408,6 @@ class ProductModel {
       );
 }
 
-List<ProductModel> demoPopularProducts = [
-  ProductModel(
-    image: productDemoImg1,
-    title: "Mountain Warehouse for Women",
-    brandName: "Lipsy london",
-    price: 540,
-    priceAfetDiscount: 420,
-    dicountpercent: 20,
-  ),
-  ProductModel(
-    image: productDemoImg4,
-    title: "Mountain Beta Warehouse",
-    brandName: "Lipsy london",
-    price: 800,
-  ),
-  ProductModel(
-    image: productDemoImg5,
-    title: "FS - Nike Air Max 270 Really React",
-    brandName: "Lipsy london",
-    price: 650.62,
-    priceAfetDiscount: 390.36,
-    dicountpercent: 40,
-  ),
-  ProductModel(
-    image: productDemoImg6,
-    title: "Green Poplin Ruched Front",
-    brandName: "Lipsy london",
-    price: 1264,
-    priceAfetDiscount: 1200.8,
-    dicountpercent: 5,
-  ),
-  ProductModel(
-    image: "https://i.imgur.com/tXyOMMG.png",
-    title: "Green Poplin Ruched Front",
-    brandName: "Lipsy london",
-    price: 650.62,
-    priceAfetDiscount: 390.36,
-    dicountpercent: 40,
-  ),
-  ProductModel(
-    image: "https://i.imgur.com/h2LqppX.png",
-    title: "white satin corset top",
-    brandName: "Lipsy london",
-    price: 1264,
-    priceAfetDiscount: 1200.8,
-    dicountpercent: 5,
-  ),
-];
-List<ProductModel> demoFlashSaleProducts = [
-  ProductModel(
-    image: productDemoImg5,
-    title: "FS - Nike Air Max 270 Really React",
-    brandName: "Lipsy london",
-    price: 650.62,
-    priceAfetDiscount: 390.36,
-    dicountpercent: 40,
-  ),
-  ProductModel(
-    image: productDemoImg6,
-    title: "Green Poplin Ruched Front",
-    brandName: "Lipsy london",
-    price: 1264,
-    priceAfetDiscount: 1200.8,
-    dicountpercent: 5,
-  ),
-  ProductModel(
-    image: productDemoImg4,
-    title: "Mountain Beta Warehouse",
-    brandName: "Lipsy london",
-    price: 800,
-    priceAfetDiscount: 680,
-    dicountpercent: 15,
-  ),
-];
 List<ProductModel> demoBestSellersProducts = [
   ProductModel(
     image: "https://i.imgur.com/tXyOMMG.png",
@@ -454,14 +424,6 @@ List<ProductModel> demoBestSellersProducts = [
     price: 1264,
     priceAfetDiscount: 1200.8,
     dicountpercent: 5,
-  ),
-  ProductModel(
-    image: productDemoImg4,
-    title: "Mountain Beta Warehouse",
-    brandName: "Lipsy london",
-    price: 800,
-    priceAfetDiscount: 680,
-    dicountpercent: 15,
   ),
 ];
 List<ProductModel> kidsProducts = [

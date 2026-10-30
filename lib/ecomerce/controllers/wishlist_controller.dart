@@ -24,7 +24,7 @@ class WishlistController extends GetxController {
   final RxBool isLoading = false.obs;
   final RxString currentDomain = 'e-team-12'.obs;
   final RxSet<String> knownDomains =
-      <String>{'e-team-12', '21-ecomm', '25-ecomm'}.obs;
+      <String>{'e-team-12', '21-ecomm', '25-ecomm', '51-e-comm'}.obs;
 
   @override
   void onInit() {
@@ -42,12 +42,11 @@ class WishlistController extends GetxController {
   /// Check if a product is in the user's wishlist
   bool isWishlisted(int? productId, {String? domain}) {
     if (productId == null || productId == 0) return false;
-    if (domain != null && domain.trim().isNotEmpty) {
-      final key = _makeKey(productId, domain);
-      if (wishlistedKeys.contains(key)) return true;
-    }
-    // Fallback: check by product id
-    return wishlistedProductIds.contains(productId);
+    final cleanDomain = (domain != null && domain.trim().isNotEmpty)
+        ? domain.trim()
+        : currentDomain.value;
+    final key = _makeKey(productId, cleanDomain);
+    return wishlistedKeys.contains(key);
   }
 
   void _collectActiveDomains() {

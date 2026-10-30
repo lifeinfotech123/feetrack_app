@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:vlr/data/models/category_model/listing_model.dart';
 import 'package:vlr/services/constants.dart';
 import 'package:vlr/services/theme.dart';
@@ -30,10 +29,14 @@ class GymHomeScreenGymWight extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasLandmark = listingModel.landmark != null && listingModel.landmark!.isNotEmpty;
-    final hasOpeningTime = listingModel.openingTime != null && listingModel.openingTime!.isNotEmpty;
-    final hasClosingTime = listingModel.closingTime != null && listingModel.closingTime!.isNotEmpty;
-    final hasStartingPrice = listingModel.startingPrice != null && listingModel.startingPrice! > 0;
+    final hasLandmark =
+        listingModel.landmark != null && listingModel.landmark!.isNotEmpty;
+    final hasOpeningTime = listingModel.openingTime != null &&
+        listingModel.openingTime!.isNotEmpty;
+    final hasClosingTime = listingModel.closingTime != null &&
+        listingModel.closingTime!.isNotEmpty;
+    final hasStartingPrice =
+        listingModel.startingPrice != null && listingModel.startingPrice! > 0;
     final hasSecurityDeposit = listingModel.securityDeposit != null &&
         double.tryParse(listingModel.securityDeposit!) != null &&
         double.parse(listingModel.securityDeposit!) > 0;
@@ -109,7 +112,8 @@ class GymHomeScreenGymWight extends StatelessWidget {
                   top: 12,
                   left: 12,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: primaryColor,
                       borderRadius: BorderRadius.circular(10),
@@ -134,7 +138,7 @@ class GymHomeScreenGymWight extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          
+
           // Title and Action Button Row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -158,11 +162,12 @@ class GymHomeScreenGymWight extends StatelessWidget {
                             listingModel.address ?? "",
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: Helper(context).textTheme.bodyMedium?.copyWith(
-                                  fontSize: 13,
-                                  color: greyText3,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                            style:
+                                Helper(context).textTheme.bodyMedium?.copyWith(
+                                      fontSize: 13,
+                                      color: greyText3,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                           ),
                         ),
                       ],
@@ -178,7 +183,7 @@ class GymHomeScreenGymWight extends StatelessWidget {
               ),
             ],
           ),
-          
+
           // Divider if we have landmark or timings
           if (hasLandmark || hasOpeningTime || hasClosingTime) ...[
             Padding(
@@ -189,7 +194,7 @@ class GymHomeScreenGymWight extends StatelessWidget {
               ),
             ),
           ],
-          
+
           // Landmark and Timing Row
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,17 +222,21 @@ class GymHomeScreenGymWight extends StatelessWidget {
                           children: [
                             Text(
                               'Landmark',
-                              style: Helper(context).textTheme.bodySmall?.copyWith(
-                                    fontSize: 11,
-                                    color: greyText3,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                              style:
+                                  Helper(context).textTheme.bodySmall?.copyWith(
+                                        fontSize: 11,
+                                        color: greyText3,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                             ),
                             Text(
                               listingModel.landmark!,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: Helper(context).textTheme.bodyMedium?.copyWith(
+                              style: Helper(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
                                     fontSize: 12,
                                     color: blackText1,
                                     fontWeight: FontWeight.w600,
@@ -264,17 +273,21 @@ class GymHomeScreenGymWight extends StatelessWidget {
                           children: [
                             Text(
                               'Timings',
-                              style: Helper(context).textTheme.bodySmall?.copyWith(
-                                    fontSize: 11,
-                                    color: greyText3,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                              style:
+                                  Helper(context).textTheme.bodySmall?.copyWith(
+                                        fontSize: 11,
+                                        color: greyText3,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                             ),
                             Text(
                               '${_formatTime(listingModel.openingTime)} - ${_formatTime(listingModel.closingTime)}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: Helper(context).textTheme.bodyMedium?.copyWith(
+                              style: Helper(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
                                     fontSize: 12,
                                     color: blackText1,
                                     fontWeight: FontWeight.w600,

@@ -5,6 +5,7 @@ import '../../../../components/network_image_with_loader.dart';
 import '../../../../components/skleton/skelton.dart';
 import '../../../../constants.dart';
 import '../../../../controllers/home_screen_api_controller.dart';
+import '../../../../models/brand_model.dart';
 import '../../../../route/app_text_constants.dart';
 
 class PopularBrandModel {
@@ -95,7 +96,7 @@ class PopularBrands extends StatelessWidget {
             );
           }
 
-          final brands = apiController.topBrands;
+          final brands = BrandModel.deduplicate(apiController.topBrands);
           if (brands.isEmpty) {
             return const SizedBox.shrink();
           }

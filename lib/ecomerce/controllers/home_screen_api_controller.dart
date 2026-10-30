@@ -32,12 +32,7 @@ class HomeScreenApiController extends GetxController implements GetxService {
   final RxBool isTopSellersLoading = false.obs;
   final RxString topSellersErrorMessage = ''.obs;
 
-  // 5. Most Popular Products
-  final RxList<ApiProductModel> mostPopularProducts = <ApiProductModel>[].obs;
-  final RxBool isMostPopularLoading = false.obs;
-  final RxString mostPopularErrorMessage = ''.obs;
-
-  // 6. New Arrival Products
+  // 5. New Arrival Products
   final RxList<ApiProductModel> newArrivalsProducts = <ApiProductModel>[].obs;
   final RxBool isNewArrivalsLoading = false.obs;
   final RxString newArrivalsErrorMessage = ''.obs;
@@ -61,7 +56,6 @@ class HomeScreenApiController extends GetxController implements GetxService {
   Future<void> fetchLiveProducts() async {
     try {
       isFeaturedLoading.value = true;
-      isMostPopularLoading.value = true;
       isNewArrivalsLoading.value = true;
       featuredErrorMessage.value = '';
 
@@ -72,23 +66,19 @@ class HomeScreenApiController extends GetxController implements GetxService {
       if (nonFoodList.isNotEmpty) {
         allProducts.assignAll(nonFoodList);
         featuredProducts.assignAll(nonFoodList);
-        mostPopularProducts.assignAll(nonFoodList.reversed.toList());
         newArrivalsProducts.assignAll(nonFoodList);
       } else {
         allProducts.clear();
         featuredProducts.clear();
-        mostPopularProducts.clear();
         newArrivalsProducts.clear();
       }
     } catch (e) {
       featuredErrorMessage.value = e.toString();
       allProducts.clear();
       featuredProducts.clear();
-      mostPopularProducts.clear();
       newArrivalsProducts.clear();
     } finally {
       isFeaturedLoading.value = false;
-      isMostPopularLoading.value = false;
       isNewArrivalsLoading.value = false;
     }
   }
@@ -99,7 +89,6 @@ class HomeScreenApiController extends GetxController implements GetxService {
       // Show all non-food products from all stores
       final nonFood = allProducts.where((p) => !p.isFood).toList();
       featuredProducts.assignAll(nonFood);
-      mostPopularProducts.assignAll(nonFood.reversed.toList());
       newArrivalsProducts.assignAll(nonFood);
     } else {
       // Filter products belonging to this store (excluding food items)
@@ -117,12 +106,10 @@ class HomeScreenApiController extends GetxController implements GetxService {
 
       if (filtered.isNotEmpty) {
         featuredProducts.assignAll(filtered);
-        mostPopularProducts.assignAll(filtered);
         newArrivalsProducts.assignAll(filtered);
       } else {
         // If store has no products yet in list, query API or keep empty
         featuredProducts.clear();
-        mostPopularProducts.clear();
         newArrivalsProducts.clear();
       }
     }
@@ -139,15 +126,15 @@ class HomeScreenApiController extends GetxController implements GetxService {
       topBrandsErrorMessage.value = '';
       final list = await _ecomService.getBrands();
       if (list.isNotEmpty) {
-        topBrands.assignAll(list);
+        topBrands.assignAll(BrandModel.deduplicate(list));
       } else {
         final fallback = await _localService.getTopBrands();
-        topBrands.assignAll(fallback);
+        topBrands.assignAll(BrandModel.deduplicate(fallback));
       }
     } catch (e) {
       topBrandsErrorMessage.value = e.toString();
       final fallback = await _localService.getTopBrands();
-      topBrands.assignAll(fallback);
+      topBrands.assignAll(BrandModel.deduplicate(fallback));
     } finally {
       isTopBrandsLoading.value = false;
     }

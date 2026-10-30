@@ -84,6 +84,61 @@ class BrandModel {
       'stores_count': storesCount,
     };
   }
+
+  /// Merges two brand entries sharing the same brand name, preserving valid image,
+  /// combined products count, and the cleaner slug.
+  BrandModel mergeWith(BrandModel other) {
+    final bool thisHasImg = image != null && image!.trim().isNotEmpty;
+    final bool otherHasImg =
+        other.image != null && other.image!.trim().isNotEmpty;
+    final String? bestImg =
+        thisHasImg ? image : (otherHasImg ? other.image : null);
+
+    final int c1 = productsCount ?? 0;
+    final int c2 = other.productsCount ?? 0;
+    final int? totalCount =
+        (c1 + c2 > 0) ? (c1 + c2) : (productsCount ?? other.productsCount);
+
+    final int s1 = storesCount ?? 0;
+    final int s2 = other.storesCount ?? 0;
+    final int? totalStores =
+        (s1 + s2 > 0) ? (s1 + s2) : (storesCount ?? other.storesCount);
+
+    final String? bestSlug =
+        (slug != null && slug!.trim().isNotEmpty && !slug!.contains('-'))
+            ? slug
+            : (other.slug != null && other.slug!.trim().isNotEmpty
+                ? other.slug
+                : slug);
+
+    return BrandModel(
+      id: id ?? other.id,
+      name: name.isNotEmpty ? name : other.name,
+      slug: bestSlug,
+      image: bestImg,
+      productsCount: totalCount,
+      storesCount: totalStores,
+      availableInStores: [
+        if (availableInStores != null) ...availableInStores!,
+        if (other.availableInStores != null) ...other.availableInStores!,
+      ],
+    );
+  }
+
+  /// Deduplicates a collection of brands by normalized brand name.
+  static List<BrandModel> deduplicate(Iterable<BrandModel> list) {
+    final Map<String, BrandModel> map = {};
+    for (final b in list) {
+      final key = b.name.trim().toLowerCase();
+      if (key.isEmpty) continue;
+      if (map.containsKey(key)) {
+        map[key] = map[key]!.mergeWith(b);
+      } else {
+        map[key] = b;
+      }
+    }
+    return map.values.toList();
+  }
 }
 
 class BrandProductModel {

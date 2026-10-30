@@ -161,9 +161,7 @@ class SubscriptionListItem extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 4),
-
                         Text(
-
                           subscription.listing?.category ?? "",
                           style: Helper(context).textTheme.bodySmall?.copyWith(
                                 color: greyText3,
@@ -174,16 +172,17 @@ class SubscriptionListItem extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             "Room: ${subscription.room?.roomNumber} (${subscription.room?.roomType})",
-                            style: Helper(context).textTheme.bodySmall?.copyWith(
-                                  color: greyText3,
-                                  fontSize: 11,
-                                ),
+                            style:
+                                Helper(context).textTheme.bodySmall?.copyWith(
+                                      color: greyText3,
+                                      fontSize: 11,
+                                    ),
                           ),
                         ],
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            Icon(Icons.calendar_today_outlined,
+                            const Icon(Icons.calendar_today_outlined,
                                 size: 12, color: primaryColor),
                             const SizedBox(width: 4),
                             Text(
@@ -258,22 +257,29 @@ class SubscriptionListItem extends StatelessWidget {
                   if (subscription.status?.toLowerCase() == 'active')
                     GestureDetector(
                       onTap: () {
-                        Get.find<SubscriptionController>().renewSubscription(subscription.id!).then((value) {
+                        Get.find<SubscriptionController>()
+                            .renewSubscription(subscription.id!)
+                            .then((value) {
                           if (value.isSuccess) {
                             String? paymentLink = value.data['payment_link'];
                             if (paymentLink != null && paymentLink.isNotEmpty) {
                               navigate(
                                 context: context,
-                                page: CustomWebView(url: paymentLink, title: "Renew Subscription"),
+                                page: CustomWebView(
+                                    url: paymentLink,
+                                    title: "Renew Subscription"),
                               );
                             }
                           } else {
-                            showToast(message: value.message, toastType: ToastType.error);
+                            showToast(
+                                message: value.message,
+                                toastType: ToastType.error);
                           }
                         });
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
                           color: primaryColor,
                           borderRadius: BorderRadius.circular(20),
@@ -289,7 +295,8 @@ class SubscriptionListItem extends StatelessWidget {
                       ),
                     )
                   else
-                    Icon(Icons.arrow_forward_ios, size: 14, color: primaryColor),
+                    Icon(Icons.arrow_forward_ios,
+                        size: 14, color: primaryColor),
                 ],
               ),
             ),

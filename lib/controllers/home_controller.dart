@@ -138,11 +138,69 @@ class HomeController extends GetxController implements GetxService {
   bool isGymCitiesLoading = false;
   List<GymCityModel> gymCityList = [];
   GymCityModel? selectedGymCity;
+  String gymSearchQuery = '';
+
+  void setGymSearchQuery(String query) {
+    gymSearchQuery = query;
+    update();
+  }
+
+  void clearGymSearch() {
+    gymSearchQuery = '';
+    update();
+  }
 
   /// The gym-home UI must always render from the dedicated gym endpoint.
   /// `listingModelList` is shared with the other service home screens and can
   /// be replaced by their requests, so it is intentionally not used here.
   List<ListingModel> get displayedGymList {
+    final query = gymSearchQuery.trim().toLowerCase();
+
+    // 1. If user is actively searching
+    if (query.isNotEmpty) {
+      final allMatches = gymList.where((gym) {
+        final title = gym.title?.trim().toLowerCase() ?? '';
+        final address = gym.address?.trim().toLowerCase() ?? '';
+        final fullAddress = gym.fullAddress?.trim().toLowerCase() ?? '';
+        final landmark = gym.landmark?.trim().toLowerCase() ?? '';
+        final gymCity = gym.city?.trim().toLowerCase() ?? '';
+        final about = gym.about?.trim().toLowerCase() ?? '';
+        final description = gym.description?.trim().toLowerCase() ?? '';
+        final searchKeywords = gym.searchKeywords?.trim().toLowerCase() ?? '';
+
+        return title.contains(query) ||
+            address.contains(query) ||
+            fullAddress.contains(query) ||
+            landmark.contains(query) ||
+            gymCity.contains(query) ||
+            about.contains(query) ||
+            description.contains(query) ||
+            searchKeywords.contains(query);
+      }).toList();
+
+      // If a specific city is selected, check if matches exist in that city
+      final city = selectedGymCity?.city.trim().toLowerCase();
+      if (city != null && city.isNotEmpty) {
+        final cityMatches = allMatches.where((gym) {
+          final gymCity = gym.city?.trim().toLowerCase() ?? '';
+          final address = gym.address?.trim().toLowerCase() ?? '';
+          final fullAddress = gym.fullAddress?.trim().toLowerCase() ?? '';
+          final landmark = gym.landmark?.trim().toLowerCase() ?? '';
+          return gymCity == city ||
+              address.contains(city) ||
+              fullAddress.contains(city) ||
+              landmark.contains(city);
+        }).toList();
+
+        if (cityMatches.isNotEmpty) {
+          return cityMatches;
+        }
+      }
+
+      return allMatches;
+    }
+
+    // 2. Default: filter by selected city if any
     final city = selectedGymCity?.city.trim().toLowerCase();
     if (city == null || city.isEmpty) return gymList;
 
@@ -719,128 +777,6 @@ class HomeController extends GetxController implements GetxService {
     update();
     return responseModel;
   }
-
-  // final PaginationState<ListingModel> listingState =
-  //     PaginationState<ListingModel>();
-
-  // List<ListingModel> get listingList => listingState.items;
-
-  // Future<ResponseModel> fetchCategoriesListingPagination({
-  //   required double? latitude,
-  //   required double? longitude,
-  //   bool loadMore = false,
-  //   bool refresh = false,
-  // }) async {
-  //   log('fetchCategoriesListingPagination called '
-  //       '(loadMore: $loadMore, refresh: $refresh)');
-
-  //   ResponseModel responseModel = ResponseModel(false, "Unknown error");
-
-  //   if (refresh) {
-  //     listingState.page = 1;
-  //     listingState.lastPage = 1;
-  //     listingState.items.clear();
-  //     listingState.dedupeIds.clear();
-  //   }
-
-  //   if (loadMore) {
-  //     if (!listingState.canLoadMore) {
-  //       return ResponseModel(false, "No more pages");
-  //     }
-  //     listingState.isMoreLoading = true;
-  //     listingState.page += 1;
-  //   } else {
-  //     listingState.isInitialLoading = true;
-  //     listingState.page = 1;
-  //     listingState.items.clear();
-  //     listingState.dedupeIds.clear();
-  //   }
-
-  //   update();
-
-  //   try {
-  //     final Map<String, dynamic> data = {
-  //       "latitude": latitude?.toString() ?? "",
-  //       "longitude": longitude?.toString() ?? "",
-  //       "category_id": selectCategoryModel?.id?.toString() ?? "",
-  //       "search": searchController.text.trim(),
-  //       "page": listingState.page.toString(),
-  //     };
-
-  //     final Response response =
-  //         await homeRepo.fetchCategoriesListing(data: data);
-
-  //     log("Raw response body: ${response.body}");
-
-  //     if (response.statusCode != 200) {
-  //       responseModel =
-  //           ResponseModel(false, "Status code: ${response.statusCode}");
-  //     } else if (response.body is Map<String, dynamic> &&
-  //         response.body['status'] == "success") {
-  //       final paginated = response.body['data'];
-
-  //       if (paginated is Map<String, dynamic> && paginated['data'] is List) {
-  //         final List itemsJson = paginated['data'] as List;
-
-  //         final List<ListingModel> parsedData = itemsJson
-  //             .map((e) => ListingModel.fromJson(e as Map<String, dynamic>))
-  //             .toList();
-
-  //         final int currentPage =
-  //             int.tryParse(paginated['current_page'].toString()) ??
-  //                 listingState.page;
-  //         final int lastPage =
-  //             int.tryParse(paginated['last_page'].toString()) ?? currentPage;
-
-  //         listingState.lastPage = lastPage;
-  //         listingState.page = currentPage;
-
-  //         if (loadMore) {
-  //           for (final item in parsedData) {
-  //             if (!listingState.dedupeIds.contains(item.id)) {
-  //               listingState.dedupeIds.add(item.id);
-  //               listingState.items.add(item);
-  //             }
-  //           }
-  //         } else {
-  //           listingState.items
-  //             ..clear()
-  //             ..addAll(parsedData);
-
-  //           listingState.dedupeIds
-  //             ..clear()
-  //             ..addAll(parsedData.map((e) => e.id));
-  //         }
-
-  //         log("Listing count: ${listingState.items.length}");
-  //         responseModel = ResponseModel(
-  //           true,
-  //           response.body['message'] ?? "success fetchCategoriesListing",
-  //         );
-  //       } else {
-  //         responseModel =
-  //             ResponseModel(false, "Invalid listing response format");
-  //       }
-  //     } else {
-  //       responseModel = ResponseModel(
-  //         false,
-  //         response.body is Map<String, dynamic>
-  //             ? (response.body['message'] ??
-  //                 "Error while fetchCategoriesListing")
-  //             : "Invalid server response",
-  //       );
-  //     }
-  //   } catch (e) {
-  //     log('ERROR AT fetchCategoriesListingPagination(): $e');
-  //     responseModel =
-  //         ResponseModel(false, "Error while fetchCategoriesListing $e");
-  //   }
-
-  //   listingState.isInitialLoading = false;
-  //   listingState.isMoreLoading = false;
-  //   update();
-  //   return responseModel;
-  // }
 
   final PaginationState<ListingModel> listingStateSearch =
       PaginationState<ListingModel>();

@@ -5,7 +5,7 @@ import 'package:vlr/controllers/permission_controller.dart';
 import 'package:vlr/services/constants.dart';
 import 'widget/gym_city_selector_section.dart';
 import 'widget/gym_home_nearby_section.dart';
-import '../room_home/widget/room_home_search_section.dart';
+import 'widget/gym_home_search_bar.dart';
 import '../../service_appbar/service_appbar.dart';
 
 import '../../../../../../controllers/common_controller.dart';
@@ -42,6 +42,7 @@ class _GymHomeScreenState extends State<GymHomeScreen> {
   @override
   void initState() {
     super.initState();
+    Get.find<HomeController>().gymSearchQuery = '';
     WidgetsBinding.instance
         .addPostFrameCallback((_) => _fetchLocationAndData());
   }
@@ -101,15 +102,7 @@ class _GymHomeScreenState extends State<GymHomeScreen> {
                 GymCitySelectorSection(
                   onRefreshLocation: _fetchLocationAndData,
                 ),
-                GetBuilder<HomeController>(
-                  builder: (homeController) {
-                    return RoomHomeSearchBar(
-                      hindText:
-                          "Search by ${homeController.selectCategoryModel?.name ?? ""}...",
-                      onTap: () {},
-                    );
-                  },
-                ),
+                const GymHomeSearchBar(),
                 const GymHomeNearbySection(),
               ],
             ),

@@ -34,7 +34,7 @@ class WishlistService {
       targetDomains.addAll(domains.where((d) => d.trim().isNotEmpty));
     }
     // Always query core ecommerce store domains
-    targetDomains.addAll(['e-team-12', '21-ecomm', '25-ecomm']);
+    targetDomains.addAll(['e-team-12', '21-ecomm', '25-ecomm', '51-e-comm']);
 
     try {
       final token = await _getToken();
@@ -45,7 +45,7 @@ class WishlistService {
       };
 
       final List<WishlistItemModel> allItems = [];
-      final Set<int> seenWishlistIds = {};
+      final Set<String> seenItemKeys = {};
 
       await Future.wait(
         targetDomains.map((d) async {
@@ -63,8 +63,9 @@ class WishlistService {
                     if (j is Map<String, dynamic>) {
                       final item =
                           WishlistItemModel.fromJson(j, defaultDomain: d);
-                      if (!seenWishlistIds.contains(item.wishlistId)) {
-                        seenWishlistIds.add(item.wishlistId);
+                      final key = '${item.domain}-${item.productId}';
+                      if (!seenItemKeys.contains(key)) {
+                        seenItemKeys.add(key);
                         allItems.add(item);
                       }
                     }

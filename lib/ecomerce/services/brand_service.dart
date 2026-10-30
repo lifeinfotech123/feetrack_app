@@ -51,7 +51,7 @@ class BrandService {
               .map((item) => BrandModel.fromJson(Map<String, dynamic>.from(item)))
               .toList();
           if (liveList.isNotEmpty) {
-            return liveList;
+            return BrandModel.deduplicate(liveList);
           }
         }
       } else {
@@ -60,7 +60,7 @@ class BrandService {
     } catch (e) {
       debugPrint('BrandService getBrands Exception: $e');
     }
-    return _fallbackBrands;
+    return BrandModel.deduplicate(_fallbackBrands);
   }
 
   static List<BrandModel> get _fallbackBrands => [

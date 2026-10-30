@@ -5,7 +5,6 @@ import 'package:vlr/data/models/category_model/staff_model.dart';
 import 'package:vlr/services/constants.dart';
 import 'package:vlr/services/theme.dart';
 import 'package:vlr/views/base/custom_image.dart';
-import 'package:vlr/views/screens/gym/gym_trainer_profile_screen/gym_trainer_profile_screen.dart';
 
 class SelectTrainerMedSection extends StatelessWidget {
   const SelectTrainerMedSection({
@@ -36,14 +35,13 @@ class SelectTrainerMedSection extends StatelessWidget {
                     : gymController.gymTrainerModelList[index];
                 return GestureDetector(
                   onTap: () {
-                    navigate(
-                      context: context,
-                      page: GymTrainerProfileScreen(
-                        staffId:
-                            trainModel.stringId ?? trainModel.id?.toString(),
-                        initialStaff: trainModel,
-                      ),
-                    );
+                    if (gymController.selectGymTrainerModel?.id ==
+                        trainModel.id) {
+                      gymController.selectGymTrainerModel = null;
+                    } else {
+                      gymController.selectGymTrainerModel = trainModel;
+                    }
+                    gymController.update();
                   },
                   child: SelectGYMTrainerProfileWidget(staffModel: trainModel),
                 );

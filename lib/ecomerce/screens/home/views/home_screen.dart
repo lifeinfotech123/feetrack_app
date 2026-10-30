@@ -12,7 +12,6 @@ import 'components/best_sellers.dart';
 import 'components/categories.dart';
 import 'components/flash_sale.dart';
 import 'components/home_app_bar_header_widget.dart';
-import 'components/most_popular.dart';
 import 'components/new_arrivals_widgets.dart';
 import 'components/popular_brands.dart';
 import 'components/top_slider_banner_widget.dart';
@@ -245,58 +244,6 @@ class HomeScreen extends StatelessWidget {
                 ],
               );
             }),
-          ),
-
-          // 7. Dynamic Secondary Products List from Live API
-          SliverPadding(
-            padding:
-                const EdgeInsets.symmetric(vertical: defaultPadding * 0.75),
-            sliver: SliverToBoxAdapter(
-              child: Obx(() {
-                final products = apiController.mostPopularProducts
-                    .where((p) => !p.isFood)
-                    .toList();
-                if (products.isEmpty &&
-                    !apiController.isMostPopularLoading.value) {
-                  return const SizedBox.shrink();
-                }
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    HomeSectionHeader(
-                      title: "Most Popular",
-                      icon: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color:
-                              const Color(0xFF00B0FF).withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.auto_awesome_rounded,
-                          color: Color(0xFF00B0FF),
-                          size: 18,
-                        ),
-                      ),
-                      onSeeAll: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const AllProductsScreen(
-                              title: "Most Popular",
-                              type: ProductSectionType.mostPopular,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 6),
-                    const MostPopular(),
-                  ],
-                );
-              }),
-            ),
           ),
         ],
       ),

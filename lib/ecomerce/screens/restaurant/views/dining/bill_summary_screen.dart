@@ -4,7 +4,9 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vlr/controllers/auth_controller.dart';
 import 'package:vlr/ecomerce/constants.dart';
+import 'package:vlr/ecomerce/controllers/address_controller.dart';
 import 'package:vlr/ecomerce/controllers/dining_controller.dart';
 import 'package:vlr/ecomerce/controllers/profile_controller.dart';
 import 'package:vlr/ecomerce/models/restaurant_model.dart';
@@ -46,10 +48,11 @@ class _BillSummaryScreenState extends State<BillSummaryScreen> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   bool _isLoading = false;
+  bool _isLoggedInUser = false;
   late final DiningController _diningController;
   final Map<int, int> _cart = {};
   late Razorpay _razorpay;
-  List<Map<String, dynamic>> _pendingPreorderItems = [];
+  final List<Map<String, dynamic>> _pendingPreorderItems = [];
 
   @override
   void initState() {
@@ -64,25 +67,133 @@ class _BillSummaryScreenState extends State<BillSummaryScreen> {
   }
 
   Future<void> _loadGuestInfo() async {
-    final prefs = await SharedPreferences.getInstance();
-    String name = prefs.getString('user_name') ?? prefs.getString('name') ?? '';
-    String phone = prefs.getString('user_phone') ?? prefs.getString('phone') ?? '';
-    String email = prefs.getString('user_email') ?? prefs.getString('email') ?? '';
+    String name = '';
+    String phone = '';
+    String email = '';
+    bool isLoggedIn = false;
 
-    if (name.isEmpty && Get.isRegistered<ProfileController>()) {
-      final profile = Get.find<ProfileController>().profile.value;
-      if (profile != null) {
-        name = profile.name;
-        phone = profile.phone;
-        email = profile.email;
+    // 1. Check AuthController (Primary app authentication controller)
+    if (Get.isRegistered<AuthController>()) {
+      final auth = Get.find<AuthController>();
+      if (auth.isLoggedIn()) {
+        isLoggedIn = true;
+        if (auth.userModel == null) {
+          try {
+            await auth.fetchProfile();
+          } catch (e) {
+            debugPrint('Error fetching AuthController profile: $e');
+          }
+        }
       }
+      if (auth.userModel != null) {
+        final u = auth.userModel!;
+        if (u.name != null && u.name!.trim().isNotEmpty) {
+          name = u.name!.trim();
+        } else if ((u.firstName != null && u.firstName!.isNotEmpty) ||
+            (u.lastName != null && u.lastName!.isNotEmpty)) {
+          name = "${u.firstName ?? ''} ${u.lastName ?? ''}".trim();
+        }
+        if (u.mobile != null && u.mobile!.trim().isNotEmpty) {
+          phone = u.mobile!.trim();
+        }
+        if (u.email != null && u.email!.trim().isNotEmpty) {
+          email = u.email!.trim();
+        }
+      }
+      if (name.isEmpty && auth.fullNameController.text.trim().isNotEmpty) {
+        name = auth.fullNameController.text.trim();
+      }
+      if (phone.isEmpty && auth.mobileNoController.text.trim().isNotEmpty) {
+        phone = auth.mobileNoController.text.trim();
+      }
+      if (email.isEmpty && auth.emailController.text.trim().isNotEmpty) {
+        email = auth.emailController.text.trim();
+      }
+    }
+
+    // 2. Check SharedPreferences fallback
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('user_app_token') ??
+        prefs.getString('token') ??
+        prefs.getString('auth_token') ??
+        '';
+    if (token.isNotEmpty) {
+      isLoggedIn = true;
+    }
+    if (name.isEmpty) {
+      name = prefs.getString('user_name') ??
+          prefs.getString('name') ??
+          prefs.getString('userName') ??
+          '';
+    }
+    if (phone.isEmpty) {
+      phone = prefs.getString('user_phone') ??
+          prefs.getString('phone') ??
+          prefs.getString('userPhone') ??
+          '';
+    }
+    if (email.isEmpty) {
+      email = prefs.getString('user_email') ??
+          prefs.getString('email') ??
+          prefs.getString('userEmail') ??
+          '';
+    }
+
+    // 3. Check AddressController (CustomerProfileModel)
+    if (AddressController.instance.customer != null) {
+      final cust = AddressController.instance.customer!;
+      isLoggedIn = true;
+      if (name.isEmpty && cust.name.trim().isNotEmpty) {
+        name = cust.name.trim();
+      }
+      if (phone.isEmpty && cust.phone.trim().isNotEmpty) {
+        phone = cust.phone.trim();
+      }
+      if (email.isEmpty && cust.email.trim().isNotEmpty) {
+        email = cust.email.trim();
+      }
+    }
+
+    // 4. Check ProfileController (api/v1/auth/profile) if logged in & details still missing
+    if (isLoggedIn && (name.isEmpty || phone.isEmpty || email.isEmpty)) {
+      try {
+        final profileCtrl = Get.isRegistered<ProfileController>()
+            ? Get.find<ProfileController>()
+            : Get.put(ProfileController());
+        var profile = profileCtrl.profile.value;
+        if (profile == null) {
+          await profileCtrl.fetchUserProfile();
+          profile = profileCtrl.profile.value;
+        }
+        if (profile != null) {
+          if (name.isEmpty && profile.name.trim().isNotEmpty) {
+            name = profile.name.trim();
+          }
+          if (phone.isEmpty && profile.phone.trim().isNotEmpty) {
+            phone = profile.phone.trim();
+          }
+          if (email.isEmpty && profile.email.trim().isNotEmpty) {
+            email = profile.email.trim();
+          }
+        }
+      } catch (e) {
+        debugPrint('Error fetching profile in BillSummaryScreen: $e');
+      }
+    }
+
+    // Cache verified details if logged in
+    if (isLoggedIn) {
+      if (name.isNotEmpty) await prefs.setString('user_name', name);
+      if (phone.isNotEmpty) await prefs.setString('user_phone', phone);
+      if (email.isNotEmpty) await prefs.setString('user_email', email);
     }
 
     if (mounted) {
       setState(() {
-        _nameController.text = name;
-        _phoneController.text = phone;
-        _emailController.text = email;
+        _isLoggedInUser = isLoggedIn;
+        if (name.isNotEmpty) _nameController.text = name;
+        if (phone.isNotEmpty) _phoneController.text = phone;
+        if (email.isNotEmpty) _emailController.text = email;
       });
     }
   }
@@ -161,6 +272,9 @@ class _BillSummaryScreenState extends State<BillSummaryScreen> {
         tableId: widget.tableId,
         specialRequest: _requestController.text.trim().isNotEmpty ? _requestController.text.trim() : null,
         preorderItems: _pendingPreorderItems,
+        customerName: _nameController.text.trim(),
+        customerPhone: _phoneController.text.trim(),
+        customerEmail: _emailController.text.trim().isNotEmpty ? _emailController.text.trim() : null,
       );
 
       if (!mounted) return;
@@ -231,8 +345,37 @@ class _BillSummaryScreenState extends State<BillSummaryScreen> {
   }
 
   void _startPayment() {
-    if (_nameController.text.trim().isEmpty || _phoneController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter your name and phone number')));
+    final name = _nameController.text.trim();
+    final phone = _phoneController.text.trim();
+    final email = _emailController.text.trim();
+
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter your full name to proceed with booking'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    if (phone.isEmpty || phone.length < 8) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid mobile number to proceed'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    if (email.isEmpty || !GetUtils.isEmail(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid email address to proceed'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
       return;
     }
 
@@ -297,6 +440,9 @@ class _BillSummaryScreenState extends State<BillSummaryScreen> {
         tableId: widget.tableId,
         specialRequest: _requestController.text.trim().isNotEmpty ? _requestController.text.trim() : null,
         preorderItems: _pendingPreorderItems,
+        customerName: _nameController.text.trim(),
+        customerPhone: _phoneController.text.trim(),
+        customerEmail: _emailController.text.trim().isNotEmpty ? _emailController.text.trim() : null,
       );
 
       if (!mounted) return;
@@ -479,50 +625,197 @@ class _BillSummaryScreenState extends State<BillSummaryScreen> {
   }
 
   Widget _buildGuestDetails(Color cardBg, bool isDark) {
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final subTextColor = isDark ? Colors.white54 : Colors.black54;
+    final fieldFillColor =
+        isDark ? const Color(0xFF262634) : const Color(0xFFF7F7FA);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? Colors.white12 : const Color(0xFFEAEAEA)),
+        border: Border.all(
+          color: isDark ? Colors.white12 : const Color(0xFFEAEAEA),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Guest Details', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
+          Row(
+            children: [
+              Text(
+                'Contact Details',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                ),
+              ),
+              const Spacer(),
+              if (_isLoggedInUser)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF00C853).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: const Color(0xFF00C853).withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.verified_user_rounded,
+                          size: 12, color: Color(0xFF00C853)),
+                      SizedBox(width: 4),
+                      Text(
+                        'Logged In',
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF00C853),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: Colors.orange.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.person_outline_rounded,
+                          size: 12, color: Colors.orange),
+                      SizedBox(width: 4),
+                      Text(
+                        'Guest Booking',
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _isLoggedInUser
+                ? 'Details auto-filled from your profile. You can edit if booking for someone else.'
+                : 'Please enter your contact details to receive booking updates.',
+            style: TextStyle(fontSize: 11.5, color: subTextColor),
+          ),
+          const SizedBox(height: 14),
+
+          // 1. Full Name
           TextField(
             controller: _nameController,
+            textCapitalization: TextCapitalization.words,
+            style: TextStyle(fontSize: 14, color: textColor),
             decoration: InputDecoration(
-              labelText: 'Full Name',
-              prefixIcon: const Icon(Icons.person_outline_rounded),
+              labelText: 'Full Name *',
+              hintText: 'Enter your full name',
+              prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
               filled: true,
-              fillColor: isDark ? const Color(0xFF262634) : const Color(0xFFF7F7FA),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              fillColor: fieldFillColor,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                    color: isDark ? Colors.white10 : const Color(0xFFE2E2E8)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                    color: isDark ? Colors.white10 : const Color(0xFFE2E2E8)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: primaryColor, width: 1.5),
+              ),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
+
+          // 2. Mobile Number
           TextField(
             controller: _phoneController,
             keyboardType: TextInputType.phone,
+            style: TextStyle(fontSize: 14, color: textColor),
             decoration: InputDecoration(
-              labelText: 'Mobile Number',
-              prefixIcon: const Icon(Icons.phone_outlined),
+              labelText: 'Mobile Number *',
+              hintText: 'Enter 10-digit mobile number',
+              prefixIcon: const Icon(Icons.phone_outlined, size: 20),
               filled: true,
-              fillColor: isDark ? const Color(0xFF262634) : const Color(0xFFF7F7FA),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              fillColor: fieldFillColor,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                    color: isDark ? Colors.white10 : const Color(0xFFE2E2E8)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                    color: isDark ? Colors.white10 : const Color(0xFFE2E2E8)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: primaryColor, width: 1.5),
+              ),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
+
+          // 3. Email Address
           TextField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
+            style: TextStyle(fontSize: 14, color: textColor),
             decoration: InputDecoration(
-              labelText: 'Email (Optional)',
-              prefixIcon: const Icon(Icons.email_outlined),
+              labelText: 'Email Address *',
+              hintText: 'Enter your email address',
+              prefixIcon: const Icon(Icons.email_outlined, size: 20),
               filled: true,
-              fillColor: isDark ? const Color(0xFF262634) : const Color(0xFFF7F7FA),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              fillColor: fieldFillColor,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                    color: isDark ? Colors.white10 : const Color(0xFFE2E2E8)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                    color: isDark ? Colors.white10 : const Color(0xFFE2E2E8)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: primaryColor, width: 1.5),
+              ),
             ),
           ),
         ],

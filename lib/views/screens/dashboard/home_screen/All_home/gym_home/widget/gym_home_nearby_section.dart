@@ -18,12 +18,13 @@ class GymHomeNearbySection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        sizedBoxHeight(height: 24),
+        sizedBoxHeight(height: 16),
         GetBuilder<HomeController>(builder: (homeController) {
           final gyms = homeController.displayedGymList;
           final count = gyms.length;
           final categoryName =
               homeController.selectCategoryModel?.name ?? "Gym";
+          final isSearching = homeController.gymSearchQuery.trim().isNotEmpty;
 
           return Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -42,7 +43,9 @@ class GymHomeNearbySection extends StatelessWidget {
                             borderRadius: BorderRadius.circular(8.r),
                           ),
                           child: Icon(
-                            Icons.fitness_center_rounded,
+                            isSearching
+                                ? Icons.search_rounded
+                                : Icons.fitness_center_rounded,
                             color: primaryColor,
                             size: 18.sp,
                           ),
@@ -50,9 +53,11 @@ class GymHomeNearbySection extends StatelessWidget {
                         SizedBox(width: 8.w),
                         Expanded(
                           child: Text(
-                            homeController.selectedGymCity != null
-                                ? "Gyms in ${homeController.selectedGymCity!.city}"
-                                : "Nearby ${capitalize(categoryName)}s",
+                            isSearching
+                                ? "Search Results"
+                                : (homeController.selectedGymCity != null
+                                    ? "Gyms in ${homeController.selectedGymCity!.city}"
+                                    : "Nearby ${capitalize(categoryName)}s"),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style:
@@ -67,9 +72,11 @@ class GymHomeNearbySection extends StatelessWidget {
                     ),
                     SizedBox(height: 4.h),
                     Text(
-                      homeController.selectedGymCity != null
-                          ? "Showing fitness sanctuaries in ${homeController.selectedGymCity!.city}"
-                          : "Explore top-rated fitness centers near you",
+                      isSearching
+                          ? "Showing results for \"${homeController.gymSearchQuery}\""
+                          : (homeController.selectedGymCity != null
+                              ? "Showing fitness sanctuaries in ${homeController.selectedGymCity!.city}"
+                              : "Explore top-rated fitness centers near you"),
                       style: TextStyle(
                         fontSize: 12.sp,
                         color: greyText3,
@@ -107,6 +114,8 @@ class GymHomeNearbySection extends StatelessWidget {
 
           if (!isListLoading && gyms.isEmpty) {
             final activeCity = homeController.selectedGymCity?.city;
+            final isSearching = homeController.gymSearchQuery.trim().isNotEmpty;
+
             return Center(
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 40.h),
@@ -120,16 +129,21 @@ class GymHomeNearbySection extends StatelessWidget {
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        Icons.fitness_center_outlined,
+                        isSearching
+                            ? Icons.search_off_rounded
+                            : Icons.fitness_center_outlined,
                         size: 42.sp,
                         color: greyText3,
                       ),
                     ),
                     SizedBox(height: 12.h),
                     Text(
-                      activeCity != null
-                          ? "No Gyms Found in $activeCity"
-                          : "No Gyms Found Nearby",
+                      isSearching
+                          ? "No Gyms Found for \"${homeController.gymSearchQuery}\""
+                          : (activeCity != null
+                              ? "No Gyms Found in $activeCity"
+                              : "No Gyms Found Nearby"),
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 16.sp,
                         fontWeight: FontWeight.w700,
@@ -138,10 +152,39 @@ class GymHomeNearbySection extends StatelessWidget {
                     ),
                     SizedBox(height: 4.h),
                     Text(
-                      "Try selecting a different city or clearing the filter",
+                      isSearching
+                          ? "We couldn't find any gym matching this name"
+                          : "Try selecting a different city or clearing the filter",
+                      textAlign: TextAlign.center,
                       style: TextStyle(color: greyText3, fontSize: 12.sp),
                     ),
-                    if (activeCity != null) ...[
+                    if (isSearching) ...[
+                      SizedBox(height: 14.h),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          homeController.clearGymSearch();
+                        },
+                        icon: const Icon(Icons.clear_rounded,
+                            color: Colors.white, size: 16),
+                        label: const Text(
+                          "Clear Search",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12.5,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryColor,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20.r),
+                          ),
+                          elevation: 0,
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 16.w, vertical: 8.h),
+                        ),
+                      ),
+                    ] else if (activeCity != null) ...[
                       SizedBox(height: 14.h),
                       ElevatedButton.icon(
                         onPressed: () {

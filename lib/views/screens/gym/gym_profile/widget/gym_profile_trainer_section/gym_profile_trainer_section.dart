@@ -74,6 +74,7 @@ class GYMProfileTrainerSection extends StatelessWidget {
                   isLoading: isLoading,
                   child: GYmProfileTrainerProfileWidget(
                     staffModel: staff,
+                    listingId: listingId,
                   ),
                 );
               },

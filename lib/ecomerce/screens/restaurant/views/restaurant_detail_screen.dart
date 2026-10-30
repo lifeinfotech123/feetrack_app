@@ -2,15 +2,16 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import 'package:vlr/ecomerce/components/product/product_quantity_button.dart';
 import 'package:vlr/ecomerce/components/skleton/skelton.dart';
 import 'package:vlr/ecomerce/constants.dart';
 import 'package:vlr/ecomerce/controllers/cart_controller.dart';
 import 'package:vlr/ecomerce/controllers/restaurant_controller.dart';
 import 'package:vlr/ecomerce/models/food_model.dart';
 import 'package:vlr/ecomerce/models/home_screen_models.dart';
+import 'package:vlr/ecomerce/models/product_model.dart';
 import 'package:vlr/ecomerce/models/restaurant_model.dart';
 import 'package:vlr/ecomerce/screens/checkout/views/cart_screen.dart';
+import 'components/food_customization_bottom_sheet.dart';
 
 class RestaurantDetailScreen extends StatefulWidget {
   final int restaurantId;
@@ -868,10 +869,10 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
 
     final bool hasDiscount =
         dish.originalPrice > dish.dealPrice && dish.originalPrice > 0;
+    final bool hasVariants = dish.variants.isNotEmpty || dish.hasVariants;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(16),
@@ -886,152 +887,387 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
           ),
         ],
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Left: Dish Details
-          Expanded(
-            child: Column(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            FoodCustomizationBottomSheet.show(
+              context: context,
+              dish: dish,
+              storeDomain: storeDomain,
+              shopId: shopId,
+              restaurantName: restaurantName,
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Veg Indicator + Bestseller Badge Row
-                Row(
-                  children: [
-                    dish.isVeg ? _buildVegIcon() : _buildNonVegIcon(),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 1.5),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFF9800).withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(4),
+                // Left: Dish Details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Veg Indicator + Bestseller Badge Row
+                      Row(
+                        children: [
+                          dish.isVeg ? _buildVegIcon() : _buildNonVegIcon(),
+                          const SizedBox(width: 6),
+                          if (dish.isRecommended == 1)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 1.5),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFF9800)
+                                    .withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                "★ BESTSELLER",
+                                style: TextStyle(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFFE65100),
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                            ),
+                          if (dish.isSpicy == 1) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 1.5),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE53935)
+                                    .withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                "🌶️ SPICY",
+                                style: TextStyle(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFFE53935),
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
-                      child: const Text(
-                        "★ BESTSELLER",
-                        style: TextStyle(
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFFE65100),
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
+                      const SizedBox(height: 6),
 
-                // Dish Name
-                Text(
-                  dish.name,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    height: 1.25,
-                  ),
-                ),
-                const SizedBox(height: 4),
-
-                // Price Row
-                Row(
-                  children: [
-                    Text(
-                      "₹${dish.dealPrice.toStringAsFixed(2)}",
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF00C853),
-                      ),
-                    ),
-                    if (hasDiscount) ...[
-                      const SizedBox(width: 8),
+                      // Dish Name
                       Text(
-                        "₹${dish.originalPrice.toStringAsFixed(2)}",
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark ? Colors.white38 : Colors.black38,
-                          decoration: TextDecoration.lineThrough,
-                          fontWeight: FontWeight.w500,
+                        dish.name,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          height: 1.25,
                         ),
                       ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 6),
+                      const SizedBox(height: 4),
 
-                // Category & Stock Tag
-                Text(
-                  "${dish.categoryName ?? 'Delicious Item'} • Freshly prepared",
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    color: isDark ? Colors.white54 : Colors.black54,
+                      // Price Row
+                      Row(
+                        children: [
+                          Text(
+                            "₹${dish.dealPrice.toStringAsFixed(2)}",
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF00C853),
+                            ),
+                          ),
+                          if (hasDiscount) ...[
+                            const SizedBox(width: 8),
+                            Text(
+                              "₹${dish.originalPrice.toStringAsFixed(2)}",
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isDark ? Colors.white38 : Colors.black38,
+                                decoration: TextDecoration.lineThrough,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+
+                      // Category & Stock Tag
+                      Text(
+                        "${dish.categoryName ?? 'Delicious Item'} • Freshly prepared",
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: isDark ? Colors.white54 : Colors.black54,
+                        ),
+                      ),
+                      if (hasVariants) ...[
+                        const SizedBox(height: 5),
+                        Wrap(
+                          spacing: 5,
+                          runSpacing: 4,
+                          children: [
+                            for (var v in dish.variants.take(2))
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? Colors.white.withValues(alpha: 0.06)
+                                      : const Color(0xFFF1F1F5),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  "${v.name}${v.weightVolume != null && v.weightVolume!.trim().isNotEmpty ? ' (${v.weightVolume} ${v.weightUnit ?? ''})' : ''} • ₹${v.effectivePrice.toStringAsFixed(0)}",
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark
+                                        ? Colors.white70
+                                        : Colors.black87,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ],
                   ),
+                ),
+
+                const SizedBox(width: 14),
+
+                // Right: Image & Add / Stepper Button
+                Column(
+                  children: [
+                    Stack(
+                      clipBehavior: Clip.none,
+                      alignment: Alignment.bottomCenter,
+                      children: [
+                        Container(
+                          width: 96,
+                          height: 96,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(14),
+                            color: isDark
+                                ? const Color(0xFF262634)
+                                : const Color(0xFFF4F4F8),
+                            border: Border.all(
+                              color: isDark
+                                  ? Colors.white10
+                                  : const Color(0xFFEAEAEA),
+                            ),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(13),
+                            child:
+                                dish.thumbnail != null && dish.thumbnail!.isNotEmpty
+                                    ? CachedNetworkImage(
+                                        imageUrl: dish.thumbnail!,
+                                        fit: BoxFit.cover,
+                                        placeholder: (_, __) => const Skeleton(),
+                                        errorWidget: (_, __, ___) => const Icon(
+                                          Icons.fastfood_rounded,
+                                          color: Color(0xFF00C853),
+                                          size: 32,
+                                        ),
+                                      )
+                                    : const Icon(
+                                        Icons.fastfood_rounded,
+                                        color: Color(0xFF00C853),
+                                        size: 32,
+                                      ),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: -14,
+                          child: _buildFoodAddButton(
+                            context: context,
+                            dish: dish,
+                            productModel: productModel,
+                            storeDomain: storeDomain,
+                            shopId: shopId,
+                            restaurantName: restaurantName,
+                            isDark: isDark,
+                            hasVariants: hasVariants,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                 ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
 
-          const SizedBox(width: 14),
+  Widget _buildFoodAddButton({
+    required BuildContext context,
+    required DishModel dish,
+    required ProductModel productModel,
+    required String storeDomain,
+    required int shopId,
+    required String restaurantName,
+    required bool isDark,
+    required bool hasVariants,
+  }) {
+    return ListenableBuilder(
+      listenable: CartController.instance,
+      builder: (context, _) {
+        final cart = CartController.instance;
+        final int qty =
+            cart.getQuantity(productModel, storeDomain: storeDomain);
 
-          // Right: Image & Add / Stepper Button
-          Column(
-            children: [
-              Stack(
-                clipBehavior: Clip.none,
-                alignment: Alignment.bottomCenter,
-                children: [
-                  Container(
-                    width: 94,
-                    height: 94,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      color: isDark
-                          ? const Color(0xFF262634)
-                          : const Color(0xFFF4F4F8),
-                      border: Border.all(
-                        color:
-                            isDark ? Colors.white10 : const Color(0xFFEAEAEA),
-                      ),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(13),
-                      child:
-                          dish.thumbnail != null && dish.thumbnail!.isNotEmpty
-                              ? CachedNetworkImage(
-                                  imageUrl: dish.thumbnail!,
-                                  fit: BoxFit.cover,
-                                  placeholder: (_, __) => const Skeleton(),
-                                  errorWidget: (_, __, ___) => const Icon(
-                                    Icons.fastfood_rounded,
-                                    color: primaryColor,
-                                    size: 32,
-                                  ),
-                                )
-                              : const Icon(
-                                  Icons.fastfood_rounded,
-                                  color: primaryColor,
-                                  size: 32,
-                                ),
-                    ),
+        if (qty == 0) {
+          // Swiggy / Zomato White button with Green text and border
+          return Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                FoodCustomizationBottomSheet.show(
+                  context: context,
+                  dish: dish,
+                  storeDomain: storeDomain,
+                  shopId: shopId,
+                  restaurantName: restaurantName,
+                );
+              },
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                width: 90,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF262634) : Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: const Color(0xFF00C853),
+                    width: 1.5,
                   ),
-                  Positioned(
-                    bottom: -12,
-                    child: SizedBox(
-                      width: 84,
-                      child: ProductQuantityButton(
-                        product: productModel,
-                        storeDomain: storeDomain,
-                        activeColor: const Color(0xFF00C853),
-                        height: 30,
-                      ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
                     ),
-                  ),
-                ],
+                  ],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          "ADD",
+                          style: TextStyle(
+                            color: Color(0xFF00C853),
+                            fontWeight: FontWeight.w900,
+                            fontSize: 13,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        SizedBox(width: 3),
+                        Icon(
+                          Icons.add_rounded,
+                          color: Color(0xFF00C853),
+                          size: 14,
+                        ),
+                      ],
+                    ),
+                    if (hasVariants)
+                      Text(
+                        "Customisable",
+                        style: TextStyle(
+                          fontSize: 8,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.white60 : Colors.black45,
+                          height: 0.9,
+                        ),
+                      ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 14),
+            ),
+          );
+        }
+
+        // Stepper: [-] [qty] [+]
+        return Container(
+          width: 90,
+          height: 34,
+          decoration: BoxDecoration(
+            color: const Color(0xFF00C853),
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF00C853).withValues(alpha: 0.35),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
             ],
           ),
-        ],
-      ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              InkWell(
+                onTap: () {
+                  cart.decreaseQuantity(productModel, storeDomain: storeDomain);
+                },
+                borderRadius: BorderRadius.circular(6),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  child: Icon(
+                    Icons.remove_rounded,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
+              ),
+              Text(
+                "$qty",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 14,
+                ),
+              ),
+              InkWell(
+                onTap: () {
+                  if (hasVariants) {
+                    FoodCustomizationBottomSheet.show(
+                      context: context,
+                      dish: dish,
+                      storeDomain: storeDomain,
+                      shopId: shopId,
+                      restaurantName: restaurantName,
+                    );
+                  } else {
+                    cart.increaseQuantity(productModel, storeDomain: storeDomain);
+                  }
+                },
+                borderRadius: BorderRadius.circular(6),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  child: Icon(
+                    Icons.add_rounded,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

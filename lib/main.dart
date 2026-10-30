@@ -2,6 +2,7 @@ import 'dart:developer';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:toastification/toastification.dart';
 import 'package:vlr/services/constants.dart';
@@ -27,6 +28,7 @@ class MyHttpOverrides extends HttpOverrides {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  Get.addKey(navigatorKey);
   HttpOverrides.global = MyHttpOverrides();
   await Init().initialize();
   await Firebase.initializeApp(

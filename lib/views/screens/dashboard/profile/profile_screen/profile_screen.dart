@@ -8,7 +8,6 @@ import 'package:vlr/views/screens/auth_screens/kyc/kyc_screen.dart';
 import 'package:vlr/views/screens/auth_screens/login/login_screen.dart';
 import 'package:vlr/views/screens/bookings/booking_screen.dart';
 import 'package:vlr/views/screens/dashboard/profile/profile_edit_screen/profile_edit_screen.dart';
-import 'package:vlr/views/screens/gym/attendance/attendance_checkin_checkout_screen.dart';
 import 'package:vlr/views/screens/gym/gym_book_visit/gym_my_visit_screen.dart';
 import 'package:vlr/views/screens/total_transaction_history/total_transaction_history_screen.dart';
 
@@ -231,15 +230,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         color: Color(0xFFEEEEEE),
                         indent: 16,
                         endIndent: 16),
-                    ProfileMenuItem(
-                      icon: Icons.fact_check_outlined,
-                      title: "Attendance",
-                      onTap: () {
-                        navigate(
-                            context: context,
-                            page: const AttendanceCheckinCheckoutScreen());
-                      },
-                    ),
+                    // ProfileMenuItem(
+                    //   icon: Icons.fact_check_outlined,
+                    //   title: "Attendance",
+                    //   onTap: () {
+                    //     navigate(
+                    //         context: context,
+                    //         page: const AttendanceCheckinCheckoutScreen());
+                    //   },
+                    // ),
                     const Divider(
                       height: 1,
                       color: Color(0xFFEEEEEE),

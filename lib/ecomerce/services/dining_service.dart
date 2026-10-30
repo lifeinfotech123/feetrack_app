@@ -147,6 +147,9 @@ class DiningService {
     int? tableId,
     String? specialRequest,
     List<Map<String, dynamic>>? preorderItems,
+    String? customerName,
+    String? customerPhone,
+    String? customerEmail,
   }) async {
     final token = await _getToken();
     final headers = {..._headers};
@@ -161,6 +164,19 @@ class DiningService {
       'meal_type': mealType,
       'guests_count': guestsCount,
       if (tableId != null) 'table_id': tableId,
+      if (customerName != null && customerName.trim().isNotEmpty) ...{
+        'customer_name': customerName.trim(),
+        'name': customerName.trim(),
+      },
+      if (customerPhone != null && customerPhone.trim().isNotEmpty) ...{
+        'customer_phone': customerPhone.trim(),
+        'phone': customerPhone.trim(),
+        'mobile': customerPhone.trim(),
+      },
+      if (customerEmail != null && customerEmail.trim().isNotEmpty) ...{
+        'customer_email': customerEmail.trim(),
+        'email': customerEmail.trim(),
+      },
       if (specialRequest != null && specialRequest.isNotEmpty)
         'special_request': specialRequest,
       if (preorderItems != null && preorderItems.isNotEmpty) ...{

@@ -153,9 +153,10 @@ class DishVariantModel {
   final String name;
   final double price;
   final double promotionalPrice;
-  final num? weightVolume;
+  final num? costPrice;
+  final String? weightVolume;
   final String? weightUnit;
-  final int? servingSize;
+  final String? servingSize;
   final int? prepTimeMin;
   final String? sku;
 
@@ -164,6 +165,7 @@ class DishVariantModel {
     required this.name,
     required this.price,
     required this.promotionalPrice,
+    this.costPrice,
     this.weightVolume,
     this.weightUnit,
     this.servingSize,
@@ -171,19 +173,31 @@ class DishVariantModel {
     this.sku,
   });
 
+  double get effectivePrice =>
+      promotionalPrice > 0 ? promotionalPrice : price;
+
+  bool get hasDiscount =>
+      price > promotionalPrice && promotionalPrice > 0;
+
   factory DishVariantModel.fromJson(Map<String, dynamic> json) {
+    final pr = (json['price'] as num?)?.toDouble() ??
+        (json['unit_price'] as num?)?.toDouble() ??
+        0.0;
+    final promPr = (json['promotional_price'] as num?)?.toDouble() ??
+        (json['discounted_price'] as num?)?.toDouble() ??
+        pr;
+
     return DishVariantModel(
-      id: json['id'] is int ? json['id'] : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      id: json['id'] is int
+          ? json['id']
+          : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
       name: json['name']?.toString() ?? '',
-      price: (json['price'] as num?)?.toDouble() ?? 0.0,
-      promotionalPrice: (json['promotional_price'] as num?)?.toDouble() ??
-          (json['price'] as num?)?.toDouble() ??
-          0.0,
-      weightVolume: json['weight_volume'] as num?,
+      price: pr,
+      promotionalPrice: promPr,
+      costPrice: json['cost_price'] as num?,
+      weightVolume: json['weight_volume']?.toString(),
       weightUnit: json['weight_unit']?.toString(),
-      servingSize: json['serving_size'] is int
-          ? json['serving_size']
-          : int.tryParse(json['serving_size']?.toString() ?? ''),
+      servingSize: json['serving_size']?.toString(),
       prepTimeMin: json['prep_time_min'] is int
           ? json['prep_time_min']
           : int.tryParse(json['prep_time_min']?.toString() ?? ''),
@@ -197,6 +211,7 @@ class DishModel {
   final String name;
   final String slug;
   final String? code;
+  final String? unit;
   final double originalPrice;
   final double dealPrice;
   final double discount;
@@ -207,13 +222,25 @@ class DishModel {
   final String? thumbnail;
   final bool isFood;
   final String foodType; // 'veg', 'non_veg'
+  final int? isSpicy;
+  final int? isHalal;
+  final int? isRecommended;
+  final String? calories;
+  final int? preparationTimeMin;
+  final int? isInstantDelivery;
+  final String? instantDeliveryTime;
   final int? categoryId;
   final String? categoryName;
   final String? categorySlug;
+  final String? categoryIcon;
+  final bool hasVariants;
+  final int variantsCount;
   final List<DishVariantModel> variants;
   final int? shopId;
   final String? domain;
   final String? storeName;
+  final String? storeLogo;
+  final String? storeAddress;
   final double rating;
 
   DishModel({
@@ -221,6 +248,7 @@ class DishModel {
     required this.name,
     required this.slug,
     this.code,
+    this.unit,
     required this.originalPrice,
     required this.dealPrice,
     this.discount = 0.0,
@@ -231,13 +259,25 @@ class DishModel {
     this.thumbnail,
     this.isFood = true,
     this.foodType = 'veg',
+    this.isSpicy,
+    this.isHalal,
+    this.isRecommended,
+    this.calories,
+    this.preparationTimeMin,
+    this.isInstantDelivery,
+    this.instantDeliveryTime,
     this.categoryId,
     this.categoryName,
     this.categorySlug,
+    this.categoryIcon,
+    this.hasVariants = false,
+    this.variantsCount = 0,
     this.variants = const [],
     this.shopId,
     this.domain,
     this.storeName,
+    this.storeLogo,
+    this.storeAddress,
     this.rating = 4.8,
   });
 
@@ -252,12 +292,14 @@ class DishModel {
     int? defaultShopId,
     String? defaultStoreName,
   }) {
-    final origPrice = (json['original_price'] as num?)?.toDouble() ??
+    final origPrice = (json['base_price'] as num?)?.toDouble() ??
+        (json['original_price'] as num?)?.toDouble() ??
         (json['unit_price'] as num?)?.toDouble() ??
         (json['base_unit_price'] as num?)?.toDouble() ??
         (json['price'] as num?)?.toDouble() ??
         0.0;
     final dlPrice = (json['deal_price'] as num?)?.toDouble() ??
+        (json['promotional_price'] as num?)?.toDouble() ??
         (json['final_price'] as num?)?.toDouble() ??
         (json['discounted_price'] as num?)?.toDouble() ??
         (json['price_after_discount'] as num?)?.toDouble() ??
@@ -266,44 +308,70 @@ class DishModel {
     int? catId;
     String? catName;
     String? catSlug;
+    String? catIcon;
     if (json['category'] is Map<String, dynamic>) {
       catId = json['category']['id'] is int
           ? json['category']['id']
           : int.tryParse(json['category']['id']?.toString() ?? '');
       catName = json['category']['name']?.toString();
       catSlug = json['category']['slug']?.toString();
+      catIcon = json['category']['icon']?.toString();
     } else {
       catId = json['category_id'] is int
           ? json['category_id']
           : int.tryParse(json['category_id']?.toString() ?? '');
       catName = json['category_name']?.toString();
       catSlug = json['category_slug']?.toString();
+      catIcon = json['category_icon']?.toString();
     }
 
     String? itemDomain = defaultDomain;
     int? itemShopId = defaultShopId;
     String? itemStoreName = defaultStoreName;
+    String? itemStoreLogo;
+    String? itemStoreAddress;
 
-    if (json['store'] is Map<String, dynamic>) {
-      itemDomain ??= json['store']['domain']?.toString();
-      itemShopId ??= json['store']['shop_id'] is int
-          ? json['store']['shop_id']
-          : int.tryParse(json['store']['shop_id']?.toString() ?? '');
-      itemStoreName ??= json['store']['name']?.toString();
+    if (json['restaurant'] is Map<String, dynamic>) {
+      final r = json['restaurant'];
+      itemDomain ??= r['domain']?.toString();
+      itemShopId ??= r['shop_id'] is int
+          ? r['shop_id']
+          : int.tryParse(r['shop_id']?.toString() ?? '');
+      itemStoreName ??= r['name']?.toString();
+      itemStoreLogo = r['logo']?.toString();
+      itemStoreAddress = r['address']?.toString();
+    } else if (json['store'] is Map<String, dynamic>) {
+      final s = json['store'];
+      itemDomain ??= s['domain']?.toString();
+      itemShopId ??= s['shop_id'] is int
+          ? s['shop_id']
+          : int.tryParse(s['shop_id']?.toString() ?? '');
+      itemStoreName ??= s['name']?.toString();
+      itemStoreLogo = s['logo']?.toString();
+      itemStoreAddress = s['address']?.toString();
     }
+
     itemShopId ??= json['shop_id'] is int
         ? json['shop_id']
         : int.tryParse(json['shop_id']?.toString() ?? '');
     itemDomain ??= json['domain']?.toString();
 
     final List<DishVariantModel> variantList = [];
-    if (json['variants'] is List) {
-      for (var v in json['variants']) {
+    final rawVariants = json['food_variants'] ?? json['variants'];
+    if (rawVariants is List) {
+      for (var v in rawVariants) {
         if (v is Map<String, dynamic>) {
-          variantList.add(DishVariantModel.fromJson(v));
+          variantList.add(DishVariantModel.fromJson(Map<String, dynamic>.from(v)));
         }
       }
     }
+
+    final bool hasVars = json['has_variants'] == true ||
+        json['has_variants'] == 1 ||
+        variantList.isNotEmpty;
+    final int varCount = json['variants_count'] is int
+        ? json['variants_count']
+        : (int.tryParse(json['variants_count']?.toString() ?? '') ?? variantList.length);
 
     return DishModel(
       id: json['id'] is int
@@ -312,6 +380,7 @@ class DishModel {
       name: json['name']?.toString() ?? '',
       slug: json['slug']?.toString() ?? '',
       code: json['code']?.toString(),
+      unit: json['unit']?.toString(),
       originalPrice: origPrice,
       dealPrice: dlPrice > 0 ? dlPrice : origPrice,
       discount: (json['discount'] as num?)?.toDouble() ?? 0.0,
@@ -324,15 +393,31 @@ class DishModel {
           json['in_stock'] == 1 ||
           (json['current_stock'] != 0),
       thumbnail: json['thumbnail']?.toString() ?? json['image']?.toString(),
-      isFood: json['is_food'] == 1 || json['is_food'] == true,
+      isFood: json['is_food'] == 1 || json['is_food'] == true || true,
       foodType: json['food_type']?.toString().toLowerCase() ?? 'veg',
+      isSpicy: json['is_spicy'] is int ? json['is_spicy'] : int.tryParse(json['is_spicy']?.toString() ?? ''),
+      isHalal: json['is_halal'] is int ? json['is_halal'] : int.tryParse(json['is_halal']?.toString() ?? ''),
+      isRecommended: json['is_recommended'] is int ? json['is_recommended'] : int.tryParse(json['is_recommended']?.toString() ?? ''),
+      calories: json['calories']?.toString(),
+      preparationTimeMin: json['preparation_time_min'] is int
+          ? json['preparation_time_min']
+          : int.tryParse(json['preparation_time_min']?.toString() ?? ''),
+      isInstantDelivery: json['is_instant_delivery'] is int
+          ? json['is_instant_delivery']
+          : int.tryParse(json['is_instant_delivery']?.toString() ?? ''),
+      instantDeliveryTime: json['instant_delivery_time']?.toString(),
       categoryId: catId,
       categoryName: catName,
       categorySlug: catSlug,
+      categoryIcon: catIcon,
+      hasVariants: hasVars,
+      variantsCount: varCount,
       variants: variantList,
       shopId: itemShopId,
       domain: itemDomain,
       storeName: itemStoreName,
+      storeLogo: itemStoreLogo,
+      storeAddress: itemStoreAddress,
       rating: (json['rating'] as num?)?.toDouble() ?? 4.8,
     );
   }
@@ -341,25 +426,36 @@ class DishModel {
     String? storeDomain,
     int? shopId,
     String? restaurantName,
+    DishVariantModel? selectedVariant,
   }) {
-    final effectiveDomain = storeDomain ?? domain ?? 'e-team-12';
-    final effectiveShopId = shopId ?? this.shopId ?? 2;
+    final effectiveDomain = storeDomain ?? domain ?? '21-ecomm';
+    final effectiveShopId = shopId ?? this.shopId ?? 1;
     final effectiveStoreName = restaurantName ?? storeName ?? 'Restaurant';
 
+    double effectivePrice = originalPrice;
+    double effectiveDealPrice = dealPrice;
+    double effectiveDiscountAmount = discountAmount;
+
+    if (selectedVariant != null) {
+      effectivePrice = selectedVariant.price > 0 ? selectedVariant.price : selectedVariant.promotionalPrice;
+      effectiveDealPrice = selectedVariant.promotionalPrice > 0 ? selectedVariant.promotionalPrice : effectivePrice;
+      effectiveDiscountAmount = (effectivePrice > effectiveDealPrice) ? (effectivePrice - effectiveDealPrice) : 0.0;
+    }
+
     int discountPercent = 0;
-    if (originalPrice > dealPrice && originalPrice > 0) {
+    if (effectivePrice > effectiveDealPrice && effectivePrice > 0) {
       discountPercent =
-          (((originalPrice - dealPrice) / originalPrice) * 100).round();
+          (((effectivePrice - effectiveDealPrice) / effectivePrice) * 100).round();
     }
 
     return ProductModel(
       id: id,
       title: name,
-      price: originalPrice,
-      priceAfetDiscount: dealPrice,
-      discountAmount: discountAmount > 0
-          ? discountAmount
-          : (originalPrice - dealPrice > 0 ? (originalPrice - dealPrice) : 0),
+      price: effectivePrice,
+      priceAfetDiscount: effectiveDealPrice,
+      discountAmount: effectiveDiscountAmount > 0
+          ? effectiveDiscountAmount
+          : (effectivePrice - effectiveDealPrice > 0 ? (effectivePrice - effectiveDealPrice) : 0),
       dicountpercent: discountPercent,
       image: thumbnail ?? '',
       brandName: effectiveStoreName,

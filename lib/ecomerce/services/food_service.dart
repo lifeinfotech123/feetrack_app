@@ -72,4 +72,38 @@ class FoodService {
     }
     return [];
   }
+
+  /// Fetch Global Food Dishes and Items (api/v1/ecommerce/food/dishes?domain=...)
+  Future<List<DishModel>> getFoodDishes({String? domain, int? shopId}) async {
+    String url = '$ecomBaseUrl$ecomFoodDishesEndpoint';
+    final queryParams = <String, String>{};
+    if (domain != null && domain.isNotEmpty) queryParams['domain'] = domain;
+    if (shopId != null) queryParams['shop_id'] = shopId.toString();
+
+    if (queryParams.isNotEmpty) {
+      url = '$url?${Uri(queryParameters: queryParams).query}';
+    }
+
+    try {
+      final response = await _client.get(Uri.parse(url), headers: _headers);
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        if (data['status'] == true && data['data'] != null) {
+          final List list = data['data'];
+          return list
+              .map((item) => DishModel.fromJson(
+                    Map<String, dynamic>.from(item),
+                    defaultDomain: domain,
+                    defaultShopId: shopId,
+                  ))
+              .toList();
+        }
+      } else {
+        debugPrint('FoodService getFoodDishes Error: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('FoodService getFoodDishes Exception: $e');
+    }
+    return [];
+  }
 }

@@ -39,23 +39,12 @@ class _AllBrandsScreenState extends State<AllBrandsScreen> {
   }
 
   List<BrandModel> _getMergedBrands() {
-    final Map<String, BrandModel> map = {};
+    final List<BrandModel> allSources = [
+      ..._brandController.brands,
+      ..._homeApiController.topBrands,
+    ];
 
-    // 1. From BrandCrontoller
-    for (final b in _brandController.brands) {
-      final key = (b.slug ?? b.name).toLowerCase().trim();
-      map[key] = b;
-    }
-
-    // 2. From HomeScreenApiController.topBrands
-    for (final b in _homeApiController.topBrands) {
-      final key = (b.slug ?? b.name).toLowerCase().trim();
-      if (!map.containsKey(key)) {
-        map[key] = b;
-      }
-    }
-
-    var list = map.values.toList();
+    var list = BrandModel.deduplicate(allSources);
 
     if (_searchQuery.trim().isNotEmpty) {
       final q = _searchQuery.toLowerCase().trim();

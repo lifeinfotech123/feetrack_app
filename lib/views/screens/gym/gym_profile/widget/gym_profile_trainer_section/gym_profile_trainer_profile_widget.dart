@@ -1,24 +1,63 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:vlr/controllers/gym_controller.dart';
+import 'package:vlr/controllers/home_controller.dart';
+import 'package:vlr/controllers/subscription_controller.dart';
+import 'package:vlr/data/models/category_model/plan_model.dart';
 import 'package:vlr/data/models/category_model/staff_model.dart';
 import 'package:vlr/services/constants.dart';
 import 'package:vlr/services/theme.dart';
 import 'package:vlr/views/base/custom_image.dart';
-import 'package:vlr/views/screens/gym/gym_trainer_profile_screen/gym_trainer_profile_screen.dart';
+import 'package:vlr/views/screens/gym/gym_book_membership/gym_book_membership_screen.dart';
 
 class GYmProfileTrainerProfileWidget extends StatelessWidget {
   final StaffModel staffModel;
+  final String? listingId;
+
   const GYmProfileTrainerProfileWidget({
     super.key,
     required this.staffModel,
+    this.listingId,
   });
 
-  void _onOpenTrainerDetails(BuildContext context) {
-    final trainerId = staffModel.stringId ?? staffModel.id?.toString() ?? "";
+  void _onBookTrainer(BuildContext context) {
+    if (Get.isRegistered<GymController>()) {
+      final gymController = Get.find<GymController>();
+      gymController.selectGymTrainerModel = staffModel;
+      gymController.update();
+    }
+
+    HomeController? homeController;
+    if (Get.isRegistered<HomeController>()) {
+      homeController = Get.find<HomeController>();
+    }
+
+    final listing = homeController?.selectListingModel;
+    final effectiveListingId =
+        listing?.id ?? listingId ?? staffModel.gymId ?? "";
+
+    SubscriptionController? subscriptionController;
+    if (Get.isRegistered<SubscriptionController>()) {
+      subscriptionController = Get.find<SubscriptionController>();
+    }
+
+    PlanModel? plan = subscriptionController?.selectedPlan;
+    if (plan == null &&
+        subscriptionController != null &&
+        subscriptionController.planModelList.isNotEmpty) {
+      plan = subscriptionController.planModelList.first;
+      subscriptionController.selectedPlan = plan;
+      subscriptionController.update();
+    }
+
     navigate(
       context: context,
-      page: GymTrainerProfileScreen(
-        staffId: trainerId,
-        initialStaff: staffModel,
+      page: GymBookMembershipScreen(
+        planModel: plan,
+        listingModel: listing,
+        listingId: effectiveListingId,
+        packageId: plan?.id,
+        selectedTrainer: staffModel,
       ),
     );
   }
@@ -43,7 +82,7 @@ class GYmProfileTrainerProfileWidget extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: () => _onOpenTrainerDetails(context),
+          onTap: () => _onBookTrainer(context),
           child: Padding(
             padding: const EdgeInsets.all(10),
             child: Column(
@@ -119,19 +158,19 @@ class GYmProfileTrainerProfileWidget extends StatelessWidget {
 
                 const Spacer(),
 
-                // ── View Details Button ─────────────────────────────
+                // ── Book Trainer Button ─────────────────────────────
                 SizedBox(
                   width: double.infinity,
                   height: 36,
                   child: ElevatedButton.icon(
-                    onPressed: () => _onOpenTrainerDetails(context),
+                    onPressed: () => _onBookTrainer(context),
                     icon: const Icon(
-                      Icons.person_outline_rounded,
+                      Icons.fitness_center_rounded,
                       size: 15,
                       color: Colors.white,
                     ),
                     label: const Text(
-                      "View Details",
+                      "Book Trainer",
                       style: TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w800,

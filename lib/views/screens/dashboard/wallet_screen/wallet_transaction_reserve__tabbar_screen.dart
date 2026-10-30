@@ -32,7 +32,13 @@ class _WalletTransactionReserveTabbarScreenState
         elevation: 0,
         surfaceTintColor: Colors.white,
         leading: IconButton(
-          onPressed: () => Get.back(),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              Get.back();
+            }
+          },
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 20),
         ),
         title: const Text(

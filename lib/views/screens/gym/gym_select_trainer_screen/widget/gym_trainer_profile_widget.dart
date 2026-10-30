@@ -115,17 +115,17 @@ class SelectGYMTrainerProfileWidget extends StatelessWidget {
                             )
                           : Container(
                               padding: const EdgeInsets.all(8),
-                              child: Icon(
-                                Icons.add,
-                                color: primaryText1,
-                                size: 28,
-                              ),
                               decoration: BoxDecoration(
                                 border: Border.all(
                                   width: 1,
                                   color: primaryText1,
                                 ),
                                 shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.add,
+                                color: primaryText1,
+                                size: 28,
                               ),
                             ),
                 )

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:vlr/controllers/auth_controller.dart';
+import 'package:vlr/ecomerce/screens/chat/views/live_chat_screen.dart';
 import 'package:vlr/services/app_router.dart';
 import 'package:vlr/services/constants.dart';
 import 'package:vlr/views/screens/auth_screens/login/login_screen.dart';
@@ -331,15 +332,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   },
                 ),
 
-                // _buildSingleFeatureCard(
-                //   context,
-                //   icon: Icons.help_center_rounded,
-                //   iconColor: const Color(0xFF0288D1),
-                //   iconBgColor: const Color(0xFF0288D1).withValues(alpha: 0.12),
-                //   title: "FAQs & Knowledgebase",
-                //   subtitle: "Frequently asked questions & shopping guides",
-                //   onTap: () {},
-                // ),
+                _buildSingleFeatureCard(
+                  context,
+                  icon: Icons.chat,
+                  iconColor: const Color(0xFF0288D1),
+                  iconBgColor: const Color(0xFF0288D1).withValues(alpha: 0.12),
+                  title: "Live Chat",
+                  subtitle: "Chating with our technical team",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const LiveChatScreen(),
+                      ),
+                    );
+                  },
+                ),
 
                 _buildSingleFeatureCard(
                   context,

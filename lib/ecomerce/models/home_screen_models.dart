@@ -214,7 +214,11 @@ class ApiProductModel {
       dicountpercent: calculatedPercent,
       discountAmount: calculatedDiscountAmount,
       storeName: store?.name,
-      storeDomain: overrideDomain ?? store?.domain ?? 'e-team-12',
+      storeDomain: (overrideDomain != null && overrideDomain.trim().isNotEmpty)
+          ? overrideDomain.trim()
+          : ((store?.domain != null && store!.domain!.trim().isNotEmpty)
+              ? store!.domain!.trim()
+              : 'e-team-12'),
       shopId: shopId ?? store?.shopId ?? 1,
       storeId: store?.id,
       storeSlug: store?.slug,

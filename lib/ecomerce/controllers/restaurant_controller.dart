@@ -1,7 +1,9 @@
 import 'package:get/get.dart';
+import 'package:flutter/foundation.dart';
 import '../models/food_model.dart';
 import '../models/home_screen_models.dart';
 import '../models/restaurant_model.dart';
+import '../services/food_service.dart';
 import '../services/product_service.dart';
 import '../services/restaurant_service.dart';
 import 'food_controller.dart';
@@ -9,6 +11,7 @@ import 'food_controller.dart';
 class RestaurantController extends GetxController implements GetxService {
   final RestaurantService _apiService = RestaurantService();
   final ProductService _productService = ProductService();
+  final FoodService _foodService = FoodService();
 
   final RxList<RestaurantModel> restaurants = <RestaurantModel>[].obs;
   final Rx<RestaurantDetailModel?> restaurantDetail =
@@ -97,6 +100,23 @@ class RestaurantController extends GetxController implements GetxService {
 
       // 3. Assemble dishes for this restaurant
       final List<DishModel> dishes = [];
+
+      // Primary source: Fetch live food dishes directly from api/v1/ecommerce/food/dishes
+      try {
+        final apiDishes = await _foodService.getFoodDishes(
+          domain: effectiveDomain,
+          shopId: effectiveShopId,
+        );
+        for (var d in apiDishes) {
+          if (!dishes.any((item) =>
+              item.id == d.id ||
+              item.name.trim().toLowerCase() == d.name.trim().toLowerCase())) {
+            dishes.add(d);
+          }
+        }
+      } catch (e) {
+        debugPrint("RestaurantController getFoodDishes error: $e");
+      }
 
       // Helper to check if a product from the list belongs to this restaurant's domain / shop
       bool matchesRestaurant(ApiProductModel p) {

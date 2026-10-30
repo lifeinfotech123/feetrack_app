@@ -26,11 +26,11 @@ class BrandCrontoller extends GetxController implements GetxService {
       isLoading.value = true;
       errorMessage.value = '';
       final fetchedBrands = await _brandService.getBrands();
-      brands.assignAll(fetchedBrands);
+      brands.assignAll(BrandModel.deduplicate(fetchedBrands));
     } catch (e) {
       errorMessage.value = e.toString();
       final fallback = await _brandService.getBrands();
-      brands.assignAll(fallback);
+      brands.assignAll(BrandModel.deduplicate(fallback));
     } finally {
       isLoading.value = false;
     }
